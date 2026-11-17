@@ -35,7 +35,7 @@
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTextColumn Header="Elementos" Binding="{Binding ElementIds.Count}" Width="72" ElementStyle="{StaticResource VirRightCell}" />
+                <DataGridTextColumn Header="Elementos" Binding="{Binding ElementCount}" Width="72" ElementStyle="{StaticResource VirRightCell}" />
             </DataGrid.Columns>
         </DataGrid>
         <TextBlock Grid.Row="3" Style="{StaticResource VirHint}" Margin="0,6,0,0"

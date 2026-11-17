@@ -25,8 +25,9 @@ public sealed class TemplateRejectedException : Exception
 public static class SymbolFamilyBuilder
 {
     /// <summary>Gera o arquivo .rfa de um símbolo. Não pode haver transação aberta em nenhum documento.</summary>
+    /// <param name="typeName">Nome do tipo gravado na família (mantém o mesmo tipo quando a família é recarregada).</param>
     /// <returns>Quantidade de linhas que o Revit recusou (zero em condições normais).</returns>
-    public static int Build(RevitApplication app, string templateFile, PlantSymbol symbol, string outputFile, ViridianSettings settings)
+    public static int Build(RevitApplication app, string templateFile, PlantSymbol symbol, string outputFile, ViridianSettings settings, string typeName)
     {
         Document familyDocument;
         try
@@ -45,7 +46,16 @@ public static class SymbolFamilyBuilder
 
         try
         {
-            int skipped = Draw(app, familyDocument, symbol, settings);
+            int skipped;
+            try
+            {
+                skipped = Draw(app, familyDocument, symbol, settings, typeName);
+            }
+            catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+            {
+                // Qualquer recusa do Revit ao montar o símbolo invalida apenas este modelo; o próximo é tentado.
+                throw new TemplateRejectedException(ex.Message);
+            }
 
             string? folder = Path.GetDirectoryName(outputFile);
             if (!string.IsNullOrEmpty(folder))
@@ -70,7 +80,7 @@ public static class SymbolFamilyBuilder
         }
     }
 
-    private static int Draw(RevitApplication app, Document familyDocument, PlantSymbol symbol, ViridianSettings settings)
+    private static int Draw(RevitApplication app, Document familyDocument, PlantSymbol symbol, ViridianSettings settings, string typeName)
     {
         if (!familyDocument.IsFamilyDocument || familyDocument.OwnerFamily is null)
         {
@@ -145,6 +155,8 @@ public static class SymbolFamilyBuilder
                 throw new TemplateRejectedException("O modelo recusou a maior parte das linhas do símbolo.");
             }
 
+            SetSingleType(familyDocument, typeName);
+
             if (transaction.Commit() != TransactionStatus.Committed)
             {
                 throw new TemplateRejectedException("O Revit não confirmou a criação do símbolo.");
@@ -161,6 +173,27 @@ public static class SymbolFamilyBuilder
         }
 
         return skipped;
+    }
+
+    /// <summary>Deixa a família com um único tipo, com o nome informado.</summary>
+    private static void SetSingleType(Document familyDocument, string typeName)
+    {
+        if (string.IsNullOrWhiteSpace(typeName))
+        {
+            return;
+        }
+
+        FamilyManager manager = familyDocument.FamilyManager;
+        if (manager.CurrentType is null || manager.Types.IsEmpty)
+        {
+            manager.NewType(typeName);
+            return;
+        }
+
+        if (!string.Equals(manager.CurrentType.Name, typeName, StringComparison.Ordinal))
+        {
+            manager.RenameCurrentType(typeName);
+        }
     }
 
     private static Category GetOrCreateSubcategory(Document document, Category parent, string name)

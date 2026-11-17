@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Viridian.Addin/Viridian.Addin.csproj" />
+    <Project Path="src/Viridian.Core/Viridian.Core.csproj" />
+    <Project Path="src/Viridian.Library/Viridian.Library.csproj" />
+    <Project Path="src/Viridian.Revit/Viridian.Revit.csproj" />
+    <Project Path="src/Viridian.UI/Viridian.UI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Viridian.Tests/Viridian.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Viridian.Preview/Viridian.Preview.csproj" />
+  </Folder>
+</Solution>

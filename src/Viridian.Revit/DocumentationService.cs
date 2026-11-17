@@ -297,7 +297,19 @@ public sealed class DocumentationService
                                   .FirstOrDefault(t => t.ViewFamily == ViewFamily.Drafting)
                               ?? throw new ViridianException("O projeto não possui tipo de vista de desenho para criar a legenda.");
         ViewDrafting view = ViewDrafting.Create(document, type.Id);
-        view.Name = name;
+        for (int attempt = 1; attempt <= 50; attempt++)
+        {
+            try
+            {
+                view.Name = attempt == 1 ? name : $"{name} ({attempt})";
+                break;
+            }
+            catch (Autodesk.Revit.Exceptions.ArgumentException)
+            {
+                // Nome já usado por outra vista: tenta o próximo.
+            }
+        }
+
         return view;
     }
 

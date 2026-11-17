@@ -41,6 +41,9 @@ public sealed class IntegrityIssue
 
     public IReadOnlyList<long> ElementIds { get; init; } = Array.Empty<long>();
 
+    /// <summary>Quantidade de elementos envolvidos (para exibição em listas).</summary>
+    public int ElementCount => ElementIds.Count;
+
     public string SeverityName => Severity switch
     {
         IssueSeverity.Erro => "Erro",

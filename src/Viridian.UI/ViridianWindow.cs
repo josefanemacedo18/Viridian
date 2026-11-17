@@ -76,8 +76,12 @@ public static class Num
         return double.TryParse(t, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && double.IsFinite(value);
     }
 
-    public static bool TryParseInt(string? text, out int value) =>
-        int.TryParse((text ?? string.Empty).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+    /// <summary>Lê um inteiro aceitando separador de milhar brasileiro ("2.000").</summary>
+    public static bool TryParseInt(string? text, out int value)
+    {
+        string t = (text ?? string.Empty).Trim().Replace(" ", string.Empty, StringComparison.Ordinal).Replace(".", string.Empty, StringComparison.Ordinal);
+        return int.TryParse(t, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+    }
 
     public static bool TryParseDecimal(string? text, out decimal value)
     {

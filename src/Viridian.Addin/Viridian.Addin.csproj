@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <PlatformTarget>x64</PlatformTarget>
+    <RootNamespace>Viridian.Addin</RootNamespace>
+    <AssemblyName>Viridian.Addin</AssemblyName>
+    <Description>Add-in Viridian para Autodesk Revit 2027: paisagismo 2D técnico.</Description>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <GenerateDependencyFile>true</GenerateDependencyFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="$(RevitApiVersion)" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="$(RevitApiVersion)" ExcludeAssets="runtime" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Viridian.Core\Viridian.Core.csproj" />
+    <ProjectReference Include="..\Viridian.Library\Viridian.Library.csproj" />
+    <ProjectReference Include="..\Viridian.Revit\Viridian.Revit.csproj" />
+    <ProjectReference Include="..\Viridian.UI\Viridian.UI.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Viridian.addin" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

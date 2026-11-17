@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>Viridian</Name>
+    <Assembly>Viridian\Viridian.Addin.dll</Assembly>
+    <AddInId>b23f34bc-7d2a-4f03-983e-92fb5c8a27e3</AddInId>
+    <FullClassName>Viridian.Addin.App</FullClassName>
+    <VendorId>VIRIDIAN</VendorId>
+    <VendorDescription>Viridian — documentação técnica 2D de paisagismo para Revit</VendorDescription>
+  </AddIn>
+</RevitAddIns>

@@ -101,7 +101,7 @@ public partial class LabelWindow : ViridianWindow
         MassingsBox.IsEnabled = massings > 0;
 
         LabelModel model = (ModelBox.SelectedItem as Choice<LabelModel>)?.Value ?? LabelModel.CodigoSimples;
-        bool grouped = GroupBox.IsChecked == true;
+        bool grouped = GroupBySpeciesBox.IsChecked == true;
         var sample = new MassingRecord
         {
             Id = "MC-001", SpeciesCode = "FO-001", PopularName = "Grama-amendoim", ScientificName = "Arachis repens",
@@ -121,7 +121,7 @@ public partial class LabelWindow : ViridianWindow
 
         bool native = TagRadio.IsChecked == true;
         TagTypeBox.IsEnabled = native && TagTypeBox.Items.Count > 0;
-        GroupBox.IsEnabled = !native;
+        GroupBySpeciesBox.IsEnabled = !native;
 
         bool anyPlants = PlantsBox.IsEnabled && PlantsBox.IsChecked == true;
         bool anyMassings = MassingsBox.IsEnabled && MassingsBox.IsChecked == true;
@@ -138,7 +138,7 @@ public partial class LabelWindow : ViridianWindow
         Options.Massings = MassingsBox.IsEnabled && MassingsBox.IsChecked == true;
         Options.Model = (ModelBox.SelectedItem as Choice<LabelModel>)?.Value ?? LabelModel.CodigoSimples;
         Options.Leader = LeaderBox.IsChecked == true;
-        Options.GroupBySpecies = !native && GroupBox.IsChecked == true;
+        Options.GroupBySpecies = !native && GroupBySpeciesBox.IsChecked == true;
         Options.NativeTagTypeId = native ? ((Choice<long>)TagTypeBox.SelectedItem).Value : 0;
         DialogResult = true;
     }

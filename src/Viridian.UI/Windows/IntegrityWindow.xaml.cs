@@ -61,11 +61,11 @@ public partial class IntegrityWindow : ViridianWindow
 
     private void IssuesGrid_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateButtons();
 
-    private void UpdateButtons() => ShowButton.IsEnabled = Selected is { ElementIds.Count: > 0 };
+    private void UpdateButtons() => ShowButton.IsEnabled = Selected is { ElementCount: > 0 };
 
     private void ShowSelected()
     {
-        if (Selected is { ElementIds.Count: > 0 } issue)
+        if (Selected is { ElementCount: > 0 } issue)
         {
             _showElements(issue.ElementIds);
         }

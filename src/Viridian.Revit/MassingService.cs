@@ -326,7 +326,7 @@ public sealed class MassingService
         record.PopularName = species.PopularName;
         record.ScientificName = species.ScientificName;
         record.SupplyUnit = species.SupplyUnit;
-        record.HatchPatternKey = execution.Hatch?.Key ?? string.Empty;
+        record.HatchPatternKey = record.Mode == MassingMode.Simbolos ? string.Empty : execution.Hatch?.Key ?? string.Empty;
 
         RemoveSymbols(document, record.Id);
 

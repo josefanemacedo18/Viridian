@@ -254,12 +254,57 @@ public sealed class SpeciesFamilyService
         // Regerar com o mesmo nome faz o Revit substituir a família e atualizar os exemplares existentes.
         string standardName = FamilyNameOf(species, variant);
         string familyName = linked.HasValue ? linked.Value.Symbol.Family.Name : UniqueFamilyName(document, standardName, species.Id);
-        string file = EnsureFamilyFile(document.Application, species, variant, familyName, standardName, hash);
+        string typeName = TypeNameOf(species);
+        string file = EnsureFamilyFile(document.Application, species, variant, familyName, standardName, hash, typeName);
         Family family = LoadFamilyFile(document, file);
-        FamilySymbol symbol = PickSymbol(document, family, string.Empty);
-        RenameType(document, symbol, species);
-        return symbol;
+
+        // Ao regerar, o tipo já usado pelos exemplares continua sendo o tipo da espécie.
+        if (linked.HasValue && linked.Value.Symbol.IsValidObject && linked.Value.Symbol.Family?.Id == family.Id)
+        {
+            RemoveUnusedTypes(document, family, linked.Value.Symbol.Id);
+            return linked.Value.Symbol;
+        }
+
+        return PickSymbol(document, family, typeName);
     }
+
+    /// <summary>Remove tipos sem exemplares acrescentados à família por uma recarga (mantém o tipo informado).</summary>
+    private static void RemoveUnusedTypes(Document document, Family family, ElementId keep)
+    {
+        var others = family.GetFamilySymbolIds().Where(id => id != keep).ToList();
+        if (others.Count == 0)
+        {
+            return;
+        }
+
+        var used = new HashSet<ElementId>();
+        using (var collector = new FilteredElementCollector(document))
+        {
+            foreach (Element instance in collector.OfClass(typeof(FamilyInstance)).OfCategory(BuiltInCategory.OST_Planting))
+            {
+                used.Add(instance.GetTypeId());
+            }
+        }
+
+        List<ElementId> unused = others.Where(id => !used.Contains(id)).ToList();
+        if (unused.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            Tx.Run(document, "Viridian: limpar tipos", () => document.Delete(unused));
+        }
+        catch (Exception ex) when (ex is Autodesk.Revit.Exceptions.ApplicationException or InvalidOperationException)
+        {
+            ViridianLog.Warn("Não foi possível remover tipos sem uso da família " + family.Name, ex);
+        }
+    }
+
+    /// <summary>Nome do tipo da família gerada: o nome popular da espécie.</summary>
+    public static string TypeNameOf(Species species) =>
+        SafeFile.SanitizeName(string.IsNullOrWhiteSpace(species.PopularName) ? species.ScientificName : species.PopularName, 60);
 
     private static string UniqueFamilyName(Document document, string standardName, string speciesId)
     {
@@ -284,12 +329,13 @@ public sealed class SpeciesFamilyService
         return standardName + "_" + suffix;
     }
 
-    private string EnsureFamilyFile(RevitApplication app, Species species, int variant, string familyName, string standardName, string hash)
+    private string EnsureFamilyFile(RevitApplication app, Species species, int variant, string familyName, string standardName, string hash, string typeName)
     {
         bool cacheable = string.Equals(familyName, standardName, StringComparison.OrdinalIgnoreCase);
         string cacheFile = Path.Combine(_paths.GeneratedFolder(species.Category), familyName + ".rfa");
         Dictionary<string, string> index = ReadIndex();
-        if (cacheable && File.Exists(cacheFile) && index.TryGetValue(familyName, out string? cachedHash) && cachedHash == hash)
+        string cacheKey = hash + "|" + typeName;
+        if (cacheable && File.Exists(cacheFile) && index.TryGetValue(familyName, out string? cachedKey) && cachedKey == cacheKey)
         {
             return cacheFile;
         }
@@ -298,27 +344,27 @@ public sealed class SpeciesFamilyService
         string target = cacheable ? cacheFile : Path.Combine(Path.GetTempPath(), "Viridian", "Familias", familyName + ".rfa");
         try
         {
-            BuildWithAnyTemplate(app, symbol, target);
+            BuildWithAnyTemplate(app, symbol, target, typeName);
         }
         catch (Exception ex) when (cacheable && ex is IOException or UnauthorizedAccessException or Autodesk.Revit.Exceptions.FileAccessException)
         {
             // Biblioteca somente leitura ou arquivo em uso: gera em pasta temporária.
             ViridianLog.Warn("Não foi possível gravar a família na biblioteca; usando pasta temporária.", ex);
             target = Path.Combine(Path.GetTempPath(), "Viridian", "Familias", familyName + ".rfa");
-            BuildWithAnyTemplate(app, symbol, target);
+            BuildWithAnyTemplate(app, symbol, target, typeName);
             return target;
         }
 
         if (cacheable)
         {
-            index[familyName] = hash;
+            index[familyName] = cacheKey;
             WriteIndex(index);
         }
 
         return target;
     }
 
-    private void BuildWithAnyTemplate(RevitApplication app, PlantSymbol symbol, string target)
+    private void BuildWithAnyTemplate(RevitApplication app, PlantSymbol symbol, string target, string typeName)
     {
         IReadOnlyList<string> candidates = FamilyTemplateLocator.Candidates(app, _settings.FamilyTemplateFile);
         var rejections = new List<string>();
@@ -326,7 +372,7 @@ public sealed class SpeciesFamilyService
         {
             try
             {
-                int skipped = SymbolFamilyBuilder.Build(app, template, symbol, target, _settings);
+                int skipped = SymbolFamilyBuilder.Build(app, template, symbol, target, _settings, typeName);
                 if (skipped > 0)
                 {
                     ViridianLog.Warn($"{skipped} linha(s) do símbolo foram recusadas pelo Revit em {Path.GetFileName(target)}.");
@@ -441,25 +487,6 @@ public sealed class SpeciesFamilyService
         }
 
         return symbols.FirstOrDefault(s => string.Equals(s.Name, typeName, StringComparison.OrdinalIgnoreCase)) ?? symbols[0];
-    }
-
-    private static void RenameType(Document document, FamilySymbol symbol, Species species)
-    {
-        string desired = SafeFile.SanitizeName(string.IsNullOrWhiteSpace(species.PopularName) ? species.ScientificName : species.PopularName, 60);
-        if (string.Equals(symbol.Name, desired, StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        try
-        {
-            Tx.Run(document, "Viridian: nome do tipo", () => symbol.Name = desired);
-        }
-        catch (Exception ex) when (ex is Autodesk.Revit.Exceptions.ApplicationException or InvalidOperationException)
-        {
-            // Nome já usado por outro tipo da família: mantém o nome atual.
-            ViridianLog.Warn($"Não foi possível renomear o tipo para \"{desired}\".", ex);
-        }
     }
 
     private void WriteTypeData(FamilySymbol symbol, Species species, string projectCode)
