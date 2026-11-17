@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Viridian.Core</RootNamespace>
+    <Description>Núcleo do Viridian: regras botânicas, símbolos 2D, distribuição, escala e quantitativos.</Description>
+  </PropertyGroup>
+</Project>

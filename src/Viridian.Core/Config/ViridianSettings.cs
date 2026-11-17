@@ -1,0 +1,206 @@
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Viridian.Core.Coding;
+using Viridian.Core.Hatch;
+using Viridian.Core.Integrity;
+using Viridian.Core.Massing;
+using Viridian.Core.Scale;
+using Viridian.Core.Symbols;
+
+namespace Viridian.Core.Config;
+
+/// <summary>Padrão gráfico de uma camada de símbolo: espessura de linha do Revit (1 a 16) e cor.</summary>
+public sealed class TierStyle
+{
+    public SymbolTier Tier { get; set; }
+
+    public int LineWeight { get; set; } = 1;
+
+    /// <summary>Cor em hexadecimal (#RRGGBB).</summary>
+    public string Color { get; set; } = "#000000";
+}
+
+public sealed class LabelSettings
+{
+    /// <summary>Altura do texto das etiquetas, em milímetros no papel.</summary>
+    public double TextSizeMm { get; set; } = 2.0;
+
+    /// <summary>Distância da etiqueta ao elemento, em milímetros no papel.</summary>
+    public double OffsetMm { get; set; } = 8.0;
+
+    public bool LeaderByDefault { get; set; } = true;
+}
+
+public sealed class QuantitySettings
+{
+    /// <summary>Reserva de reposição aplicada aos exemplares isolados, em porcentagem.</summary>
+    public double IndividualReservePercent { get; set; }
+
+    /// <summary>Reserva de reposição sugerida para novos maciços, em porcentagem.</summary>
+    public double MassingReservePercent { get; set; } = 10;
+}
+
+public sealed class PlantingDefaults
+{
+    public double EdgeMarginM { get; set; } = 0.30;
+
+    public double JitterPercent { get; set; } = 10;
+
+    public int MaxCount { get; set; } = 2000;
+
+    public bool RandomRotation { get; set; } = true;
+}
+
+/// <summary>Configurações do escritório. Gravadas em JSON e compartilháveis entre computadores.</summary>
+public sealed class ViridianSettings
+{
+    public int SchemaVersion { get; set; } = 1;
+
+    /// <summary>Pasta raiz da biblioteca. Vazio = pasta padrão do usuário.</summary>
+    public string LibraryRoot { get; set; } = string.Empty;
+
+    /// <summary>Arquivo de modelo de família (.rft) usado para gerar os símbolos. Vazio = localizar automaticamente.</summary>
+    public string FamilyTemplateFile { get; set; } = string.Empty;
+
+    public ScaleProfileSet Scales { get; set; } = new();
+
+    /// <summary>Reaplica o perfil de representação automaticamente quando a escala de uma vista muda.</summary>
+    public bool AutoApplyScaleProfiles { get; set; } = true;
+
+    public List<TierStyle> TierStyles { get; set; } = DefaultTierStyles();
+
+    public DensityRules Density { get; set; } = new();
+
+    public InstanceCodeFormat InstanceCode { get; set; } = new();
+
+    public string MassingPrefix { get; set; } = "MC";
+
+    public AnalysisSettings Analysis { get; set; } = new();
+
+    public LabelSettings Labels { get; set; } = new();
+
+    public QuantitySettings Quantities { get; set; } = new();
+
+    public PlantingDefaults Planting { get; set; } = new();
+
+    /// <summary>Grava o código da espécie em "Marca de tipo" e o código do exemplar em "Marca".</summary>
+    public bool SyncMarks { get; set; } = true;
+
+    public List<HatchPattern> CustomHatches { get; set; } = new();
+
+    public static List<TierStyle> DefaultTierStyles() => new()
+    {
+        new TierStyle { Tier = SymbolTier.MinimalOutline, LineWeight = 3 },
+        new TierStyle { Tier = SymbolTier.Center, LineWeight = 2 },
+        new TierStyle { Tier = SymbolTier.Outline, LineWeight = 3 },
+        new TierStyle { Tier = SymbolTier.Essential, LineWeight = 2 },
+        new TierStyle { Tier = SymbolTier.Principal, LineWeight = 1 },
+        new TierStyle { Tier = SymbolTier.Detail, LineWeight = 1 },
+    };
+
+    public TierStyle StyleOf(SymbolTier tier) =>
+        TierStyles.FirstOrDefault(s => s.Tier == tier) ?? DefaultTierStyles().First(s => s.Tier == tier);
+
+    /// <summary>Garante valores válidos depois de ler um arquivo editado manualmente ou de versão anterior.</summary>
+    public void Normalize()
+    {
+        LibraryRoot ??= string.Empty;
+        FamilyTemplateFile ??= string.Empty;
+        Scales ??= new ScaleProfileSet();
+        Scales.Normalize();
+        Density ??= new DensityRules();
+        Density.Normalize();
+        InstanceCode ??= new InstanceCodeFormat();
+        InstanceCode.Normalize();
+        Analysis ??= new AnalysisSettings();
+        Analysis.Normalize();
+        Labels ??= new LabelSettings();
+        Labels.TextSizeMm = Clamp(Labels.TextSizeMm, 0.8, 20, 2.0);
+        Labels.OffsetMm = Clamp(Labels.OffsetMm, 0, 100, 8.0);
+        Quantities ??= new QuantitySettings();
+        Quantities.IndividualReservePercent = Clamp(Quantities.IndividualReservePercent, 0, 100, 0);
+        Quantities.MassingReservePercent = Clamp(Quantities.MassingReservePercent, 0, 100, 10);
+        Planting ??= new PlantingDefaults();
+        Planting.EdgeMarginM = Clamp(Planting.EdgeMarginM, 0, 50, 0.30);
+        Planting.JitterPercent = Clamp(Planting.JitterPercent, 0, 50, 10);
+        Planting.MaxCount = Math.Clamp(Planting.MaxCount, 1, Distribution.PlantDistributor.HardLimit);
+
+        MassingPrefix = string.IsNullOrWhiteSpace(MassingPrefix)
+            ? "MC"
+            : new string(MassingPrefix.Trim().Where(char.IsLetterOrDigit).Take(6).ToArray()).ToUpperInvariant();
+        if (MassingPrefix.Length == 0)
+        {
+            MassingPrefix = "MC";
+        }
+
+        TierStyles ??= new List<TierStyle>();
+        List<TierStyle> defaults = DefaultTierStyles();
+        TierStyles = TierVisibility.AllTiers
+            .Select(tier => TierStyles.FirstOrDefault(s => s is not null && s.Tier == tier) ?? defaults.First(d => d.Tier == tier))
+            .ToList();
+        foreach (TierStyle style in TierStyles)
+        {
+            style.LineWeight = Math.Clamp(style.LineWeight, 1, 16);
+            style.Color = ColorHex.Normalize(style.Color);
+        }
+
+        CustomHatches ??= new List<HatchPattern>();
+        CustomHatches = CustomHatches.Where(h => h is not null && h.IsValid(out _)).ToList();
+        foreach (HatchPattern hatch in CustomHatches)
+        {
+            hatch.IsBuiltIn = false;
+        }
+    }
+
+    public ViridianSettings Clone() => ViridianJson.Deserialize<ViridianSettings>(ViridianJson.Serialize(this)) ?? new ViridianSettings();
+
+    private static double Clamp(double value, double min, double max, double fallback) =>
+        double.IsFinite(value) ? Math.Clamp(value, min, max) : fallback;
+}
+
+/// <summary>Leitura e escrita de cores no formato #RRGGBB.</summary>
+public static class ColorHex
+{
+    public static string Normalize(string? text) =>
+        TryParse(text, out byte r, out byte g, out byte b) ? $"#{r:X2}{g:X2}{b:X2}" : "#000000";
+
+    public static bool TryParse(string? text, out byte r, out byte g, out byte b)
+    {
+        r = g = b = 0;
+        string value = (text ?? string.Empty).Trim().TrimStart('#');
+        if (value.Length != 6)
+        {
+            return false;
+        }
+
+        return byte.TryParse(value.AsSpan(0, 2), System.Globalization.NumberStyles.HexNumber, null, out r)
+            && byte.TryParse(value.AsSpan(2, 2), System.Globalization.NumberStyles.HexNumber, null, out g)
+            && byte.TryParse(value.AsSpan(4, 2), System.Globalization.NumberStyles.HexNumber, null, out b);
+    }
+}
+
+/// <summary>Serialização JSON padronizada do Viridian.</summary>
+public static class ViridianJson
+{
+    public static readonly JsonSerializerOptions Options = CreateOptions();
+
+    public static string Serialize<T>(T value) => JsonSerializer.Serialize(value, Options);
+
+    public static T? Deserialize<T>(string json) => JsonSerializer.Deserialize<T>(json, Options);
+
+    private static JsonSerializerOptions CreateOptions()
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNameCaseInsensitive = true,
+            AllowTrailingCommas = true,
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        };
+        options.Converters.Add(new JsonStringEnumConverter());
+        return options;
+    }
+}

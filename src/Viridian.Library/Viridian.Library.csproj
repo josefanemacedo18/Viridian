@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Viridian.Library</RootNamespace>
+    <Description>Biblioteca botânica do Viridian: catálogo de espécies, configurações e arquivos do escritório.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Viridian.Core\Viridian.Core.csproj" />
+  </ItemGroup>
+</Project>
