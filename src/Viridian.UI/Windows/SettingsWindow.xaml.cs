@@ -1,0 +1,468 @@
+using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
+using System.Runtime.CompilerServices;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using Microsoft.Win32;
+using Viridian.Core.Coding;
+using Viridian.Core.Config;
+using Viridian.Core.Hatch;
+using Viridian.Core.Model;
+using Viridian.Core.Scale;
+using Viridian.Core.Symbols;
+using Viridian.Library;
+
+namespace Viridian.UI.Windows;
+
+/// <summary>Linha editável do padrão gráfico de uma camada.</summary>
+public sealed class TierRow : INotifyPropertyChanged
+{
+    private int _lineWeight;
+    private string _color;
+
+    public TierRow(TierStyle style)
+    {
+        Tier = style.Tier;
+        _lineWeight = style.LineWeight;
+        _color = style.Color;
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public SymbolTier Tier { get; }
+
+    public string Name => TierVisibility.DisplayName(Tier);
+
+    public IReadOnlyList<int> Weights { get; } = Enumerable.Range(1, 16).ToList();
+
+    public int LineWeight
+    {
+        get => _lineWeight;
+        set
+        {
+            _lineWeight = value;
+            Raise();
+        }
+    }
+
+    public string Color
+    {
+        get => _color;
+        set
+        {
+            _color = value ?? string.Empty;
+            Raise();
+            Raise(nameof(Swatch));
+        }
+    }
+
+    public Brush Swatch =>
+        ColorHex.TryParse(Color, out byte r, out byte g, out byte b)
+            ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(r, g, b))
+            : Brushes.Transparent;
+
+    public bool IsValid => ColorHex.TryParse(Color, out _, out _, out _);
+
+    private void Raise([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+}
+
+/// <summary>Configurações do escritório.</summary>
+public partial class SettingsWindow : ViridianWindow
+{
+    private readonly LibraryPaths _paths;
+    private readonly List<HatchPattern> _customHatches;
+    private List<TierRow> _tiers = new();
+    private bool _loading = true;
+
+    public SettingsWindow(ViridianSettings settings, LibraryPaths paths)
+    {
+        Settings = settings.Clone();
+        _paths = paths;
+        _customHatches = Settings.CustomHatches.Select(h => ViridianJson.Deserialize<HatchPattern>(ViridianJson.Serialize(h))!).ToList();
+        InitializeComponent();
+        for (int i = 1; i <= 8; i++)
+        {
+            DigitsBox.Items.Add(i);
+        }
+
+        Load(Settings);
+        _loading = false;
+        UpdateScaleText();
+        UpdateCodeExample();
+        FillHatches(null);
+    }
+
+    /// <summary>Configurações editadas (válidas quando o diálogo retorna verdadeiro).</summary>
+    public ViridianSettings Settings { get; private set; }
+
+    private void Load(ViridianSettings s)
+    {
+        LibraryBox.Text = s.LibraryRoot;
+        TemplateBox.Text = s.FamilyTemplateFile;
+        FilesText.Text = $"Catálogo: {_paths.CatalogFile}\nConfigurações: {LibraryPaths.SettingsFile}\nParâmetros compartilhados: {LibraryPaths.SharedParametersFile}\nRegistro de erros: {LibraryPaths.LogFolder}";
+
+        DetailedBox.Text = RangeOf(s, DetailProfile.Detalhado, 50).ToString(Num.PtBr);
+        IntermediateBox.Text = RangeOf(s, DetailProfile.Intermediario, 100).ToString(Num.PtBr);
+        SimplifiedBox.Text = RangeOf(s, DetailProfile.Simplificado, 250).ToString(Num.PtBr);
+        AutoScaleBox.IsChecked = s.AutoApplyScaleProfiles;
+
+        _tiers = s.TierStyles.Select(t => new TierRow(t)).ToList();
+        TierList.ItemsSource = _tiers;
+        SyncMarksBox.IsChecked = s.SyncMarks;
+
+        LowBox.Text = Num.Format(s.Density.LowMax);
+        MediumBox.Text = Num.Format(s.Density.MediumMax);
+        HighBox.Text = Num.Format(s.Density.HighMax);
+        PrefixBox.Text = s.MassingPrefix;
+        MassingReserveBox.Text = Num.Format(s.Quantities.MassingReservePercent);
+        IndividualReserveBox.Text = Num.Format(s.Quantities.IndividualReservePercent);
+
+        EdgeBox.Text = Num.Format(s.Planting.EdgeMarginM);
+        JitterBox.Text = Num.Format(s.Planting.JitterPercent);
+        MaxCountBox.Text = s.Planting.MaxCount.ToString(Num.PtBr);
+        ElevationBox.Text = Num.Format(s.Planting.ElevationOffsetM);
+        RotationBox.IsChecked = s.Planting.RandomRotation;
+
+        CodeTemplateBox.Text = s.InstanceCode.Template;
+        DigitsBox.SelectedItem = s.InstanceCode.Digits;
+
+        CheckCrownBox.IsChecked = s.Analysis.CheckCrownConflicts;
+        CheckSpacingBox.IsChecked = s.Analysis.CheckSpacing;
+        OverlapBox.Text = Num.Format(s.Analysis.CrownOverlapTolerancePercent);
+        MinCrownBox.Text = Num.Format(s.Analysis.MinCrownForConflictM);
+        SpacingTolBox.Text = Num.Format(s.Analysis.SpacingTolerancePercent);
+        DuplicateBox.Text = Num.Format(s.Analysis.DuplicateToleranceM, "0.###");
+
+        TextSizeBox.Text = Num.Format(s.Labels.TextSizeMm);
+        OffsetBox.Text = Num.Format(s.Labels.OffsetMm);
+        LeaderBox.IsChecked = s.Labels.LeaderByDefault;
+    }
+
+    private static int RangeOf(ViridianSettings s, DetailProfile profile, int fallback) =>
+        s.Scales.Ranges.FirstOrDefault(r => r.Profile == profile)?.MaxDenominator ?? fallback;
+
+    private void UpdateScaleText()
+    {
+        if (!_loading)
+        {
+            MinimalText.Text = Num.TryParseInt(SimplifiedBox.Text, out int max) && max > 0
+                ? $"acima de 1:{max}"
+                : "acima do limite do perfil Simplificado";
+        }
+    }
+
+    private void UpdateCodeExample()
+    {
+        if (_loading)
+        {
+            return;
+        }
+
+        var format = new InstanceCodeFormat { Template = CodeTemplateBox.Text.Trim(), Digits = DigitsBox.SelectedItem is int d ? d : 4 };
+        CodeExample.Text = format.IsValid
+            ? "Exemplo: " + format.Format(PlantCategory.Arvore, "AR-001", 12)
+            : "O formato precisa conter o marcador {N}.";
+    }
+
+    private void Scale_Changed(object sender, TextChangedEventArgs e) => UpdateScaleText();
+
+    private void Code_Changed(object sender, RoutedEventArgs e) => UpdateCodeExample();
+
+    // ------------------------------------------------------------------ biblioteca
+
+    private void LibraryBrowse_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFolderDialog { Title = "Pasta da biblioteca Viridian" };
+        if (Directory.Exists(LibraryBox.Text))
+        {
+            dialog.InitialDirectory = LibraryBox.Text;
+        }
+
+        if (dialog.ShowDialog(this) == true)
+        {
+            LibraryBox.Text = dialog.FolderName;
+        }
+    }
+
+    private void LibraryDefault_Click(object sender, RoutedEventArgs e) => LibraryBox.Text = string.Empty;
+
+    private void TemplateBrowse_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Modelo de família",
+            Filter = "Modelos de família do Revit (*.rft)|*.rft",
+        };
+        if (dialog.ShowDialog(this) == true)
+        {
+            TemplateBox.Text = dialog.FileName;
+        }
+    }
+
+    private void TemplateAuto_Click(object sender, RoutedEventArgs e) => TemplateBox.Text = string.Empty;
+
+    private void OpenLibrary_Click(object sender, RoutedEventArgs e) => OpenFolder(_paths.Root);
+
+    private void OpenConfig_Click(object sender, RoutedEventArgs e) => OpenFolder(LibraryPaths.ConfigFolder);
+
+    private void OpenFolder(string folder)
+    {
+        try
+        {
+            Directory.CreateDirectory(folder);
+            Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            Warn("Não foi possível abrir a pasta:\n" + ex.Message);
+        }
+    }
+
+    // ------------------------------------------------------------------ hachuras
+
+    private void FillHatches(string? selectKey)
+    {
+        HatchList.Items.Clear();
+        foreach (HatchPattern hatch in HatchLibrary.BuiltIn.Concat(_customHatches))
+        {
+            var item = new ListBoxItem
+            {
+                Content = hatch.Name + (hatch.IsBuiltIn ? string.Empty : "   (escritório)"),
+                Tag = hatch,
+            };
+            HatchList.Items.Add(item);
+            if (hatch.Key == selectKey)
+            {
+                HatchList.SelectedItem = item;
+            }
+        }
+
+        if (HatchList.SelectedItem is null && HatchList.Items.Count > 0)
+        {
+            HatchList.SelectedIndex = 0;
+        }
+    }
+
+    private HatchPattern? SelectedHatch => (HatchList.SelectedItem as ListBoxItem)?.Tag as HatchPattern;
+
+    private void HatchList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        HatchPattern? hatch = SelectedHatch;
+        HatchView.Show(hatch);
+        HatchInfo.Text = hatch is null
+            ? string.Empty
+            : $"{hatch.Application}\n{(hatch.Target == HatchTarget.Model ? "Padrão de modelo (dimensões reais)" : "Padrão de desenho (dimensões no papel)")}\n{hatch.Grids.Count} família(s) de linhas";
+        HatchRemoveButton.IsEnabled = hatch is not null && !hatch.IsBuiltIn;
+    }
+
+    private void HatchImport_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Importar hachuras",
+            Filter = "Arquivos de hachura (*.pat)|*.pat",
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            IReadOnlyList<HatchPattern> imported = PatFile.Parse(File.ReadAllText(dialog.FileName), out IReadOnlyList<string> warnings);
+            if (imported.Count == 0)
+            {
+                Warn("Nenhum padrão válido foi encontrado no arquivo." + (warnings.Count > 0 ? "\n\n" + string.Join("\n", warnings.Take(10)) : string.Empty));
+                return;
+            }
+
+            var reserved = new HashSet<string>(HatchLibrary.BuiltIn.Select(h => h.Name), StringComparer.OrdinalIgnoreCase);
+            int added = 0;
+            foreach (HatchPattern pattern in imported)
+            {
+                if (reserved.Contains(pattern.Name))
+                {
+                    pattern.Name += " (importada)";
+                    pattern.Key += "-importada";
+                }
+
+                _customHatches.RemoveAll(h => string.Equals(h.Key, pattern.Key, StringComparison.OrdinalIgnoreCase));
+                _customHatches.Add(pattern);
+                added++;
+            }
+
+            try
+            {
+                Directory.CreateDirectory(_paths.CustomHatchesFolder);
+                File.Copy(dialog.FileName, Path.Combine(_paths.CustomHatchesFolder, Path.GetFileName(dialog.FileName)), overwrite: true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                ViridianLog.Warn("Não foi possível copiar o arquivo .pat para a biblioteca.", ex);
+            }
+
+            FillHatches(imported[^1].Key);
+            Inform($"{added} padrão(ões) importado(s)." + (warnings.Count > 0 ? $"\n\n{warnings.Count} linha(s) ignorada(s):\n" + string.Join("\n", warnings.Take(8)) : string.Empty));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Warn("Não foi possível ler o arquivo:\n" + ex.Message);
+        }
+    }
+
+    private void HatchRemove_Click(object sender, RoutedEventArgs e)
+    {
+        HatchPattern? hatch = SelectedHatch;
+        if (hatch is null || hatch.IsBuiltIn)
+        {
+            return;
+        }
+
+        _customHatches.RemoveAll(h => h.Key == hatch.Key);
+        FillHatches(null);
+    }
+
+    // ------------------------------------------------------------------ gravação
+
+    private void Defaults_Click(object sender, RoutedEventArgs e)
+    {
+        if (!Confirm("Restaurar os valores padrão de todas as abas?\n\nA pasta da biblioteca e as hachuras do escritório são mantidas."))
+        {
+            return;
+        }
+
+        var defaults = new ViridianSettings
+        {
+            LibraryRoot = LibraryBox.Text.Trim(),
+            FamilyTemplateFile = TemplateBox.Text.Trim(),
+        };
+        defaults.Normalize();
+        _loading = true;
+        Load(defaults);
+        _loading = false;
+        UpdateScaleText();
+        UpdateCodeExample();
+    }
+
+    private void Ok_Click(object sender, RoutedEventArgs e)
+    {
+        var problems = new List<string>();
+
+        double Number(TextBox box, string label, double min, double max)
+        {
+            if (!Num.TryParse(box.Text, out double value) || value < min || value > max)
+            {
+                problems.Add($"{label}: informe um número entre {Num.Format(min)} e {Num.Format(max)}.");
+                return min;
+            }
+
+            return value;
+        }
+
+        int Integer(TextBox box, string label, int min, int max)
+        {
+            if (!Num.TryParseInt(box.Text, out int value) || value < min || value > max)
+            {
+                problems.Add($"{label}: informe um número inteiro entre {min} e {max}.");
+                return min;
+            }
+
+            return value;
+        }
+
+        ViridianSettings s = Settings;
+        string library = LibraryBox.Text.Trim();
+        if (library.Length > 0 && !Path.IsPathRooted(library))
+        {
+            problems.Add("A pasta da biblioteca deve ser um caminho completo.");
+        }
+
+        string template = TemplateBox.Text.Trim();
+        if (template.Length > 0 && !File.Exists(template))
+        {
+            problems.Add("O modelo de família informado não existe.");
+        }
+
+        int detailed = Integer(DetailedBox, "Escala do perfil Detalhado", 1, 100000);
+        int intermediate = Integer(IntermediateBox, "Escala do perfil Intermediário", 1, 100000);
+        int simplified = Integer(SimplifiedBox, "Escala do perfil Simplificado", 1, 100000);
+        if (problems.Count == 0 && !(detailed < intermediate && intermediate < simplified))
+        {
+            problems.Add("As faixas de escala precisam crescer: Detalhado < Intermediário < Simplificado.");
+        }
+
+        foreach (TierRow tier in _tiers.Where(t => !t.IsValid))
+        {
+            problems.Add($"Cor inválida em \"{tier.Name}\" (use o formato #RRGGBB).");
+        }
+
+        double low = Number(LowBox, "Densidade baixa", 0.0001, 1000);
+        double medium = Number(MediumBox, "Densidade média", 0.0001, 1000);
+        double high = Number(HighBox, "Densidade alta", 0.0001, 1000);
+        if (problems.Count == 0 && !(low < medium && medium < high))
+        {
+            problems.Add("Os limites de densidade precisam crescer: baixa < média < alta.");
+        }
+
+        var codeFormat = new InstanceCodeFormat { Template = CodeTemplateBox.Text.Trim(), Digits = DigitsBox.SelectedItem is int digits ? digits : 4 };
+        if (!codeFormat.IsValid)
+        {
+            problems.Add("O formato de código precisa conter o marcador {N}.");
+        }
+
+        double massingReserve = Number(MassingReserveBox, "Reserva de maciços", 0, 100);
+        double individualReserve = Number(IndividualReserveBox, "Reserva de exemplares", 0, 100);
+        double edge = Number(EdgeBox, "Afastamento das bordas", 0, 50);
+        double jitter = Number(JitterBox, "Variação de posição", 0, 50);
+        int maxCount = Integer(MaxCountBox, "Quantidade máxima", 1, Core.Distribution.PlantDistributor.HardLimit);
+        double elevation = Number(ElevationBox, "Deslocamento vertical", -1000, 1000);
+        double overlap = Number(OverlapBox, "Sobreposição de copas", 0, 100);
+        double minCrown = Number(MinCrownBox, "Copa mínima verificada", 0, 60);
+        double spacingTol = Number(SpacingTolBox, "Redução do espaçamento", 0, 100);
+        double duplicate = Number(DuplicateBox, "Distância de duplicado", 0.001, 1);
+        double textSize = Number(TextSizeBox, "Altura do texto", 0.8, 20);
+        double offset = Number(OffsetBox, "Distância da etiqueta", 0, 100);
+
+        if (problems.Count > 0)
+        {
+            Warn(string.Join("\n", problems.Distinct()));
+            return;
+        }
+
+        s.LibraryRoot = library;
+        s.FamilyTemplateFile = template;
+        s.Scales.Ranges = new List<ScaleProfileRange>
+        {
+            new() { Profile = DetailProfile.Detalhado, MaxDenominator = detailed },
+            new() { Profile = DetailProfile.Intermediario, MaxDenominator = intermediate },
+            new() { Profile = DetailProfile.Simplificado, MaxDenominator = simplified },
+        };
+        s.AutoApplyScaleProfiles = AutoScaleBox.IsChecked == true;
+        s.TierStyles = _tiers.Select(t => new TierStyle { Tier = t.Tier, LineWeight = t.LineWeight, Color = ColorHex.Normalize(t.Color) }).ToList();
+        s.SyncMarks = SyncMarksBox.IsChecked == true;
+        s.Density = new Core.Massing.DensityRules { LowMax = low, MediumMax = medium, HighMax = high };
+        s.MassingPrefix = PrefixBox.Text;
+        s.Quantities.MassingReservePercent = massingReserve;
+        s.Quantities.IndividualReservePercent = individualReserve;
+        s.Planting.EdgeMarginM = edge;
+        s.Planting.JitterPercent = jitter;
+        s.Planting.MaxCount = maxCount;
+        s.Planting.ElevationOffsetM = elevation;
+        s.Planting.RandomRotation = RotationBox.IsChecked == true;
+        s.InstanceCode = codeFormat;
+        s.Analysis.CheckCrownConflicts = CheckCrownBox.IsChecked == true;
+        s.Analysis.CheckSpacing = CheckSpacingBox.IsChecked == true;
+        s.Analysis.CrownOverlapTolerancePercent = overlap;
+        s.Analysis.MinCrownForConflictM = minCrown;
+        s.Analysis.SpacingTolerancePercent = spacingTol;
+        s.Analysis.DuplicateToleranceM = duplicate;
+        s.Labels.TextSizeMm = textSize;
+        s.Labels.OffsetMm = offset;
+        s.Labels.LeaderByDefault = LeaderBox.IsChecked == true;
+        s.CustomHatches = _customHatches;
+        s.Normalize();
+        DialogResult = true;
+    }
+}

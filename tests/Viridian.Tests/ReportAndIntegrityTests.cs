@@ -322,3 +322,41 @@ public class IntegrityTests
         Assert.Contains(issues, i => i.Kind == IssueKind.SemCodigo && i.Severity == IssueSeverity.Info && i.Message.Contains("50"));
     }
 }
+
+public class ReportSheetTests
+{
+    [Fact]
+    public void SheetsHaveTotalsMatchingTheRows()
+    {
+        var species = new[]
+        {
+            new SpeciesReportRow { Code = "AR-001", PopularName = "Ipê", New = 3, Existing = 1, InMassings = 0, Unit = "muda" },
+            new SpeciesReportRow { Code = "FO-001", PopularName = "Grama", New = 0, InMassings = 160, Unit = "muda" },
+        };
+        var massings = new[] { new MassingReportRow { Id = "MC-001", AreaM2 = 10.004, Quantity = 160 } };
+        var acquisition = new[] { new AcquisitionRow { Code = "AR-001", Quantity = 3, Reserve = 1, UnitPrice = 10m } };
+
+        IReadOnlyList<XlsxSheet> sheets = ReportSheets.Build("Praça", species, massings, acquisition, new DateTime(2026, 11, 17, 10, 30, 0));
+        Assert.Equal(3, sheets.Count);
+        Assert.Equal(new[] { "Por espécie", "Maciços", "Aquisição" }, sheets.Select(s => s.Name));
+        Assert.Contains("17/11/2026 10:30", sheets[0].TitleLines[1]);
+
+        XlsxRow speciesTotal = sheets[0].Rows[^1];
+        Assert.True(speciesTotal.Bold);
+        Assert.Equal(164, speciesTotal.Cells[9]);
+        Assert.Equal(sheets[0].Columns.Count, speciesTotal.Cells.Length);
+
+        XlsxRow massingTotal = sheets[1].Rows[^1];
+        Assert.Equal(10.0, massingTotal.Cells[4]);
+        Assert.Equal(160, massingTotal.Cells[7]);
+
+        XlsxRow purchaseTotal = sheets[2].Rows[^1];
+        Assert.Equal(4, purchaseTotal.Cells[5]);
+        Assert.Equal(40m, purchaseTotal.Cells[8]);
+        Assert.All(sheets, s => Assert.All(s.Rows, r => Assert.Equal(s.Columns.Count, r.Cells.Length)));
+
+        using var stream = new MemoryStream();
+        XlsxWriter.Write(stream, sheets);
+        Assert.True(stream.Length > 1000);
+    }
+}

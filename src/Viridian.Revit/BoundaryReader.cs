@@ -253,6 +253,10 @@ public static class RegionPicker
                 {
                     break;
                 }
+                catch (Autodesk.Revit.Exceptions.InvalidOperationException ex)
+                {
+                    throw new ViridianException("A vista ativa não possui plano de trabalho. Abra uma vista em planta e tente novamente.", ex);
+                }
 
                 if (picked.Count > 0 && picked[^1].DistanceTo(point) < RevitUnits.ToFeet(0.01))
                 {

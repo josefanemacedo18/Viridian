@@ -209,6 +209,84 @@ public sealed class MassingService
         return result;
     }
 
+    /// <summary>
+    /// Atualiza código, nomes e unidade gravados nos maciços a partir do catálogo, sem refazer a distribuição.
+    /// Retorna a quantidade de maciços alterados.
+    /// </summary>
+    public static int RefreshRecords(Document document, Func<string, Species?> lookup, ProjectData project)
+    {
+        var changes = new List<(Element Region, MassingRecord Record)>();
+        foreach (Element element in ElementData.ElementsOfKind(document, ElementData.KindMassing))
+        {
+            if (!ElementData.TryRead(element, ElementData.KindMassing, out MassingRecord record))
+            {
+                continue;
+            }
+
+            Species? species = lookup(record.SpeciesId);
+            if (species is null)
+            {
+                continue;
+            }
+
+            string code = SpeciesFamilyService.ProjectCodeOf(project, species);
+            if (record.SpeciesCode != code || record.PopularName != species.PopularName
+                || record.ScientificName != species.ScientificName || record.SupplyUnit != species.SupplyUnit)
+            {
+                record.SpeciesCode = code;
+                record.PopularName = species.PopularName;
+                record.ScientificName = species.ScientificName;
+                record.SupplyUnit = species.SupplyUnit;
+                changes.Add((element, record));
+            }
+        }
+
+        if (changes.Count > 0)
+        {
+            Tx.Run(document, "Viridian: atualizar maciços", () =>
+            {
+                foreach ((Element region, MassingRecord record) in changes)
+                {
+                    ElementData.Write(region, ElementData.KindMassing, record);
+                }
+            });
+        }
+
+        return changes.Count;
+    }
+
+    /// <summary>Desvincula exemplares que apontam para maciços inexistentes. Retorna a quantidade alterada.</summary>
+    public static int DetachOrphanMembers(Document document)
+    {
+        var ids = new HashSet<string>(
+            ReadMassings(document).Select(m => m.Record.Id.Trim()).Where(id => id.Length > 0),
+            StringComparer.OrdinalIgnoreCase);
+        using var collector = new FilteredElementCollector(document);
+        List<FamilyInstance> orphans = collector
+            .OfCategory(BuiltInCategory.OST_Planting)
+            .OfClass(typeof(FamilyInstance))
+            .Cast<FamilyInstance>()
+            .Where(i =>
+            {
+                string id = VirParams.GetString(i, VirParams.MassingId).Trim();
+                return id.Length > 0 && !ids.Contains(id);
+            })
+            .ToList();
+        if (orphans.Count == 0)
+        {
+            return 0;
+        }
+
+        Tx.Run(document, "Viridian: desvincular exemplares", () =>
+        {
+            foreach (FamilyInstance instance in orphans)
+            {
+                VirParams.Set(instance, VirParams.MassingId, string.Empty);
+            }
+        });
+        return orphans.Count;
+    }
+
     /// <summary>Lê o registro de maciço de uma região, se houver.</summary>
     public static MassingRecord? RecordOf(Element region) =>
         ElementData.TryRead(region, ElementData.KindMassing, out MassingRecord record) ? record : null;

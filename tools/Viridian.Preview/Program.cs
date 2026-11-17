@@ -12,6 +12,7 @@ Directory.CreateDirectory(outDir);
 File.WriteAllText(Path.Combine(outDir, "estilos.svg"), SvgSheets.StyleSheet());
 File.WriteAllText(Path.Combine(outDir, "perfis.svg"), SvgSheets.ProfileSheet());
 File.WriteAllText(Path.Combine(outDir, "variantes.svg"), SvgSheets.VariantSheet());
+File.WriteAllText(Path.Combine(outDir, "hachuras.svg"), SvgSheets.HatchSheet());
 Console.WriteLine("Pranchas geradas em " + Path.GetFullPath(outDir));
 
 internal static class SvgSheets
@@ -80,6 +81,32 @@ internal static class SvgSheets
                 Draw(sb, symbol, DetailProfile.Detalhado, cx, cy, (cell - 40) / diameter);
                 Text(sb, cx, cy + cell / 2 + 10, $"Variante {v + 1}");
             }
+        }
+
+        return End(sb);
+    }
+
+    public static string HatchSheet()
+    {
+        var patterns = Viridian.Core.Hatch.HatchLibrary.BuiltIn;
+        const int cols = 4;
+        const double cell = 260;
+        const double pxPerMm = 4;
+        int rows = (int)Math.Ceiling(patterns.Count / (double)cols);
+        var sb = Begin(cols * cell, rows * (cell * 0.6 + 30));
+        for (int i = 0; i < patterns.Count; i++)
+        {
+            double x0 = (i % cols) * cell + 10;
+            double y0 = (i / cols) * (cell * 0.6 + 30) + 10;
+            double w = cell - 20, h = cell * 0.6 - 10;
+            var area = new Bounds2(0, 0, w / pxPerMm, h / pxPerMm);
+            sb.Append(Inv, $"<rect x=\"{x0:0.#}\" y=\"{y0:0.#}\" width=\"{w:0.#}\" height=\"{h:0.#}\" fill=\"none\" stroke=\"#999\" stroke-width=\"0.6\"/>");
+            foreach (var (a, b) in Viridian.Core.Hatch.HatchRasterizer.Segments(patterns[i], area))
+            {
+                sb.Append(Inv, $"<line x1=\"{x0 + a.X * pxPerMm:0.##}\" y1=\"{y0 + h - a.Y * pxPerMm:0.##}\" x2=\"{x0 + b.X * pxPerMm:0.##}\" y2=\"{y0 + h - b.Y * pxPerMm:0.##}\" stroke=\"black\" stroke-width=\"0.8\" stroke-linecap=\"round\"/>");
+            }
+
+            Text(sb, x0 + w / 2, y0 + h + 16, patterns[i].Name + " · " + patterns[i].Application);
         }
 
         return End(sb);

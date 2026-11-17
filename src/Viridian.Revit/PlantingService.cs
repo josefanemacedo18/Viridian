@@ -91,12 +91,13 @@ public sealed class PlantingService
             InstanceCodeAllocator allocator = CreateAllocator(document);
             var rng = new DeterministicRandom(DeterministicRandom.Combine(options.Seed, 5381));
             double offset = RevitUnits.ToFeet(_settings.Planting.ElevationOffsetM);
+            double z = level.ProjectElevation + offset;
             var created = new List<ElementId>(points.Count);
 
             for (int i = 0; i < points.Count; i++)
             {
                 int variant = variantSymbols.Count == 1 ? 0 : rng.NextInt(0, variantSymbols.Count);
-                XYZ location = RevitUnits.ToXyz(points[i], offset);
+                XYZ location = RevitUnits.ToXyz(points[i], z);
                 FamilyInstance instance = document.Create.NewFamilyInstance(location, variantSymbols[variant], level, StructuralType.NonStructural);
                 if (instance is null)
                 {

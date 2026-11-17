@@ -1,0 +1,56 @@
+<ui:ViridianWindow x:Class="Viridian.UI.Windows.ScaleWindow"
+                   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:ui="clr-namespace:Viridian.UI"
+                   xmlns:c="clr-namespace:Viridian.UI.Controls"
+                   Title="Viridian — Escalas"
+                   Width="660" SizeToContent="Height" ResizeMode="NoResize">
+    <StackPanel Margin="12">
+        <TextBlock Style="{StaticResource VirHeader}" Text="Representação por escala" />
+        <Border Style="{StaticResource VirCard}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="150" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock x:Name="ViewText" Style="{StaticResource VirValue}" />
+                    <TextBlock x:Name="ProfileText" Margin="0,4,0,0" TextWrapping="Wrap" />
+                    <TextBlock Style="{StaticResource VirSection}" Text="Perfil desta vista" />
+                    <ComboBox x:Name="OverrideBox" SelectionChanged="OverrideBox_SelectionChanged" />
+                    <TextBlock x:Name="TemplateHint" Style="{StaticResource VirHint}" Margin="0,6,0,0" Foreground="{StaticResource VirWarning}" />
+                </StackPanel>
+                <Border Grid.Column="1" BorderBrush="{StaticResource VirBorder}" BorderThickness="1" Height="140" Margin="12,0,0,0">
+                    <c:SymbolPreview x:Name="SymbolView" />
+                </Border>
+            </Grid>
+        </Border>
+
+        <TextBlock Style="{StaticResource VirSection}" Text="Faixas configuradas" />
+        <ItemsControl x:Name="RangesList">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="0,1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="110" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Range}" />
+                        <TextBlock Grid.Column="1" Text="{Binding Profile}" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="2" Text="{Binding Description}" Foreground="#5F6B63" />
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Style="{StaticResource VirHint}" Margin="0,4,0,0" Text="As faixas são alteradas em Configurações. A dimensão real dos símbolos nunca muda; apenas o nível de detalhe exibido." />
+
+        <CheckBox x:Name="AutoBox" Content="Atualizar automaticamente quando a escala de uma vista mudar" Margin="0,10,0,0" />
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button Content="Aplicar a esta vista" Click="ApplyView_Click" Style="{StaticResource VirPrimaryButton}" />
+            <Button Content="Aplicar a todas as plantas" Click="ApplyAll_Click" />
+            <Button Content="Fechar" IsCancel="True" />
+        </StackPanel>
+    </StackPanel>
+</ui:ViridianWindow>

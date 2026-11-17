@@ -16,6 +16,9 @@ public sealed class ScaleApplyResult
     public int ViewsControlledByTemplate { get; set; }
 
     public int ViewsFailed { get; set; }
+
+    /// <summary>Vistas reservadas por outro usuário em um modelo compartilhado.</summary>
+    public int ViewsOwnedByOthers { get; set; }
 }
 
 /// <summary>
@@ -123,6 +126,10 @@ public sealed class ScaleProfileService
             {
                 result.ViewsControlledByTemplate++;
             }
+            else if (IsOwnedByOther(document, view))
+            {
+                result.ViewsOwnedByOthers++;
+            }
             else if (NeedsUpdate(document, view, tiers))
             {
                 pending.Add(view);
@@ -194,25 +201,74 @@ public sealed class ScaleProfileService
             return 0;
         }
 
+        var pending = new List<(Category Category, TierStyle Style)>();
+        foreach ((SymbolTier tier, ElementId id) in tiers)
+        {
+            Category? category = Category.GetCategory(document, id);
+            TierStyle style = _settings.StyleOf(tier);
+            if (category is not null && !Matches(category, style))
+            {
+                pending.Add((category, style));
+            }
+        }
+
+        if (pending.Count == 0)
+        {
+            return 0;
+        }
+
         return Tx.Run(document, "Viridian: padrão gráfico", () =>
         {
-            int count = 0;
-            foreach ((SymbolTier tier, ElementId id) in tiers)
+            foreach ((Category category, TierStyle style) in pending)
             {
-                Category? category = Category.GetCategory(document, id);
-                if (category is not null)
-                {
-                    SymbolFamilyBuilder.ApplyStyle(category, _settings.StyleOf(tier));
-                    count++;
-                }
+                SymbolFamilyBuilder.ApplyStyle(category, style);
             }
 
-            return count;
+            return pending.Count;
         });
     }
 
+    private static bool Matches(Category category, TierStyle style)
+    {
+        int? weight = category.GetLineWeight(GraphicsStyleType.Projection);
+        if (weight != Math.Clamp(style.LineWeight, 1, 16))
+        {
+            return false;
+        }
+
+        if (!ColorHex.TryParse(style.Color, out byte r, out byte g, out byte b))
+        {
+            return true;
+        }
+
+        Color color = category.LineColor;
+        return color is not null && color.IsValid && color.Red == r && color.Green == g && color.Blue == b;
+    }
+
+    /// <summary>Em modelos compartilhados, vistas reservadas por outro usuário não podem ser alteradas.</summary>
+    private static bool IsOwnedByOther(Document document, View view)
+    {
+        if (!document.IsWorkshared)
+        {
+            return false;
+        }
+
+        try
+        {
+            return WorksharingUtils.GetCheckoutStatus(document, view.Id) == CheckoutStatus.OwnedByOtherUser;
+        }
+        catch (Autodesk.Revit.Exceptions.ApplicationException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Modelo de vista que controla a visibilidade da vista, ou nulo.</summary>
+    public static View? ControllingTemplate(Document document, View view) =>
+        IsControlledByTemplate(document, view) ? document.GetElement(view.ViewTemplateId) as View : null;
+
     /// <summary>Verdadeiro quando a visibilidade de categorias da vista é ditada por um modelo de vista.</summary>
-    private static bool IsControlledByTemplate(Document document, View view)
+    public static bool IsControlledByTemplate(Document document, View view)
     {
         if (view.IsTemplate || view.ViewTemplateId is null || view.ViewTemplateId == ElementId.InvalidElementId)
         {

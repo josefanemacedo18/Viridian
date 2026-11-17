@@ -1,0 +1,193 @@
+<ui:ViridianWindow x:Class="Viridian.UI.Windows.SpeciesEditorWindow"
+                   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:ui="clr-namespace:Viridian.UI"
+                   xmlns:c="clr-namespace:Viridian.UI.Controls"
+                   Title="Viridian — Espécie"
+                   Width="920" Height="690" MinWidth="860" MinHeight="600">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock x:Name="HeaderText" Style="{StaticResource VirHeader}" Text="Espécie" />
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="300" />
+            </Grid.ColumnDefinitions>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,0,12,0">
+                <StackPanel>
+                    <GroupBox Header="Identificação">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Style="{StaticResource VirLabel}" Text="Categoria" />
+                            <ComboBox x:Name="CategoryBox" Grid.Column="1" SelectionChanged="CategoryBox_SelectionChanged" />
+                            <TextBlock Grid.Column="2" Style="{StaticResource VirLabel}" Text="Código" Margin="12,0,8,0" />
+                            <TextBox x:Name="CodeBox" Grid.Column="3" />
+
+                            <TextBlock Grid.Row="1" Style="{StaticResource VirLabel}" Text="Nome popular" />
+                            <TextBox x:Name="PopularBox" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" />
+
+                            <TextBlock Grid.Row="2" Style="{StaticResource VirLabel}" Text="Nome científico" />
+                            <TextBox x:Name="ScientificBox" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" FontStyle="Italic" />
+
+                            <TextBlock Grid.Row="3" Style="{StaticResource VirLabel}" Text="Família botânica" />
+                            <TextBox x:Name="FamilyBox" Grid.Row="3" Grid.Column="1" />
+                            <TextBlock Grid.Row="3" Grid.Column="2" Style="{StaticResource VirLabel}" Text="Origem" Margin="12,0,8,0" />
+                            <ComboBox x:Name="OriginBox" Grid.Row="3" Grid.Column="3" />
+                        </Grid>
+                    </GroupBox>
+
+                    <GroupBox Header="Dimensões e plantio">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="150" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Style="{StaticResource VirLabel}" Text="Altura adulta (m)" />
+                            <TextBox x:Name="HeightBox" Grid.Column="1" />
+                            <TextBlock Grid.Column="2" Style="{StaticResource VirLabel}" Text="Copa adulta (m)" Margin="12,0,8,0" />
+                            <TextBox x:Name="CrownBox" Grid.Column="3" TextChanged="Symbol_Changed" />
+
+                            <TextBlock Grid.Row="1" Style="{StaticResource VirLabel}" Text="Altura da muda (m)" />
+                            <TextBox x:Name="PlantingHeightBox" Grid.Row="1" Grid.Column="1" />
+                            <TextBlock Grid.Row="1" Grid.Column="2" Style="{StaticResource VirLabel}" Text="Espaçamento (m)" Margin="12,0,8,0" />
+                            <TextBox x:Name="SpacingBox" Grid.Row="1" Grid.Column="3" />
+
+                            <TextBlock Grid.Row="2" Style="{StaticResource VirLabel}" Text="Densidade (un/m²)" />
+                            <TextBox x:Name="DensityBox" Grid.Row="2" Grid.Column="1" ToolTip="Usada em maciços. Vazio = derivar do espaçamento." />
+                            <TextBlock Grid.Row="2" Grid.Column="2" Style="{StaticResource VirLabel}" Text="Forma da copa" Margin="12,0,8,0" />
+                            <ComboBox x:Name="FormBox" Grid.Row="2" Grid.Column="3" />
+
+                            <TextBlock Grid.Row="3" Style="{StaticResource VirLabel}" Text="Fornecimento" />
+                            <ComboBox x:Name="UnitBox" Grid.Row="3" Grid.Column="1" IsEditable="True" />
+                            <TextBlock Grid.Row="3" Grid.Column="2" Style="{StaticResource VirLabel}" Text="Preço unitário (R$)" Margin="12,0,8,0" />
+                            <TextBox x:Name="PriceBox" Grid.Row="3" Grid.Column="3" />
+                        </Grid>
+                    </GroupBox>
+
+                    <GroupBox Header="Características">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Style="{StaticResource VirLabel}" Text="Crescimento" />
+                            <ComboBox x:Name="GrowthBox" Grid.Column="1" />
+                            <TextBlock Grid.Column="2" Style="{StaticResource VirLabel}" Text="Água" Margin="12,0,8,0" />
+                            <ComboBox x:Name="WaterBox" Grid.Column="3" />
+
+                            <TextBlock Grid.Row="1" Style="{StaticResource VirLabel}" Text="Luminosidade" />
+                            <ComboBox x:Name="LightBox" Grid.Row="1" Grid.Column="1" />
+                            <TextBlock Grid.Row="1" Grid.Column="2" Style="{StaticResource VirLabel}" Text="Floração" Margin="12,0,8,0" />
+                            <TextBox x:Name="FloweringBox" Grid.Row="1" Grid.Column="3" />
+
+                            <TextBlock Grid.Row="2" Style="{StaticResource VirLabel}" Text="Observações" VerticalAlignment="Top" Margin="0,6,8,0" />
+                            <TextBox x:Name="NotesBox" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" AcceptsReturn="True" TextWrapping="Wrap"
+                                     MinHeight="48" MaxHeight="90" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" />
+                        </Grid>
+                    </GroupBox>
+
+                    <GroupBox Header="Arquivos">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Style="{StaticResource VirLabel}" Text="Fotografia" />
+                            <TextBlock x:Name="PhotoText" Grid.Column="1" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            <Button Grid.Column="2" Content="Procurar..." Click="PhotoBrowse_Click" MinWidth="76" />
+                            <Button Grid.Column="3" Content="Remover" Click="PhotoRemove_Click" MinWidth="70" />
+
+                            <TextBlock Grid.Row="1" Style="{StaticResource VirLabel}" Text="Família Vegetação" Margin="0,6,8,0" />
+                            <TextBlock x:Name="CustomFamilyText" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,6,0,0" />
+                            <Button x:Name="CustomFamilyRemove" Grid.Row="1" Grid.Column="3" Content="Remover" Click="CustomFamilyRemove_Click" MinWidth="70" Margin="4,6,0,0" />
+
+                            <TextBlock Grid.Row="2" Style="{StaticResource VirLabel}" Text="Símbolo de maciço" Margin="0,6,8,0" />
+                            <TextBlock x:Name="CustomDetailText" Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,6,0,0" />
+                            <Button x:Name="CustomDetailRemove" Grid.Row="2" Grid.Column="3" Content="Remover" Click="CustomDetailRemove_Click" MinWidth="70" Margin="4,6,0,0" />
+                        </Grid>
+                    </GroupBox>
+                    <TextBlock Style="{StaticResource VirHint}" Text="Famílias personalizadas são associadas pela ferramenta Importar Família." />
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Representação gráfica -->
+            <Border Grid.Column="1" Style="{StaticResource VirCard}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource VirSection}" Margin="0,0,0,4" Text="Símbolo em planta" />
+                    <ComboBox x:Name="StyleBox" SelectionChanged="Symbol_Changed" />
+                    <Border BorderBrush="{StaticResource VirBorder}" BorderThickness="1" Height="200" Margin="0,6,0,0">
+                        <c:SymbolPreview x:Name="SymbolView" />
+                    </Border>
+                    <Grid Margin="0,6,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="ProfileBox" Margin="0,2,3,2" SelectionChanged="Symbol_Changed" ToolTip="Perfil de representação da pré-visualização" />
+                        <ComboBox x:Name="VariantViewBox" Grid.Column="1" Margin="3,2,0,2" SelectionChanged="Symbol_Changed" ToolTip="Variante exibida" />
+                    </Grid>
+                    <Grid Margin="0,4,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="60" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource VirLabel}" Text="Variantes gráficas" />
+                        <ComboBox x:Name="VariantsBox" Grid.Column="1" SelectionChanged="Variants_Changed" />
+                        <Button Grid.Column="2" Content="Novo desenho" Click="NewSeed_Click" HorizontalAlignment="Right" />
+                    </Grid>
+
+                    <TextBlock Style="{StaticResource VirSection}" Text="Hachura em maciços" />
+                    <ComboBox x:Name="HatchBox" SelectionChanged="Hatch_Changed" />
+                    <Border BorderBrush="{StaticResource VirBorder}" BorderThickness="1" Height="90" Margin="0,6,0,0">
+                        <c:HatchPreview x:Name="HatchView" />
+                    </Border>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Gravar" Click="Ok_Click" IsDefault="True" Style="{StaticResource VirPrimaryButton}" />
+            <Button Content="Cancelar" IsCancel="True" />
+        </StackPanel>
+    </Grid>
+</ui:ViridianWindow>

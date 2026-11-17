@@ -1,0 +1,55 @@
+<ui:ViridianWindow x:Class="Viridian.UI.Windows.CodingWindow"
+                   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:ui="clr-namespace:Viridian.UI"
+                   Title="Viridian — Codificar"
+                   Width="560" SizeToContent="Height" ResizeMode="NoResize">
+    <StackPanel Margin="12">
+        <TextBlock Style="{StaticResource VirHeader}" Text="Codificação automática" />
+
+        <RadioButton x:Name="InstancesRadio" GroupName="Action" IsChecked="True" Checked="Input_Changed"
+                     Content="Codificar exemplares (identificação de cada planta no projeto)" FontWeight="SemiBold" />
+        <StackPanel x:Name="InstancesPanel" Margin="20,2,0,8">
+            <RadioButton x:Name="ScopeSelection" GroupName="Scope" />
+            <RadioButton x:Name="ScopeView" GroupName="Scope" />
+            <RadioButton x:Name="ScopeProject" GroupName="Scope" />
+            <CheckBox x:Name="OverwriteBox" Content="Renumerar também os exemplares que já possuem código" />
+            <Grid Margin="0,4,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="56" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource VirLabel}" Text="Formato" />
+                <TextBox x:Name="TemplateBox" Grid.Column="1" TextChanged="Input_Changed" />
+                <TextBlock Grid.Column="2" Style="{StaticResource VirLabel}" Text="Dígitos" Margin="12,0,8,0" />
+                <ComboBox x:Name="DigitsBox" Grid.Column="3" SelectionChanged="Input_Changed" />
+            </Grid>
+            <TextBlock Style="{StaticResource VirHint}" Text="Marcadores: {CAT} prefixo da categoria (AR, PA, AB...), {ESP} código da espécie, {N} número sequencial." />
+            <TextBlock x:Name="ExampleText" Style="{StaticResource VirHint}" FontWeight="SemiBold" />
+        </StackPanel>
+
+        <RadioButton x:Name="RenumberRadio" GroupName="Action" Checked="Input_Changed"
+                     Content="Renumerar os códigos de espécie neste projeto" FontWeight="SemiBold" />
+        <StackPanel x:Name="RenumberPanel" Margin="20,2,0,8">
+            <TextBlock Style="{StaticResource VirHint}" Text="As espécies usadas no projeto recebem códigos sequenciais por categoria (AR-001, AR-002...), sem alterar o catálogo." />
+            <Grid Margin="0,4,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource VirLabel}" Text="Ordem" />
+                <ComboBox x:Name="OrderBox" Grid.Column="1" />
+            </Grid>
+        </StackPanel>
+
+        <RadioButton x:Name="RestoreRadio" GroupName="Action" Checked="Input_Changed"
+                     Content="Restaurar os códigos de espécie do catálogo" FontWeight="SemiBold" />
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button x:Name="OkButton" Content="Codificar" Click="Ok_Click" IsDefault="True" Style="{StaticResource VirPrimaryButton}" />
+            <Button Content="Cancelar" IsCancel="True" />
+        </StackPanel>
+    </StackPanel>
+</ui:ViridianWindow>

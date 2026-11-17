@@ -215,3 +215,88 @@ public class LabelTextTests
         Assert.All(Viridian.Core.Identification.LabelText.Models, m => Assert.False(string.IsNullOrWhiteSpace(Viridian.Core.Identification.LabelText.DisplayName(m))));
     }
 }
+
+public class HatchRasterizerTests
+{
+    [Fact]
+    public void ContinuousLinesCoverTheArea()
+    {
+        var pattern = new HatchPattern
+        {
+            Key = "t", Name = "VIR t",
+            Grids = { new HatchGrid { AngleDeg = 0, Offset = 2 } },
+        };
+        var area = new Viridian.Core.Geometry.Bounds2(0, 0, 10, 10);
+        var segments = Viridian.Core.Hatch.HatchRasterizer.Segments(pattern, area);
+        Assert.InRange(segments.Count, 5, 7);
+        Assert.All(segments, s =>
+        {
+            Assert.Equal(s.A.Y, s.B.Y, 9);
+            Assert.Equal(10, Math.Abs(s.B.X - s.A.X), 9);
+        });
+    }
+
+    [Fact]
+    public void DashesStayInsideTheAreaAndRespectTheirLength()
+    {
+        foreach (HatchPattern pattern in HatchLibrary.BuiltIn)
+        {
+            var area = new Viridian.Core.Geometry.Bounds2(-20, -15, 25, 30);
+            var segments = Viridian.Core.Hatch.HatchRasterizer.Segments(pattern, area);
+            Assert.NotEmpty(segments);
+            double longestDash = pattern.Grids.Where(g => g.Segments.Count > 0).SelectMany(g => g.Segments.Where((_, i) => i % 2 == 0)).DefaultIfEmpty(1e9).Max();
+            bool allDashed = pattern.Grids.All(g => g.Segments.Count > 0);
+            foreach (var (a, b) in segments)
+            {
+                Assert.InRange(a.X, area.MinX - 1e-6, area.MaxX + 1e-6);
+                Assert.InRange(b.Y, area.MinY - 1e-6, area.MaxY + 1e-6);
+                if (allDashed)
+                {
+                    Assert.True(a.DistanceTo(b) <= longestDash + 1e-6, pattern.Key);
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public void RepeatedSymbolsFormCrosses()
+    {
+        // Cada traço horizontal deve ser cruzado no centro por um traço vertical de mesmo comprimento.
+        HatchPattern pattern = HatchLibrary.Find(HatchLibrary.RepeatedSymbols)!;
+        var segments = Viridian.Core.Hatch.HatchRasterizer.Segments(pattern, new Viridian.Core.Geometry.Bounds2(-0.01, -0.01, 16.01, 16.01));
+        var horizontal = segments.Where(s => Math.Abs(s.A.Y - s.B.Y) < 1e-9 && Math.Abs(s.A.DistanceTo(s.B) - 1.2) < 1e-6).ToList();
+        var vertical = segments.Where(s => Math.Abs(s.A.X - s.B.X) < 1e-9 && Math.Abs(s.A.DistanceTo(s.B) - 1.2) < 1e-6).ToList();
+        Assert.True(horizontal.Count >= 8);
+        int verified = 0;
+        foreach (var h in horizontal)
+        {
+            var center = Viridian.Core.Geometry.Point2.Lerp(h.A, h.B, 0.5);
+            if (center.X < 1 || center.X > 15 || center.Y < 1 || center.Y > 15)
+            {
+                continue; // junto à borda o traço vertical é cortado pelo limite da amostra
+            }
+
+            verified++;
+            Assert.Contains(vertical, v => Viridian.Core.Geometry.Point2.Lerp(v.A, v.B, 0.5).DistanceTo(center) < 1e-6);
+        }
+
+        Assert.True(verified >= 6);
+    }
+
+    [Fact]
+    public void GrassTuftsShareTheirBasePoint()
+    {
+        // Os três traços de cada tufo partem do mesmo ponto da malha.
+        HatchPattern pattern = HatchLibrary.Find(HatchLibrary.GrassTufts)!;
+        var segments = Viridian.Core.Hatch.HatchRasterizer.Segments(pattern, new Viridian.Core.Geometry.Bounds2(-0.01, -0.01, 18.01, 18.01));
+        var stems = segments.Where(s => Math.Abs(s.A.X - s.B.X) < 1e-9 && Math.Abs(s.A.DistanceTo(s.B) - 1.4) < 1e-6).ToList();
+        var blades = segments.Where(s => Math.Abs(s.A.DistanceTo(s.B) - 1.2) < 1e-6).ToList();
+        Assert.True(stems.Count >= 8);
+        foreach (var stem in stems.Where(s => Math.Min(s.A.Y, s.B.Y) > 1 && Math.Min(s.A.Y, s.B.Y) < 15 && s.A.X > 2 && s.A.X < 16))
+        {
+            var basePoint = stem.A.Y < stem.B.Y ? stem.A : stem.B;
+            int touching = blades.Count(b => b.A.DistanceTo(basePoint) < 1e-6 || b.B.DistanceTo(basePoint) < 1e-6);
+            Assert.Equal(2, touching);
+        }
+    }
+}

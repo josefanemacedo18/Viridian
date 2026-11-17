@@ -1,0 +1,60 @@
+<ui:ViridianWindow x:Class="Viridian.UI.Windows.ImportFamilyWindow"
+                   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:ui="clr-namespace:Viridian.UI"
+                   Title="Viridian — Importar símbolo personalizado"
+                   Width="680" SizeToContent="Height" ResizeMode="NoResize">
+    <StackPanel Margin="12">
+        <TextBlock Style="{StaticResource VirHeader}" Text="Importar símbolo personalizado" />
+        <Border Style="{StaticResource VirCard}">
+            <StackPanel>
+                <TextBlock x:Name="FileText" Style="{StaticResource VirValue}" />
+                <TextBlock x:Name="CategoryText" Margin="0,2,0,6" />
+                <ItemsControl x:Name="ChecksList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,1" Foreground="#1F4D3A" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <ItemsControl x:Name="WarningsList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,1" Foreground="#9A5B00" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock x:Name="ErrorText" TextWrapping="Wrap" Foreground="{StaticResource VirError}" FontWeight="SemiBold" />
+            </StackPanel>
+        </Border>
+
+        <GroupBox x:Name="AssociationGroup" Header="Associação com a biblioteca" Margin="0,10,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="150" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Style="{StaticResource VirLabel}" Text="Uso" />
+                <TextBlock x:Name="UsageText" Grid.Column="1" Grid.ColumnSpan="2" VerticalAlignment="Center" TextWrapping="Wrap" />
+                <TextBlock Grid.Row="1" Style="{StaticResource VirLabel}" Text="Espécie" />
+                <TextBlock x:Name="SpeciesText" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" />
+                <Button Grid.Row="1" Grid.Column="2" Content="Escolher..." Click="ChooseSpecies_Click" MinWidth="80" Margin="4,2,0,2" />
+                <TextBlock Grid.Row="2" Style="{StaticResource VirLabel}" Text="Tipo da família" />
+                <ComboBox x:Name="TypeBox" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" />
+            </Grid>
+        </GroupBox>
+        <TextBlock Style="{StaticResource VirHint}" Margin="0,6,0,0"
+                   Text="O arquivo é copiado para a pasta Personalizado da biblioteca. Famílias de Vegetação substituem o símbolo gerado da espécie; componentes de detalhe passam a ser o símbolo gráfico dos maciços dessa espécie." />
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button x:Name="OkButton" Content="Registrar" Click="Ok_Click" IsDefault="True" Style="{StaticResource VirPrimaryButton}" />
+            <Button Content="Cancelar" IsCancel="True" />
+        </StackPanel>
+    </StackPanel>
+</ui:ViridianWindow>

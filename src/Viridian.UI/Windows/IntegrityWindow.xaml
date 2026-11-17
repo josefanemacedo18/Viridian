@@ -1,0 +1,62 @@
+<ui:ViridianWindow x:Class="Viridian.UI.Windows.IntegrityWindow"
+                   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:ui="clr-namespace:Viridian.UI"
+                   Title="Viridian — Verificação do projeto"
+                   Width="980" Height="600" MinWidth="760" MinHeight="420">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock Style="{StaticResource VirHeader}" Text="Verificação do projeto" Margin="0" />
+        <Grid Grid.Row="1" Margin="0,4,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="220" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="SummaryText" Style="{StaticResource VirValue}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Style="{StaticResource VirLabel}" Text="Mostrar" Margin="12,0,8,0" />
+            <ComboBox x:Name="FilterBox" Grid.Column="2" SelectionChanged="FilterBox_SelectionChanged" />
+        </Grid>
+
+        <DataGrid x:Name="IssuesGrid" Grid.Row="2" MouseDoubleClick="IssuesGrid_DoubleClick" SelectionChanged="IssuesGrid_SelectionChanged">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Gravidade" Binding="{Binding SeverityName}" Width="80" />
+                <DataGridTextColumn Header="Verificação" Binding="{Binding KindName}" Width="200" />
+                <DataGridTextColumn Header="Descrição" Binding="{Binding Message}" Width="*">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Elementos" Binding="{Binding ElementIds.Count}" Width="72" ElementStyle="{StaticResource VirRightCell}" />
+            </DataGrid.Columns>
+        </DataGrid>
+        <TextBlock Grid.Row="3" Style="{StaticResource VirHint}" Margin="0,6,0,0"
+                   Text="Clique duas vezes em uma ocorrência para selecionar e mostrar os elementos no Revit. As verificações indicam problemas potenciais e não substituem a avaliação técnica." />
+
+        <Grid Grid.Row="4" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal">
+                <Button x:Name="ShowButton" Content="Mostrar no Revit" Click="Show_Click" Margin="0" />
+                <Button x:Name="FixCodesButton" Content="Codificar exemplares sem código" Click="FixCodes_Click" />
+                <Button x:Name="FixDataButton" Content="Atualizar dados" Click="FixData_Click" />
+                <Button x:Name="FixOrphansButton" Content="Limpar registros órfãos" Click="FixOrphans_Click" />
+            </StackPanel>
+            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                <Button Content="Verificar novamente" Click="Recheck_Click" />
+                <Button Content="Fechar" IsCancel="True" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</ui:ViridianWindow>

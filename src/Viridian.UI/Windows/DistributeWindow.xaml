@@ -1,0 +1,103 @@
+<ui:ViridianWindow x:Class="Viridian.UI.Windows.DistributeWindow"
+                   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:ui="clr-namespace:Viridian.UI"
+                   xmlns:c="clr-namespace:Viridian.UI.Controls"
+                   Title="Viridian — Distribuir vegetação"
+                   Width="900" Height="640" MinWidth="820" MinHeight="580">
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="320" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock x:Name="HeaderText" Grid.ColumnSpan="2" Style="{StaticResource VirHeader}" Text="Distribuir vegetação" TextWrapping="Wrap" />
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,12,0">
+            <StackPanel>
+                <GroupBox Header="Distribuição">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Style="{StaticResource VirLabel}" Text="Padrão" />
+                        <ComboBox x:Name="PatternBox" Grid.Column="1" SelectionChanged="Input_Changed" />
+                        <TextBlock Grid.Row="1" Style="{StaticResource VirLabel}" Text="Espaçamento (m)" />
+                        <TextBox x:Name="SpacingBox" Grid.Row="1" Grid.Column="1" TextChanged="Input_Changed" />
+                        <TextBlock x:Name="RowSpacingLabel" Grid.Row="2" Style="{StaticResource VirLabel}" Text="Entre linhas (m)" />
+                        <TextBox x:Name="RowSpacingBox" Grid.Row="2" Grid.Column="1" TextChanged="Input_Changed" ToolTip="Vazio = automático conforme o padrão" />
+                        <TextBlock x:Name="DensityLabel" Grid.Row="3" Style="{StaticResource VirLabel}" Text="Densidade (un/m²)" />
+                        <TextBox x:Name="DensityBox" Grid.Row="3" Grid.Column="1" TextChanged="Input_Changed" />
+                        <TextBlock x:Name="MarginLabel" Grid.Row="4" Style="{StaticResource VirLabel}" Text="Afastamento das bordas (m)" />
+                        <TextBox x:Name="MarginBox" Grid.Row="4" Grid.Column="1" TextChanged="Input_Changed" />
+                        <TextBlock x:Name="JitterLabel" Grid.Row="5" Style="{StaticResource VirLabel}" Text="Variação de posição (%)" />
+                        <TextBox x:Name="JitterBox" Grid.Row="5" Grid.Column="1" TextChanged="Input_Changed" />
+                        <TextBlock x:Name="AngleLabel" Grid.Row="6" Style="{StaticResource VirLabel}" Text="Ângulo da malha (°)" />
+                        <TextBox x:Name="AngleBox" Grid.Row="6" Grid.Column="1" TextChanged="Input_Changed" />
+                        <TextBlock Grid.Row="7" Style="{StaticResource VirLabel}" Text="Quantidade máxima" />
+                        <TextBox x:Name="MaxBox" Grid.Row="7" Grid.Column="1" TextChanged="Input_Changed" />
+                    </Grid>
+                </GroupBox>
+                <CheckBox x:Name="RotationBox" Content="Girar cada exemplar aleatoriamente" />
+                <CheckBox x:Name="AvoidBox" Content="Respeitar exemplares existentes" Checked="Input_Changed" Unchecked="Input_Changed"
+                          ToolTip="Não posiciona novos exemplares a menos de um espaçamento dos que já existem" />
+                <Button x:Name="ReseedButton" Content="Nova distribuição" Click="Reseed_Click" HorizontalAlignment="Left" Margin="0,6,0,0"
+                        ToolTip="Sorteia outra disposição para os padrões com variação" />
+
+                <GroupBox Header="Exemplares" Margin="0,10,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Style="{StaticResource VirLabel}" Text="Variante gráfica" />
+                        <ComboBox x:Name="VariantBox" Grid.Column="1" />
+                        <TextBlock Grid.Row="1" Style="{StaticResource VirLabel}" Text="Situação" />
+                        <ComboBox x:Name="StatusBox" Grid.Row="1" Grid.Column="1" />
+                        <TextBlock Grid.Row="2" Style="{StaticResource VirLabel}" Text="Estágio de implantação" />
+                        <TextBox x:Name="StageBox" Grid.Row="2" Grid.Column="1" />
+                    </Grid>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="1" Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Border BorderBrush="{StaticResource VirBorder}" BorderThickness="1">
+                <c:PlanPreview x:Name="Preview" />
+            </Border>
+            <StackPanel Grid.Row="1" Margin="0,8,0,0">
+                <TextBlock x:Name="SummaryText" Style="{StaticResource VirValue}" />
+                <TextBlock x:Name="MessageText" Foreground="{StaticResource VirWarning}" TextWrapping="Wrap" />
+            </StackPanel>
+        </Grid>
+
+        <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button x:Name="OkButton" Content="Distribuir" Click="Ok_Click" IsDefault="True" Style="{StaticResource VirPrimaryButton}" />
+            <Button Content="Cancelar" IsCancel="True" />
+        </StackPanel>
+    </Grid>
+</ui:ViridianWindow>
