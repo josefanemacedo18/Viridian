@@ -97,6 +97,26 @@ public sealed class ViridianSettings
     /// <summary>Grava o código da espécie em "Marca de tipo" e o código do exemplar em "Marca".</summary>
     public bool SyncMarks { get; set; } = true;
 
+    /// <summary>Espécies usadas por último (identificadores), mostradas primeiro nos seletores rápidos.</summary>
+    public List<string> RecentSpecies { get; set; } = new();
+
+    /// <summary>Registra o uso de uma espécie na lista de recentes (no máximo 12).</summary>
+    public void TouchRecent(string speciesId)
+    {
+        if (string.IsNullOrWhiteSpace(speciesId))
+        {
+            return;
+        }
+
+        RecentSpecies ??= new List<string>();
+        RecentSpecies.RemoveAll(id => string.Equals(id, speciesId, StringComparison.OrdinalIgnoreCase));
+        RecentSpecies.Insert(0, speciesId);
+        if (RecentSpecies.Count > 12)
+        {
+            RecentSpecies.RemoveRange(12, RecentSpecies.Count - 12);
+        }
+    }
+
     public List<HatchPattern> CustomHatches { get; set; } = new();
 
     /// <summary>Linhas em tons de verde-escuro e marrom, que leem bem sobre as copas coloridas e também em preto e branco.</summary>
@@ -135,6 +155,7 @@ public sealed class ViridianSettings
         FamilyTemplateFile ??= string.Empty;
         Scales ??= new ScaleProfileSet();
         Scales.Normalize();
+        RecentSpecies ??= new List<string>();
         Colors ??= new ColorSettings();
         Colors.Normalize();
         Costs ??= new CostSettings();

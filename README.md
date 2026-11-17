@@ -22,7 +22,7 @@ Antes de usar em projetos reais, siga o [roteiro de testes](docs/ROTEIRO_DE_TEST
 
 ## Módulos e ferramentas
 
-A aba **Viridian** tem oito painéis.
+A aba **Viridian** tem oito painéis. **Buscar Espécie** é a biblioteca completa (consulta, filtros e cadastro); **Inserir** é a inserção rápida.
 
 ### Biblioteca
 
@@ -39,7 +39,7 @@ O catálogo padrão traz **382 espécies** usadas no paisagismo brasileiro: 196 
 
 | Ferramenta | O que faz |
 |---|---|
-| **Inserir** | Posiciona exemplares com a **prévia nativa do Revit**: o símbolo colorido acompanha o cursor. Variante gráfica fixa ou sorteada, situação, estágio de implantação e observações. ESC conclui. |
+| **Inserir** | Inserção rápida em **uma única janela**: pesquisa com as espécies usadas por último no topo, símbolo colorido, foto e opções (variante, situação, estágio e observações). Depois, o símbolo colorido acompanha o cursor (prévia nativa do Revit); ESC conclui. Distribuir, Plantio Linear, Criar Maciço e Substituir usam o mesmo seletor rápido, com acesso à biblioteca completa. |
 | **Distribuir** | Preenche uma região (região preenchida, piso, toposólido, área, ambiente ou contorno desenhado) nos padrões **triangular, retangular, natural, por densidade, bordadura** (fileiras que acompanham o contorno, inclusive curvas e recortes), **anéis concêntricos**, **agrupamentos** (manchas ímpares de 3, 5, 7 plantas) e **degradê** (rareando de um lado para o outro). Cada padrão mostra só as opções que fazem sentido para ele. Pode evitar exemplares existentes. Pré-visualização colorida ao vivo. |
 | **Plantio Linear** | Eixo por **linha reta** (dois cliques), **polilinha**, **círculo** (centro e raio) ou **linhas, arcos, paredes e redes existentes** (também aceita a seleção feita antes do comando). Define por espaçamento ou por quantidade, com plantas nas duas pontas, a partir do início ou centralizadas; até cinco fileiras paralelas ou alternadas (zigue-zague); deslocamento lateral e eixos fechados. |
 | **Substituir** | Troca a espécie de exemplares e de maciços **preservando posição, código e dados**. |
@@ -62,7 +62,8 @@ O catálogo padrão traz **382 espécies** usadas no paisagismo brasileiro: 196 
 | **Etiquetar** | Seis modelos de etiqueta, uma por exemplar ou **uma por espécie** com a quantidade. As etiquetas **procuram uma posição livre** ao redor da planta, sem sobrepor outros textos, e ganham linha indicadora quando precisam se afastar. Também aceita os identificadores nativos de Vegetação do escritório. |
 | **Codificar** | Códigos dos exemplares com formato configurável e renumeração dos códigos de espécie **por projeto**. |
 | **Atualizar Etiquetas** | Refaz o texto das etiquetas a partir dos dados atuais. |
-| **Legenda** | Vista de legenda com o símbolo colorido (ou a amostra da hachura na cor da espécie), código, nomes e quantidade. |
+| **Legenda** | Vista de legenda com o símbolo colorido (ou a amostra da hachura na cor da espécie), **fotografia**, código, nomes e quantidade. |
+| **Quadro de Fotos** | Coloca ao redor da planta a **fotografia de cada espécie**, com código e nome, ligada por linha a um exemplar, como nas pranchas de paisagismo ilustradas. As posições evitam linhas cruzadas; com região de corte ativa, o recorte é ampliado. |
 
 ### Quantitativos
 
@@ -77,7 +78,7 @@ O catálogo padrão traz **382 espécies** usadas no paisagismo brasileiro: 196 
 
 | Ferramenta | O que faz |
 |---|---|
-| **Prancha Automática** | Cria a prancha com a planta ativa, a legenda e a tabela de quantitativos, diagramadas sobre o carimbo escolhido: planta à esquerda, legenda e tabela na coluna da direita, canto do carimbo livre, margens da NBR 10068. Reduz a escala para a planta caber e usa uma vista dependente quando a planta já está em outra prancha. |
+| **Prancha Automática** | Cria a prancha com a planta ativa (opcionalmente com o quadro de fotos), a legenda com fotos e a tabela de quantitativos, diagramadas sobre o carimbo escolhido: planta à esquerda, legenda e tabela na coluna da direita, canto do carimbo livre, margens da NBR 10068. Reduz a escala para a planta caber e usa uma vista dependente quando a planta já está em outra prancha. |
 | **Exportar CAD** | Exporta vistas e pranchas para **DWG** (2007 a 2018, em metros ou milímetros, com cores e preenchimentos da vista, opção de coordenadas compartilhadas) e gera a **biblioteca de blocos DXF** dos símbolos (espécies do projeto ou catálogo inteiro), com camadas por nível de detalhe, preenchimento e floração. |
 | **Tabelas Nativas** | Cria as tabelas de vegetação do Revit (por espécie e por exemplar). |
 

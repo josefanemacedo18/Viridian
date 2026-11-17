@@ -44,6 +44,15 @@ public sealed class SheetCommand : CommandBase
                 ? ctx.Documentation.CreateLegend(doc, entries, ProjectReader.ProjectTitle(doc))
                 : null;
             ViewSchedule? schedule = options.IncludeSchedule ? ctx.Documentation.CreateSpeciesSchedule(doc) : null;
+            if (options.IncludePhotoBoard)
+            {
+                IReadOnlyList<PhotoBoardSpecies> board = DocumentationFlows.BoardSpecies(ctx, plan);
+                if (board.Count > 0)
+                {
+                    Tx.Run(doc, "Viridian: quadro de fotos", () => ctx.Photos.CreateBoard(doc, plan, board), suppressWarnings: true);
+                }
+            }
+
             var request = new SheetRequest
             {
                 TitleBlockTypeId = options.TitleBlockId > 0 ? new ElementId(options.TitleBlockId) : ElementId.InvalidElementId,

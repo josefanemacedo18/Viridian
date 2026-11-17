@@ -34,6 +34,57 @@ internal static class DocumentationFlows
         ctx.UiDocument.ActiveView = species;
     }
 
+    /// <summary>Espécies que aparecem na vista (exemplares e maciços), com os pontos onde aparecem.</summary>
+    public static IReadOnlyList<PhotoBoardSpecies> BoardSpecies(ViridianContext ctx, View view)
+    {
+        var targets = new Dictionary<string, List<Core.Geometry.Point2>>(StringComparer.OrdinalIgnoreCase);
+        void Add(string speciesId, Core.Geometry.Point2 point)
+        {
+            if (string.IsNullOrWhiteSpace(speciesId))
+            {
+                return;
+            }
+
+            if (!targets.TryGetValue(speciesId, out List<Core.Geometry.Point2>? list))
+            {
+                list = new List<Core.Geometry.Point2>();
+                targets[speciesId] = list;
+            }
+
+            list.Add(point);
+        }
+
+        using (var collector = new FilteredElementCollector(ctx.Doc, view.Id))
+        {
+            foreach (FamilyInstance instance in collector.OfCategory(BuiltInCategory.OST_Planting).WhereElementIsNotElementType().OfType<FamilyInstance>())
+            {
+                if (ElementData.TryRead(instance.Symbol, ElementData.KindSpecies, out SpeciesLink link))
+                {
+                    Add(link.SpeciesId, PlantingService.LocationOf(instance));
+                }
+            }
+        }
+
+        foreach (Core.Reports.MassingInfo massing in MassingService.ReadMassings(ctx.Doc))
+        {
+            if (massing.ViewId == view.Id.Value && massing.Boundary is { IsEmpty: false } boundary)
+            {
+                Add(massing.Record.SpeciesId, boundary.InteriorPoint());
+            }
+        }
+
+        var result = new List<PhotoBoardSpecies>();
+        foreach ((string id, List<Core.Geometry.Point2> points) in targets)
+        {
+            if (ctx.Lookup(id) is Species species)
+            {
+                result.Add(new PhotoBoardSpecies(species, ctx.ProjectCode(species), ctx.Paths.ResolvePhoto(species.PhotoFile), points));
+            }
+        }
+
+        return result.OrderBy(r => r.Code, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
     /// <summary>Espécies do projeto com as quantidades que interessam ao cronograma de manutenção.</summary>
     public static IReadOnlyList<MaintenanceItem> MaintenanceItems(
         ViridianContext ctx, IReadOnlyList<SpeciesReportRow> species, IReadOnlyList<AcquisitionRow> acquisition)
@@ -188,6 +239,30 @@ public sealed class SchedulesCommand : CommandBase
     internal override Result Run(ViridianContext ctx)
     {
         DocumentationFlows.CreateSchedules(ctx);
+        return Result.Succeeded;
+    }
+}
+
+/// <summary>Quadro de fotos ao redor da planta: foto, código e nome de cada espécie, com linha até um exemplar.</summary>
+[Transaction(TransactionMode.Manual)]
+[Regeneration(RegenerationOption.Manual)]
+public sealed class PhotoBoardCommand : CommandBase
+{
+    internal override Result Run(ViridianContext ctx)
+    {
+        ViewPlan view = ctx.RequirePlanView();
+        IReadOnlyList<PhotoBoardSpecies> species = DocumentationFlows.BoardSpecies(ctx, view);
+        if (species.Count == 0)
+        {
+            throw new ViridianException("Não há vegetação do catálogo visível nesta vista.");
+        }
+
+        int cards = ctx.Grouped("Viridian: quadro de fotos", () =>
+            Tx.Run(ctx.Doc, "Viridian: quadro de fotos", () => ctx.Photos.CreateBoard(ctx.Doc, view, species), suppressWarnings: true), _ => true);
+        int withoutPhoto = species.Count(s => s.PhotoFile.Length == 0);
+        TaskDialog.Show("Viridian", $"Quadro de fotos criado com {cards} espécie(s)."
+            + (withoutPhoto > 0 ? $"\n{withoutPhoto} espécie(s) sem fotografia receberam moldura vazia (cadastre a foto na Biblioteca)." : string.Empty)
+            + "\n\nPara refazer depois de mudar o plantio, use o comando de novo: o quadro anterior desta vista é substituído.");
         return Result.Succeeded;
     }
 }

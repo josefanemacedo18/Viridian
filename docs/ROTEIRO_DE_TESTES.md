@@ -20,7 +20,7 @@ Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Virid
 
 ## 3. Plantio
 
-1. Em uma planta 1:100, Buscar Espécie > Ipê-amarelo > **Inserir**: o símbolo colorido deve acompanhar o cursor; clique três vezes e pressione ESC.
+1. Em uma planta 1:100, clique em **Inserir**: a janela rápida deve abrir com a pesquisa, as espécies recentes no topo, o símbolo colorido e a foto. Escolha Ipê-amarelo e clique em Inserir; o símbolo colorido deve acompanhar o cursor. Clique três vezes e pressione ESC. **Os exemplares devem aparecer coloridos na vista.**
    - Na primeira vez, o Viridian gera a família 2D (alguns segundos), com a copa preenchida e as manchas amarelas da floração.
    - Os exemplares devem receber códigos AR.0001, AR.0002, AR.0003 e variantes sorteadas.
 2. **Distribuir** um arbusto em uma região preenchida em todos os padrões: triangular, retangular, natural, densidade, bordadura (2 fileiras), anéis, agrupamentos e degradê. Confira a contagem da pré-visualização contra a quantidade inserida e se todas as plantas ficam dentro do canteiro.
@@ -53,7 +53,8 @@ Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Virid
 
 1. **Etiquetar** a vista inteira com cada modelo, com e sem linha indicadora, e "uma por espécie".
 2. **Codificar** > renumerar os códigos de espécie no projeto; as etiquetas devem se atualizar.
-3. **Legenda**: confira símbolos, hachuras e quantidades.
+3. **Legenda**: confira símbolos coloridos, fotos, hachuras e quantidades.
+4. **Quadro de Fotos** em uma planta com várias espécies: cada espécie deve ganhar um cartão com foto, código e nome nas margens do desenho, com linha até um exemplar, sem linhas cruzadas. Rode de novo: o quadro deve ser substituído, não duplicado.
 4. **Tabelas Nativas**: tabela por espécie (agrupada, com total) e por exemplar.
 5. **Relatórios** > **Exportar para Excel**: abra a planilha e confira as três abas e os totais.
 

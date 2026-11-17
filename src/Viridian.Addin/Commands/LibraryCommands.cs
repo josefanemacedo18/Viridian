@@ -26,6 +26,11 @@ public sealed class LibraryCommand : CommandBase
         }
 
         Species species = browser.SelectedSpecies;
+        if (browser.Action != BrowserAction.None)
+        {
+            ctx.RememberSpecies(species);
+        }
+
         return browser.Action switch
         {
             BrowserAction.Insert => PlantingFlows.Insert(ctx, species),

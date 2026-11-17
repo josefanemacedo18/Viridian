@@ -41,6 +41,9 @@ public sealed class DocumentationService
     private readonly ViridianSettings _settings;
     private readonly LabelService _labels;
 
+    /// <summary>Localiza o arquivo da fotografia de uma espécie (vazio quando não há foto).</summary>
+    public Func<string, string> PhotoResolver { get; set; } = _ => string.Empty;
+
     public DocumentationService(ViridianSettings settings, LabelService labels)
     {
         _settings = settings;
@@ -127,9 +130,17 @@ public sealed class DocumentationService
             double Unit(double paperMm) => RevitUnits.ToFeet(paperMm * scale / 1000.0);
             ElementId textType = _labels.EnsureTextType(document).Id;
 
-            const double rowHeight = 13;
-            double[] columns = { 0, 20, 42, 92, 152, 190 };
-            string[] headers = { "Símbolo", "Código", "Nome popular", "Nome científico", "Quantidade" };
+            // Com fotografias, a legenda ganha a coluna "Foto" e linhas mais altas.
+            var photos = entries.ToDictionary(e => e, e => e.Species is null ? string.Empty : PhotoResolver(e.Species.PhotoFile));
+            bool withPhotos = photos.Values.Any(p => p.Length > 0);
+            double rowHeight = withPhotos ? 26 : 13;
+            double[] columns = withPhotos
+                ? new double[] { 0, 24, 60, 82, 132, 192, 230 }
+                : new double[] { 0, 20, 42, 92, 152, 190 };
+            string[] headers = withPhotos
+                ? new[] { "Símbolo", "Foto", "Código", "Nome popular", "Nome científico", "Quantidade" }
+                : new[] { "Símbolo", "Código", "Nome popular", "Nome científico", "Quantidade" };
+            int text = withPhotos ? 2 : 1; // primeira coluna de texto
 
             double top = 0;
             AddText(document, view, textType, "LEGENDA DE VEGETAÇÃO" + (string.IsNullOrWhiteSpace(projectTitle) ? string.Empty : " — " + projectTitle), Unit(0), Unit(top + 9));
@@ -160,10 +171,15 @@ public sealed class DocumentationService
                     DrawSymbol(document, view, entry.Species, SymbolPaint.For(entry.Species, _settings.Colors), Unit(centerX), Unit(centerY), Unit(rowHeight - 3));
                 }
 
-                AddText(document, view, textType, entry.Code, Unit(columns[1] + 1.5), Unit(centerY + 1.3));
-                AddText(document, view, textType, entry.PopularName, Unit(columns[2] + 1.5), Unit(centerY + 1.3));
-                AddText(document, view, textType, entry.ScientificName, Unit(columns[3] + 1.5), Unit(centerY + 1.3));
-                AddText(document, view, textType, entry.Quantity, Unit(columns[4] + 1.5), Unit(centerY + 1.3));
+                if (withPhotos && photos[entry].Length > 0 && PhotoService.EnsureImageType(document, photos[entry]) is ImageType photo)
+                {
+                    PhotoService.PlaceImage(document, view, photo, new XYZ(Unit(columns[1] + 1.5), Unit(rowTop - 1.5), 0), Unit(columns[2] - columns[1] - 3), Unit(rowHeight - 3));
+                }
+
+                AddText(document, view, textType, entry.Code, Unit(columns[text] + 1.5), Unit(centerY + 1.3));
+                AddText(document, view, textType, entry.PopularName, Unit(columns[text + 1] + 1.5), Unit(centerY + 1.3));
+                AddText(document, view, textType, entry.ScientificName, Unit(columns[text + 2] + 1.5), Unit(centerY + 1.3));
+                AddText(document, view, textType, entry.Quantity, Unit(columns[text + 3] + 1.5), Unit(centerY + 1.3));
 
                 y = rowBottom;
                 horizontal.Add(y);
@@ -321,7 +337,7 @@ public sealed class DocumentationService
         using var collector = new FilteredElementCollector(document, view.Id);
         List<ElementId> ids = collector
             .WhereElementIsNotElementType()
-            .Where(e => e is DetailCurve or TextNote or FilledRegion)
+            .Where(e => e is DetailCurve or TextNote or FilledRegion or ImageInstance)
             .Select(e => e.Id)
             .ToList();
         if (ids.Count > 0)

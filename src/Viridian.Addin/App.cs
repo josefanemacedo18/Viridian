@@ -71,8 +71,8 @@ public sealed class App : IExternalApplication
 
         RibbonPanel library = app.CreateRibbonPanel(TabName, "Biblioteca");
         Large<LibraryCommand, AlwaysAvailable>(library, assembly, "Buscar\nEspécie", "library",
-            "Biblioteca botânica: pesquisa com filtros projetuais, ficha da espécie e cadastro.",
-            "Pesquise por nome, categoria, origem, porte, copa, água, luz e crescimento. A partir da ficha é possível inserir, distribuir ou criar maciços.");
+            "Biblioteca botânica completa: filtros projetuais, ficha técnica com foto e cadastro de espécies (nova, editar, duplicar, excluir).",
+            "Pesquise por nome, categoria, origem, porte, copa, água, luz, crescimento, bioma e floração. Use para consultar e manter o catálogo; para plantar rapidamente, use Inserir.");
         Stack(library,
             Small<ImportFamilyCommand, AlwaysAvailable>(assembly, "Importar Família", "import",
                 "Registra uma família personalizada (Vegetação ou componente de detalhe) e a associa a uma espécie."),
@@ -81,8 +81,8 @@ public sealed class App : IExternalApplication
 
         RibbonPanel planting = app.CreateRibbonPanel(TabName, "Plantio");
         Large<InsertCommand, ProjectAvailability>(planting, assembly, "Inserir", "insert",
-            "Insere exemplares individuais clicando na vista em planta.",
-            "Cada exemplar recebe código, situação e estágio de implantação. Pressione ESC para concluir.");
+            "Inserção rápida: escolha a espécie (as recentes aparecem primeiro) e clique na vista; o símbolo colorido acompanha o cursor.",
+            "Espécie e opções em uma única janela. Cada exemplar recebe código, situação e estágio de implantação. Pressione ESC para concluir.");
         Large<DistributeCommand, ProjectAvailability>(planting, assembly, "Distribuir", "distribute",
             "Distribui exemplares em uma região: triangular, retangular, natural ou por densidade.",
             "Use uma região preenchida, piso, toposólido, área ou ambiente existente, ou desenhe o contorno. Respeita bordas, espaçamento, exemplares existentes e quantidade máxima.");
@@ -107,13 +107,16 @@ public sealed class App : IExternalApplication
         RibbonPanel identification = app.CreateRibbonPanel(TabName, "Identificação");
         Large<LabelCommand, ProjectAvailability>(identification, assembly, "Etiquetar", "label",
             "Identifica exemplares e maciços com código, nome popular, nome científico, área e quantidade.");
+        Large<PhotoBoardCommand, ProjectAvailability>(identification, assembly, "Quadro de\nFotos", "photos",
+            "Coloca ao redor da planta a fotografia de cada espécie, com código e nome, ligada por linha a um exemplar.",
+            "Como nas pranchas de paisagismo ilustradas. Com região de corte ativa, o recorte é ampliado para mostrar os cartões. Rodar de novo substitui o quadro da vista.");
         Stack(identification,
             Small<CodeCommand, ProjectAvailability>(assembly, "Codificar", "code",
                 "Atribui códigos aos exemplares e renumera os códigos de espécie no projeto."),
             Small<UpdateLabelsCommand, ProjectAvailability>(assembly, "Atualizar Etiquetas", "label-update",
                 "Atualiza o texto de todas as etiquetas a partir dos dados atuais."),
             Small<LegendCommand, ProjectAvailability>(assembly, "Legenda", "legend",
-                "Cria a vista de legenda com símbolos, códigos, nomes e quantidades."));
+                "Cria a vista de legenda com símbolos coloridos, fotografias, códigos, nomes e quantidades."));
 
         RibbonPanel quantities = app.CreateRibbonPanel(TabName, "Quantitativos");
         Large<ReportsCommand, ProjectAvailability>(quantities, assembly, "Relatórios", "reports",

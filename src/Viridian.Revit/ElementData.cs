@@ -65,6 +65,7 @@ public static class ElementData
     public const string KindViewProfile = "ViewProfile";
     public const string KindMassSymbol = "MassSymbol";
     public const string KindProject = "Project";
+    public const string KindPhotoBoard = "PhotoBoard";
 
     public static readonly Guid SchemaGuid = new("a510a2f0-55af-469f-8ea5-f20528788096");
 

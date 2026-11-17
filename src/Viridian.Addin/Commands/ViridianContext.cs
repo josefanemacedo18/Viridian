@@ -50,7 +50,8 @@ internal sealed class ViridianContext
         Massings = new MassingService(Settings, Planting);
         Scales = new ScaleProfileService(Settings);
         Labels = new LabelService(Settings);
-        Documentation = new DocumentationService(Settings, Labels);
+        Documentation = new DocumentationService(Settings, Labels) { PhotoResolver = Paths.ResolvePhoto };
+        Photos = new PhotoService(Labels);
     }
 
     public UIApplication UiApp { get; }
@@ -74,6 +75,8 @@ internal sealed class ViridianContext
     public LabelService Labels { get; }
 
     public DocumentationService Documentation { get; }
+
+    public PhotoService Photos { get; }
 
     /// <summary>Documento de projeto ativo (lança exceção quando não há um).</summary>
     public Document Doc => UiDoc?.Document ?? throw new ViridianException("Abra um projeto do Revit para usar este comando.");
@@ -123,16 +126,31 @@ internal sealed class ViridianContext
         return window.ShowDialog() == true;
     }
 
-    /// <summary>Abre a biblioteca para escolher uma espécie. Lança cancelamento quando o usuário fecha a janela.</summary>
-    public Species PickSpecies(string caption)
+    /// <summary>Seletor rápido de espécie (recentes no topo). Lança cancelamento quando o usuário fecha a janela.</summary>
+    public Species PickSpecies(string caption, string actionLabel = "Continuar", string hint = "")
     {
-        var browser = new SpeciesBrowserWindow(Catalog, Paths, Settings, caption);
-        if (!ShowDialog(browser) || browser.SelectedSpecies is null)
+        var picker = new QuickSpeciesWindow(Catalog, Paths, Settings, caption, actionLabel, false, hint);
+        if (!ShowDialog(picker) || picker.SelectedSpecies is null)
         {
             throw new CommandCancelledException();
         }
 
-        return browser.SelectedSpecies;
+        RememberSpecies(picker.SelectedSpecies);
+        return picker.SelectedSpecies;
+    }
+
+    /// <summary>Coloca a espécie no topo da lista de recentes.</summary>
+    public void RememberSpecies(Species species)
+    {
+        Settings.TouchRecent(species.Id);
+        try
+        {
+            SettingsStore.Save(Settings);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ViridianLog.Warn("Não foi possível gravar as espécies recentes.", ex);
+        }
     }
 
     public void SaveSettings()

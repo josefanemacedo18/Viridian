@@ -34,6 +34,7 @@
             <StackPanel>
                 <CheckBox x:Name="LegendBox" Content="Legenda de vegetação (símbolo, código, nomes e quantidade)" IsChecked="True" />
                 <CheckBox x:Name="ScheduleBox" Content="Tabela de quantitativos por espécie" IsChecked="True" />
+                <CheckBox x:Name="PhotoBoardBox" Content="Quadro de fotos das espécies ao redor da planta" IsChecked="True" />
                 <CheckBox x:Name="FitBox" Content="Reduzir a escala da planta se ela não couber na folha" IsChecked="True" />
             </StackPanel>
         </GroupBox>

@@ -16,18 +16,40 @@ namespace Viridian.Addin.Commands;
 /// <summary>Fluxos de plantio compartilhados pela biblioteca e pelos botões da faixa de opções.</summary>
 internal static class PlantingFlows
 {
-    /// <summary>Inserção individual: cada clique na vista posiciona um exemplar; ESC conclui.</summary>
+    /// <summary>Inserção a partir da biblioteca: a espécie já foi escolhida, faltam as opções dos exemplares.</summary>
     public static Result Insert(ViridianContext ctx, Species species)
     {
-        ViewPlan view = ctx.RequirePlanView();
-        Level level = view.GenLevel;
+        ctx.RequirePlanView();
         var options = new InsertOptionsWindow(species, PlantingService.DefaultStage(species), 0, null, ctx.Settings);
         if (!ctx.ShowDialog(options))
         {
             return Result.Cancelled;
         }
 
-        PlantOptions chosen = options.Options;
+        ctx.RememberSpecies(species);
+        return Insert(ctx, species, options.Options);
+    }
+
+    /// <summary>Inserção rápida (botão Inserir): espécie e opções em uma única janela, depois os cliques na vista.</summary>
+    public static Result QuickInsert(ViridianContext ctx)
+    {
+        ctx.RequirePlanView();
+        var window = new QuickSpeciesWindow(ctx.Catalog, ctx.Paths, ctx.Settings, "Inserir vegetação", "Inserir", true,
+            "Depois de confirmar, o símbolo acompanha o cursor: clique na vista para posicionar cada exemplar e pressione ESC para concluir.");
+        if (!ctx.ShowDialog(window) || window.SelectedSpecies is not Species species)
+        {
+            return Result.Cancelled;
+        }
+
+        ctx.RememberSpecies(species);
+        return Insert(ctx, species, window.Options);
+    }
+
+    /// <summary>Inserção individual: cada clique na vista posiciona um exemplar; ESC conclui.</summary>
+    private static Result Insert(ViridianContext ctx, Species species, PlantOptions chosen)
+    {
+        ViewPlan view = ctx.RequirePlanView();
+        Level level = view.GenLevel;
         IReadOnlyList<FamilySymbol> variants = ctx.Grouped("Viridian: preparar " + species.PopularName, () => ctx.EnsureVariants(species, chosen.VariantIndex), _ => true);
         string projectCode = ctx.ProjectCode(species);
         var placementOptions = new PlacementOptions { Status = chosen.Status, Stage = chosen.Stage, Notes = chosen.Notes, Seed = Environment.TickCount64 };
@@ -239,7 +261,7 @@ public sealed class InsertCommand : CommandBase
     internal override Result Run(ViridianContext ctx)
     {
         ctx.RequirePlanView();
-        return PlantingFlows.Insert(ctx, ctx.PickSpecies("Inserir exemplares — escolha a espécie"));
+        return PlantingFlows.QuickInsert(ctx);
     }
 }
 
@@ -250,7 +272,8 @@ public sealed class DistributeCommand : CommandBase
     internal override Result Run(ViridianContext ctx)
     {
         ctx.RequirePlanView();
-        return PlantingFlows.Distribute(ctx, ctx.PickSpecies("Distribuir vegetação — escolha a espécie"));
+        return PlantingFlows.Distribute(ctx, ctx.PickSpecies("Distribuir vegetação — escolha a espécie", "Continuar",
+            "Depois de confirmar, escolha a região (elemento existente ou contorno desenhado)."));
     }
 }
 
@@ -261,7 +284,8 @@ public sealed class LinearCommand : CommandBase
     internal override Result Run(ViridianContext ctx)
     {
         ctx.RequirePlanView();
-        return PlantingFlows.Linear(ctx, ctx.PickSpecies("Plantio linear — escolha a espécie"));
+        return PlantingFlows.Linear(ctx, ctx.PickSpecies("Plantio linear — escolha a espécie", "Continuar",
+            "Depois de confirmar, defina o eixo: linha reta, polilinha, círculo ou linhas existentes."));
     }
 }
 

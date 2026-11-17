@@ -27,7 +27,7 @@ public sealed class TemplateRejectedException : Exception
 public static class SymbolFamilyBuilder
 {
     /// <summary>Versão da montagem da família. Ao aumentá-la, as famílias geradas são refeitas.</summary>
-    public const int Version = 3;
+    public const int Version = 4;
 
     /// <summary>Gera o arquivo .rfa de um símbolo. Não pode haver transação aberta em nenhum documento.</summary>
     /// <param name="paint">Cores da copa e da floração.</param>

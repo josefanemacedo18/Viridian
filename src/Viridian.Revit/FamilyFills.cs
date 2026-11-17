@@ -39,13 +39,12 @@ internal static class FamilyFills
                 return;
             }
 
-            FillPatternElement? solid = SolidPattern(familyDocument);
             ElementId? boundaryStyle = HatchService.InvisibleLineStyle(familyDocument);
 
             if (paint.Mode != CrownFillMode.Nenhum && symbol.FillOutline.Count >= 3)
             {
                 FilledRegionType? crownType = paint.Mode == CrownFillMode.Solido
-                    ? SolidType(familyDocument, baseType, CrownTypeName, solid, paint.Crown)
+                    ? SolidType(familyDocument, baseType, CrownTypeName, paint.Crown)
                     : HatchType(familyDocument, baseType, paint.Crown);
                 CurveLoop? loop = PolygonLoop(symbol.FillOutline, elevation, tolerance);
                 if (crownType is not null && loop is not null)
@@ -56,7 +55,7 @@ internal static class FamilyFills
 
             if (paint.Flower is Rgb flower && symbol.FlowerSpots.Count > 0)
             {
-                FilledRegionType? flowerType = SolidType(familyDocument, baseType, FlowerTypeName, solid, flower);
+                FilledRegionType? flowerType = SolidType(familyDocument, baseType, FlowerTypeName, flower);
                 if (flowerType is not null)
                 {
                     var loops = symbol.FlowerSpots
@@ -173,35 +172,43 @@ internal static class FamilyFills
         return existing ?? (FilledRegionType)baseType.Duplicate(name);
     }
 
-    private static FilledRegionType? SolidType(Document document, FilledRegionType baseType, string name, FillPatternElement? solid, Rgb color)
+    /// <summary>
+    /// Tipo de região sólido na cor informada. A documentação do Revit é ambígua sobre qual padrão sólido
+    /// (de desenho ou de modelo) e qual máscara são aceitos dentro de famílias; por isso cada combinação é
+    /// tentada de verdade, na ordem mais provável, e a primeira aceita é usada.
+    /// </summary>
+    private static FilledRegionType? SolidType(Document document, FilledRegionType baseType, string name, Rgb color)
     {
-        if (solid is null)
+        List<FillPatternElement> solids = SolidPatterns(document);
+        if (solids.Count == 0)
         {
+            ViridianLog.Warn("Cores do símbolo: o modelo de família não tem padrão de preenchimento sólido.");
             return null;
         }
 
         FilledRegionType type = Named(document, baseType, name);
-
-        // Na família, padrão sólido exige região de máscara.
-        if (type.IsValidMasking(true))
+        foreach (bool masking in new[] { true, false })
         {
-            type.IsMasking = true;
+            foreach (FillPatternElement solid in solids)
+            {
+                try
+                {
+                    type.BackgroundPatternId = ElementId.InvalidElementId;
+                    TrySet(() => type.IsMasking = masking);
+                    type.ForegroundPatternId = solid.Id;
+                    type.ForegroundPatternColor = new Color(color.R, color.G, color.B);
+                    TrySet(() => type.LineWeight = 1);
+                    ViridianLog.Info($"Cores do símbolo: tipo \"{name}\" com padrão \"{solid.Name}\" ({solid.GetFillPattern().Target}), máscara {type.IsMasking}.");
+                    return type;
+                }
+                catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+                {
+                    ViridianLog.Info($"Cores do símbolo: padrão \"{solid.Name}\" ({solid.GetFillPattern().Target}) com máscara {masking} recusado: {ex.Message}");
+                }
+            }
         }
 
-        if (!type.IsValidForegroundPatternId(solid.Id) || !type.IsValidSolidFillPatternId(solid.Id))
-        {
-            return null;
-        }
-
-        type.BackgroundPatternId = ElementId.InvalidElementId;
-        type.ForegroundPatternId = solid.Id;
-        type.ForegroundPatternColor = new Color(color.R, color.G, color.B);
-        if (FilledRegionType.IsValidLineWeight(1))
-        {
-            type.LineWeight = 1;
-        }
-
-        return type;
+        return null;
     }
 
     private static FilledRegionType? HatchType(Document document, FilledRegionType baseType, Rgb color)
@@ -213,29 +220,45 @@ internal static class FamilyFills
         }
 
         FilledRegionType type = Named(document, baseType, CrownTypeName);
-        type.BackgroundPatternId = ElementId.InvalidElementId;
-
-        // Sem máscara, o que está sob a copa (pisos, divisas) continua visível através do reticulado.
-        if (type.IsValidMasking(false))
+        foreach (bool masking in new[] { false, true })
         {
-            type.IsMasking = false;
+            try
+            {
+                type.BackgroundPatternId = ElementId.InvalidElementId;
+                TrySet(() => type.IsMasking = masking);
+                type.ForegroundPatternId = hatch.Id;
+                type.ForegroundPatternColor = new Color(color.R, color.G, color.B);
+                return type;
+            }
+            catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+            {
+                ViridianLog.Info("Cores do símbolo: reticulado recusado: " + ex.Message);
+            }
         }
 
-        if (!type.IsValidForegroundPatternId(hatch.Id))
-        {
-            return null;
-        }
-
-        type.ForegroundPatternId = hatch.Id;
-        type.ForegroundPatternColor = new Color(color.R, color.G, color.B);
-        return type;
+        return null;
     }
 
-    /// <summary>Padrão sólido; nas famílias o Revit exige padrão de desenho (não de modelo).</summary>
-    private static FillPatternElement? SolidPattern(Document document)
+    private static void TrySet(Action set)
     {
-        ElementId id = HatchService.SolidDraftingPattern(document);
-        return id == ElementId.InvalidElementId ? null : document.GetElement(id) as FillPatternElement;
+        try
+        {
+            set();
+        }
+        catch (Autodesk.Revit.Exceptions.ApplicationException)
+        {
+            // Propriedade não aceita neste contexto: segue com o valor atual.
+        }
+    }
+
+    /// <summary>Padrões sólidos do documento: primeiro os de desenho, depois os de modelo.</summary>
+    private static List<FillPatternElement> SolidPatterns(Document document)
+    {
+        using var collector = new FilteredElementCollector(document);
+        return collector.OfClass(typeof(FillPatternElement)).Cast<FillPatternElement>()
+            .Where(p => p.GetFillPattern() is { IsSolidFill: true })
+            .OrderBy(p => p.GetFillPattern().Target == FillPatternTarget.Drafting ? 0 : 1)
+            .ToList();
     }
 
     private static FillPatternElement? HatchPattern(Document document)

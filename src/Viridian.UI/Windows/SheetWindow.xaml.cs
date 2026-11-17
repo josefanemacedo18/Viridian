@@ -16,6 +16,8 @@ public sealed class SheetOptions
 
     public bool IncludeSchedule { get; set; } = true;
 
+    public bool IncludePhotoBoard { get; set; } = true;
+
     public bool FitScale { get; set; } = true;
 
     public double StampReserveMm { get; set; } = 70;
@@ -50,6 +52,8 @@ public partial class SheetWindow : ViridianWindow
         {
             LegendBox.IsChecked = false;
             ScheduleBox.IsChecked = false;
+            PhotoBoardBox.IsChecked = false;
+            PhotoBoardBox.IsEnabled = false;
         }
 
         Loaded += (_, _) => NumberBox.Focus();
@@ -76,6 +80,7 @@ public partial class SheetWindow : ViridianWindow
         Options.Name = NameBox.Text.Trim();
         Options.IncludeLegend = LegendBox.IsChecked == true;
         Options.IncludeSchedule = ScheduleBox.IsChecked == true;
+        Options.IncludePhotoBoard = PhotoBoardBox.IsChecked == true;
         Options.FitScale = FitBox.IsChecked == true;
         Options.StampReserveMm = stamp;
         DialogResult = true;

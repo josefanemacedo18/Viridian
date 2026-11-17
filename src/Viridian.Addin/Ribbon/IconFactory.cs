@@ -276,6 +276,14 @@ internal static class IconFactory
                 Arrow(dc, new Point(18, 17), new Point(30, 17), accent);
                 break;
 
+            case "photos":
+                dc.DrawRectangle(Fill(Colors.White), main, new Rect(3, 5, 15, 12));
+                dc.DrawGeometry(light, thin, Geometry.Parse("M 4,16 L 8,11 L 11,14 L 14,10 L 17,16 Z"));
+                dc.DrawRectangle(Fill(Colors.White), main, new Rect(14, 17, 15, 12));
+                Crown(dc, new Point(21.5, 23), 4, 6, thin, light);
+                dc.DrawLine(accent, new Point(10.5, 17), new Point(14, 21));
+                break;
+
             case "budget":
                 dc.DrawRoundedRectangle(Fill(Colors.White), main, new Rect(4, 4, 20, 24), 2, 2);
                 dc.DrawLine(thin, new Point(8, 10), new Point(20, 10));
