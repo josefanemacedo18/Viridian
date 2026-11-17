@@ -26,6 +26,8 @@ foreach ((string name, Viridian.Core.Detailing.Drawing drawing, double k) in Svg
 
 SvgSheets.MemorialSample(Path.Combine(outDir, "memorial-exemplo.docx"), Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "Viridian.Addin", "Fotos")));
 File.WriteAllText(Path.Combine(outDir, "quadro-fotos.svg"), SvgSheets.PhotoBoardSheet(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "Viridian.Addin", "Fotos"))));
+File.WriteAllText(Path.Combine(outDir, "maquete.svg"), MaquetePreview.Scene(Viridian.Core.Detailing.GrowthStage.Maturidade));
+File.WriteAllText(Path.Combine(outDir, "maquete-plantio.svg"), MaquetePreview.Scene(Viridian.Core.Detailing.GrowthStage.Plantio));
 Console.WriteLine("Pranchas geradas em " + Path.GetFullPath(outDir));
 
 internal static class SvgSheets

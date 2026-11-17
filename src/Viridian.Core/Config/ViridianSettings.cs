@@ -13,6 +13,7 @@ using Viridian.Core.Maintenance;
 using Viridian.Core.Interference;
 using Viridian.Core.Composition;
 using Viridian.Core.Detailing;
+using Viridian.Core.Model3D;
 
 namespace Viridian.Core.Config;
 
@@ -153,6 +154,9 @@ public sealed class ViridianSettings
     /// <summary>Modelos das notas de especificação de plantio.</summary>
     public SpecificationSettings Specifications { get; set; } = new();
 
+    /// <summary>Maquete 3D.</summary>
+    public ModelSettings Model3D { get; set; } = new();
+
     public TierStyle StyleOf(SymbolTier tier) =>
         TierStyles.FirstOrDefault(s => s.Tier == tier) ?? DefaultTierStyles().FirstOrDefault(s => s.Tier == tier) ?? new TierStyle { Tier = tier };
 
@@ -178,6 +182,8 @@ public sealed class ViridianSettings
         Composition.Normalize();
         Specifications ??= new SpecificationSettings();
         Specifications.Normalize();
+        Model3D ??= new ModelSettings();
+        Model3D.Normalize();
         Density ??= new DensityRules();
         Density.Normalize();
         InstanceCode ??= new InstanceCodeFormat();

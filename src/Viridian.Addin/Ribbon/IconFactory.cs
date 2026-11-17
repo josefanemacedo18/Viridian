@@ -346,6 +346,30 @@ internal static class IconFactory
                 Arrow(dc, new Point(4, 9), new Point(14, 4), accent);
                 break;
 
+            case "model3d":
+            {
+                // Caixa isométrica com uma árvore em volume.
+                Brush side = Fill(Color.FromRgb(0xE3, 0xD3, 0xB8));
+                dc.DrawGeometry(side, thin, Geometry.Parse("M 3,22 L 16,28 L 29,22 L 16,16 Z"));
+                dc.DrawLine(main, new Point(16, 22), new Point(16, 13));
+                dc.DrawEllipse(green, dark, new Point(16, 10), 7, 7.5);
+                dc.DrawEllipse(Fill(Color.FromRgb(0x6F, 0xA8, 0x7E)), null, new Point(13.5, 7.5), 2.6, 2.6);
+                break;
+            }
+
+            case "model3d-update":
+                dc.DrawLine(main, new Point(13, 26), new Point(13, 17));
+                dc.DrawEllipse(light, main, new Point(13, 12), 7, 7);
+                CircularArrows(dc, new Point(24, 23), 6, accent);
+                break;
+
+            case "model3d-remove":
+                dc.DrawLine(main, new Point(13, 26), new Point(13, 17));
+                dc.DrawEllipse(light, main, new Point(13, 12), 7, 7);
+                dc.DrawLine(accent, new Point(20, 19), new Point(29, 28));
+                dc.DrawLine(accent, new Point(29, 19), new Point(20, 28));
+                break;
+
             case "photos":
                 dc.DrawRectangle(Fill(Colors.White), main, new Rect(3, 5, 15, 12));
                 dc.DrawGeometry(light, thin, Geometry.Parse("M 4,16 L 8,11 L 11,14 L 14,10 L 17,16 Z"));

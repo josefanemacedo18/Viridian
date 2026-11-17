@@ -338,6 +338,11 @@ public partial class SettingsWindow : ViridianWindow
         RuleTextureBox.IsChecked = c.CheckTexture;
         RulePalmBox.IsChecked = c.CheckPalmUnderstory;
         RuleFloweringBox.IsChecked = c.CheckFlowering;
+        ModelMaxBox.Text = s.Model3D.MaxPlants.ToString(Num.PtBr);
+        ModelTerrainBox.IsChecked = s.Model3D.FollowTerrain;
+        ModelSearchBox.Text = Num.Format(s.Model3D.TerrainSearchM);
+        ModelTrunkBox.Text = s.Model3D.TrunkColor;
+        ModelFlowersBox.IsChecked = s.Model3D.ShowFlowers;
 
         s.Specifications.Normalize();
         _specTemplates = new Dictionary<string, string>(s.Specifications.Templates);
@@ -698,6 +703,12 @@ public partial class SettingsWindow : ViridianWindow
         int minSpecies = Integer(MinSpeciesBox, "Mínimo de espécies por canteiro", 1, 20);
         double minArea = Number(MinAreaBox, "Área mínima para exigir diversidade", 0, 10000);
         double maxCrown = Number(MaxCrownBox, "Copa adulta em relação ao canteiro", 20, 300);
+        int modelMax = Integer(ModelMaxBox, "Máximo de exemplares da maquete", 1, Core.Model3D.ModelSettings.HardLimit);
+        double modelSearch = Number(ModelSearchBox, "Distância de busca do terreno", 0.5, 200);
+        if (!Core.Colors.Rgb.TryParse(ModelTrunkBox.Text.Trim(), out _))
+        {
+            problems.Add("Cor dos troncos inválida (use o formato #RRGGBB).");
+        }
         foreach ((string key, string specText) in _specTemplates)
         {
             IReadOnlyList<string> unknown = SpecificationTemplates.UnknownFields(specText);
@@ -774,6 +785,14 @@ public partial class SettingsWindow : ViridianWindow
             CheckFlowering = RuleFloweringBox.IsChecked == true,
         };
         s.Specifications = new SpecificationSettings { Templates = new Dictionary<string, string>(_specTemplates) };
+        s.Model3D = new Core.Model3D.ModelSettings
+        {
+            MaxPlants = modelMax,
+            FollowTerrain = ModelTerrainBox.IsChecked == true,
+            TerrainSearchM = modelSearch,
+            TrunkColor = ColorHex.Normalize(ModelTrunkBox.Text.Trim()),
+            ShowFlowers = ModelFlowersBox.IsChecked == true,
+        };
         s.Interference.Rules = rules;
         s.Interference.BuildingCrownFactor = crownFactor;
         s.Interference.CheckPavements = PavementBox.IsChecked == true;

@@ -22,7 +22,7 @@ Antes de usar em projetos reais, siga o [roteiro de testes](docs/ROTEIRO_DE_TEST
 
 ## Módulos e ferramentas
 
-A aba **Viridian** tem dez painéis. **Buscar Espécie** é a biblioteca completa (consulta, filtros e cadastro); **Inserir** é a inserção rápida.
+A aba **Viridian** tem onze painéis. **Buscar Espécie** é a biblioteca completa (consulta, filtros e cadastro); **Inserir** é a inserção rápida.
 
 ### Biblioteca
 
@@ -117,6 +117,18 @@ Os valores de cova, camada de solo, tutoramento e crescimento são **referência
 
 ![Memorial ilustrado](docs/img/memorial.jpg)
 
+### Maquete 3D
+
+| Ferramenta | O que faz |
+|---|---|
+| **Maquete 3D** | Cria a vista "Viridian - Maquete 3D" com a vegetação **em volume**: árvores com tronco e copa conforme a forma (arredondada, espalhada, colunar, cônica, irregular), palmeiras com estipe e folhas arqueadas, arbustos e touceiras, **maciços baixos e gramados como volume** que segue o contorno (inclusive recortes), e **manchas de flor** nas espécies de floração vistosa, tudo nas cores das espécies. Pode ser do **projeto inteiro** ou de **uma região** da planta (a vista é recortada em torno dela), **no plantio, aos 3 ou 6 anos ou na maturidade**. As plantas são **assentadas sobre o terreno** (toposólido ou superfície topográfica, também em vínculos); em lajes, coberturas e pisos, ficam sobre eles. A vista abre com sombreamento e sombras. |
+| **Atualizar Maquete** | Refaz a maquete com o mesmo recorte e a mesma fase, depois de mudanças no plantio. |
+| **Remover Maquete** | Apaga a maquete, os materiais criados para ela e a vista (quando não está em uma prancha). |
+
+A maquete é **opcional e não altera o que já existe**: as formas são geradas sem família (formas diretas, categoria Entorno), com representação vazia em planta, de modo que **as plantas baixas continuam mostrando só os símbolos 2D**, e não entram nos quantitativos nem nas tabelas. Elas aparecem nas vistas 3D, nos cortes e nas elevações; em projetos com subprojetos, ficam no subprojeto "VIR Maquete 3D", oculto por padrão nas outras vistas. A maquete não acompanha as mudanças sozinha: depois de alterar o plantio, use **Atualizar Maquete**. Os volumes são aproximações para visualização, sem parâmetros.
+
+![Maquete 3D](docs/img/maquete.jpg)
+
 ### Verificação
 
 | Ferramenta | O que faz |
@@ -129,7 +141,7 @@ Os valores de cova, camada de solo, tutoramento e crescimento são **referência
 | Ferramenta | O que faz |
 |---|---|
 | **Escalas** | Perfis de representação **Detalhado**, **Intermediário**, **Simplificado** e **Mínimo**. A dimensão real do símbolo nunca muda; só o detalhamento. |
-| **Configurações** | Biblioteca, escalas, padrão gráfico das linhas, **cores** (preenchimento sólido ou reticulado, clareamento, floração, maciços coloridos e cor-base de cada categoria, com pré-visualização), **interferências**, **composição** (limites das regras e modelos das notas de especificação), **acessibilidade**, maciços, plantio, codificação, análise, etiquetas e hachuras do escritório. |
+| **Configurações** | Biblioteca, escalas, padrão gráfico das linhas, **cores** (preenchimento sólido ou reticulado, clareamento, floração, maciços coloridos e cor-base de cada categoria, com pré-visualização), **interferências**, **composição** (limites das regras, modelos das notas de especificação e opções da maquete 3D), **acessibilidade**, maciços, plantio, codificação, análise, etiquetas e hachuras do escritório. |
 | **Sobre** | Versão e atalhos para as pastas da biblioteca, de configurações e de registros. |
 
 ---
@@ -219,16 +231,16 @@ No Windows, use `build\package.ps1`. O pacote é gerado em `dist/`.
 
 | Projeto | Responsabilidade |
 |---|---|
-| `Viridian.Core` | Regras sem dependência do Revit: geometria, símbolos e cores, distribuição e eixos de plantio, maciços, escalas, codificação, hachuras, relatórios, orçamento e leitura de tabelas de preços, cronograma de manutenção, interferências, diagramação de pranchas, verificação, composição (paletas, texturas, calendário de floração, regras de canteiro), detalhamento (detalhes de plantio, cortes, crescimento, especificações), memorial e exportação `.xlsx`, `.docx` e `.dxf` |
+| `Viridian.Core` | Regras sem dependência do Revit: geometria, símbolos e cores, distribuição e eixos de plantio, maciços, escalas, codificação, hachuras, relatórios, orçamento e leitura de tabelas de preços, cronograma de manutenção, interferências, diagramação de pranchas, verificação, composição (paletas, texturas, calendário de floração, regras de canteiro), detalhamento (detalhes de plantio, cortes, crescimento, especificações), malhas da maquete 3D (formas das plantas, triangulação dos maciços), memorial e exportação `.xlsx`, `.docx` e `.dxf` |
 | `Viridian.Library` | Catálogo botânico, catálogo padrão (dados e créditos das fotos), tabela de preços, configurações, pastas e registro de erros |
-| `Viridian.Revit` | Integração com a API: parâmetros compartilhados, Extensible Storage, famílias com copa colorida, plantio, eixos, maciços, perfis de escala, etiquetas, legenda, tabelas, pranchas, exportação DWG, leitura de redes nos vínculos e desenho das vistas de detalhamento |
+| `Viridian.Revit` | Integração com a API: parâmetros compartilhados, Extensible Storage, famílias com copa colorida, plantio, eixos, maciços, perfis de escala, etiquetas, legenda, tabelas, pranchas, exportação DWG, leitura de redes nos vínculos, desenho das vistas de detalhamento e maquete 3D (formas diretas, materiais, terreno) |
 | `Viridian.UI` | Janelas WPF |
 | `Viridian.Addin` | `IExternalApplication`, faixa de opções, comandos e atualização automática de escala |
 | `tests/Viridian.Tests` | Testes automatizados (xUnit) |
-| `tools/Viridian.Preview` | Gera pranchas SVG dos símbolos, cores, distribuições, hachuras e detalhamentos, e um memorial de exemplo, para conferência visual |
+| `tools/Viridian.Preview` | Gera pranchas SVG dos símbolos, cores, distribuições, hachuras, detalhamentos e da maquete 3D, e um memorial de exemplo, para conferência visual |
 
 ---
 
 ## Fora do escopo
 
-Modelagem 3D de vegetação, renderização, modelos volumétricos, levantamento arbóreo, cálculo de volume de solo, modelagem de terrenos, ferramentas de desenho de pisos e sistemas de tabelas paralelos ao Revit.
+Famílias 3D paramétricas de vegetação, renderização fotorrealista, levantamento arbóreo, cálculo de volume de solo, modelagem de terrenos, ferramentas de desenho de pisos e sistemas de tabelas paralelos ao Revit.

@@ -1,4 +1,4 @@
-﻿VIRIDIAN 1.2 — Paisagismo 2D técnico para Autodesk Revit 2027
+﻿VIRIDIAN 1.3 — Paisagismo 2D técnico para Autodesk Revit 2027
 ==============================================================
 
 INSTALAR
@@ -28,6 +28,9 @@ PRIMEIROS PASSOS
    Verificar Canteiro e Calendário de Floração.
 6. Detalhamento: Memorial Ilustrado (Word editável), Detalhe de Plantio,
    Corte Esquemático e Crescimento 2D.
+7. Maquete 3D: vista 3D com a vegetação em volume, assentada no terreno.
+   As plantas baixas não mudam. Atualizar Maquete refaz depois de mudanças;
+   Remover Maquete apaga tudo o que ela criou.
 
 Na primeira inserção de cada espécie o Viridian gera a família 2D a partir
 do modelo de família instalado com o Revit (Vegetação ou Modelo genérico).

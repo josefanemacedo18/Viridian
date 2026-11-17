@@ -8,7 +8,7 @@ Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Virid
 
 1. Instale com `Instalar.cmd` e abra o Revit 2027.
 2. Escolha **Sempre carregar** no aviso de segurança.
-3. Confira a aba **Viridian** com os painéis Biblioteca, Plantio, Maciços, Identificação, Quantitativos, Documentação, Composição, Detalhamento, Verificação e Configurações, todos com ícones.
+3. Confira a aba **Viridian** com os painéis Biblioteca, Plantio, Maciços, Identificação, Quantitativos, Documentação, Composição, Detalhamento, Maquete 3D, Verificação e Configurações, todos com ícones.
 4. Sem projeto aberto, **Buscar Espécie**, **Importar Família**, **Ateliê de Paletas**, **Configurações** e **Sobre** ficam disponíveis; os demais, desativados.
 
 ## 2. Biblioteca
@@ -127,3 +127,19 @@ Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Virid
 5. **Crescimento 2D**: escolha um canteiro. A vista mostra quatro quadros (plantio, 3 anos, 6 anos, maturidade), com as copas crescendo e o canteiro fechando.
 6. Coloque as vistas criadas em uma prancha e imprima em PDF: textos, cores e linhas devem sair corretos.
 7. **Memorial Ilustrado**: preencha antes Gerenciar > Informações do projeto (nome, número, cliente, endereço, autor). Salve o `.docx` e abra no Word: capa com fotos, partido, paleta, fichas com foto, calendário, especificações, manutenção e créditos. Edite um texto e salve: o arquivo deve continuar íntegro.
+
+## 16. Maquete 3D
+
+Use um projeto com árvores, palmeiras, arbustos, um maciço de forração e um gramado, de preferência com um toposólido inclinado.
+
+1. **Maquete 3D** > Projeto inteiro > Na maturidade: abre a vista "Viridian - Maquete 3D" com sombreamento e sombras. Cada planta aparece em volume, nas cores das espécies, com tronco marrom e manchas de flor nas espécies floridas. O resumo informa quantos exemplares e maciços foram criados.
+2. **Plantas baixas sem alteração:** abra as vistas em planta do projeto. Devem mostrar apenas os símbolos 2D, como antes; nenhum volume da maquete pode aparecer. Se aparecer, anote: o resumo da maquete também avisa quando o Revit não aceita ocultá-la nas plantas.
+3. **Terreno:** com o toposólido inclinado, as plantas e os maciços devem ficar apoiados no terreno, sem flutuar nem afundar. Um vaso ou jardim sobre laje (piso no nível superior) deve ficar sobre a laje.
+4. **Maciços:** o maciço de forração e o gramado aparecem como volume baixo que acompanha o contorno, inclusive recortes; maciços de árvores aparecem como árvores individuais.
+5. **Região:** em uma planta, Maquete 3D > Uma região da planta > desenhe um contorno > No plantio. A maquete anterior é substituída, só a vegetação da região aparece, menor (porte do plantio), e a vista é recortada em torno dela.
+6. **Atualizar Maquete:** mova uma árvore e acrescente outra na planta; Atualizar Maquete refaz com a mesma região e a mesma fase, já com as mudanças.
+7. **Cortes e elevações:** abra um corte que atravesse o jardim; as árvores aparecem em volume (em projetos com subprojetos, só depois de ligar o subprojeto "VIR Maquete 3D" na vista).
+8. **Sem efeito colateral:** rode Relatórios, Tabelas Nativas e Verificar Projeto: as quantidades devem ser as mesmas de antes da maquete.
+9. **Desfazer:** Ctrl+Z desfaz a geração inteira em um passo.
+10. **Remover Maquete** com a vista da maquete aberta: o Viridian troca de vista, apaga as formas, os materiais "VIR Maquete" e a vista. Coloque a vista em uma prancha antes de remover: nesse caso a vista é mantida.
+11. Configurações > Composição > Maquete 3D: reduza o máximo de exemplares para 10 e gere de novo; o resumo informa quantos ficaram de fora. Desmarque as manchas de flor e confira.

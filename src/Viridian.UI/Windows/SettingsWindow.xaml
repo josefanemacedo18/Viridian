@@ -285,6 +285,27 @@
                         <TextBox x:Name="SpecTextBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120" MaxHeight="220" VerticalScrollBarVisibility="Auto"
                                  VerticalContentAlignment="Top" Margin="0,6,0,0" TextChanged="SpecText_Changed" AutomationProperties.Name="Texto da nota de especificação" />
                         <TextBlock x:Name="SpecFieldsText" Style="{StaticResource VirHint}" Margin="0,4,0,0" />
+
+                        <TextBlock Style="{StaticResource VirSection}" Text="Maquete 3D" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="300" />
+                                <ColumnDefinition Width="90" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Style="{StaticResource VirLabel}" Text="Máximo de exemplares por maquete" />
+                            <TextBox x:Name="ModelMaxBox" Grid.Column="1" AutomationProperties.Name="Máximo de exemplares por maquete" />
+                            <CheckBox x:Name="ModelTerrainBox" Grid.Row="1" Content="Assentar sobre o terreno, buscando até (m)" />
+                            <TextBox x:Name="ModelSearchBox" Grid.Row="1" Grid.Column="1" AutomationProperties.Name="Distância de busca do terreno em metros" />
+                            <TextBlock Grid.Row="2" Style="{StaticResource VirLabel}" Text="Cor dos troncos (#RRGGBB)" />
+                            <TextBox x:Name="ModelTrunkBox" Grid.Row="2" Grid.Column="1" AutomationProperties.Name="Cor dos troncos" />
+                        </Grid>
+                        <CheckBox x:Name="ModelFlowersBox" Content="Manchas de flor nas espécies de floração vistosa" />
+                        <TextBlock Style="{StaticResource VirHint}" Text="Com um terreno no projeto (toposólido ou superfície, também em vínculos), as plantas são assentadas sobre ele; em lajes e coberturas, ficam sobre a laje." />
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
