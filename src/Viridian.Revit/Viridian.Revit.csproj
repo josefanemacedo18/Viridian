@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <PlatformTarget>x64</PlatformTarget>
+    <RootNamespace>Viridian.Revit</RootNamespace>
+    <Description>Integração do Viridian com a API do Revit 2027.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="$(RevitApiVersion)" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="$(RevitApiVersion)" ExcludeAssets="runtime" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Viridian.Core\Viridian.Core.csproj" />
+    <ProjectReference Include="..\Viridian.Library\Viridian.Library.csproj" />
+  </ItemGroup>
+</Project>

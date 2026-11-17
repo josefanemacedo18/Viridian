@@ -50,6 +50,12 @@ public sealed class PlantingDefaults
     public int MaxCount { get; set; } = 2000;
 
     public bool RandomRotation { get; set; } = true;
+
+    /// <summary>
+    /// Deslocamento vertical dos exemplares em relação ao nível da vista, em metros.
+    /// Útil em terrenos acidentados, para manter os símbolos acima da topografia.
+    /// </summary>
+    public double ElevationOffsetM { get; set; }
 }
 
 /// <summary>Configurações do escritório. Gravadas em JSON e compartilháveis entre computadores.</summary>
@@ -125,6 +131,7 @@ public sealed class ViridianSettings
         Planting.EdgeMarginM = Clamp(Planting.EdgeMarginM, 0, 50, 0.30);
         Planting.JitterPercent = Clamp(Planting.JitterPercent, 0, 50, 10);
         Planting.MaxCount = Math.Clamp(Planting.MaxCount, 1, Distribution.PlantDistributor.HardLimit);
+        Planting.ElevationOffsetM = Clamp(Planting.ElevationOffsetM, -1000, 1000, 0);
 
         MassingPrefix = string.IsNullOrWhiteSpace(MassingPrefix)
             ? "MC"

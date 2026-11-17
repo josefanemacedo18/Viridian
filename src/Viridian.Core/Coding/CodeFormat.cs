@@ -135,31 +135,37 @@ public sealed class InstanceCodeAllocator
     }
 
     /// <summary>Registra um código já existente no projeto para que não seja reutilizado.</summary>
-    public void Register(string? code, PlantCategory category, string speciesCode)
+    public void Register(string? code)
     {
         if (string.IsNullOrWhiteSpace(code))
         {
             return;
         }
 
-        _used.Add(code.Trim());
-        if (_format.TryParse(code, category, speciesCode, out int number))
+        if (_used.Add(code.Trim()))
         {
-            string series = SeriesKey(category, speciesCode);
-            if (!_next.TryGetValue(series, out int next) || number >= next)
-            {
-                _next[series] = number + 1;
-            }
+            _next.Clear();
         }
     }
 
     public bool IsUsed(string? code) => !string.IsNullOrWhiteSpace(code) && _used.Contains(code.Trim());
 
-    /// <summary>Gera o próximo código livre da série.</summary>
+    /// <summary>Gera o próximo código livre da série, depois do maior número já usado nela.</summary>
     public string Next(PlantCategory category, string speciesCode)
     {
-        string series = SeriesKey(category, speciesCode);
-        int number = _next.TryGetValue(series, out int next) ? next : 1;
+        string series = _format.Head(category, speciesCode) + "|" + _format.Tail(category, speciesCode);
+        if (!_next.TryGetValue(series, out int number))
+        {
+            number = 1;
+            foreach (string used in _used)
+            {
+                if (_format.TryParse(used, category, speciesCode, out int existing) && existing >= number)
+                {
+                    number = existing + 1;
+                }
+            }
+        }
+
         string code = _format.Format(category, speciesCode, number);
         while (_used.Contains(code))
         {
@@ -171,7 +177,4 @@ public sealed class InstanceCodeAllocator
         _used.Add(code);
         return code;
     }
-
-    private string SeriesKey(PlantCategory category, string speciesCode) =>
-        _format.Head(category, speciesCode) + "|" + _format.Tail(category, speciesCode);
 }

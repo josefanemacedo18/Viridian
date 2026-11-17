@@ -1,0 +1,412 @@
+using System.Globalization;
+using Autodesk.Revit.DB;
+using Viridian.Core.Config;
+using Viridian.Core.Geometry;
+using Viridian.Core.Hatch;
+using Viridian.Core.Massing;
+using Viridian.Core.Model;
+using Viridian.Core.Reports;
+using Viridian.Core.Scale;
+using Viridian.Core.Symbols;
+using Viridian.Library;
+
+namespace Viridian.Revit;
+
+/// <summary>Uma linha da legenda de vegetação.</summary>
+public sealed class LegendEntry
+{
+    public string Code { get; set; } = string.Empty;
+
+    public string PopularName { get; set; } = string.Empty;
+
+    public string ScientificName { get; set; } = string.Empty;
+
+    public string Quantity { get; set; } = string.Empty;
+
+    /// <summary>Espécie do catálogo, usada para desenhar o símbolo (nula para famílias não cadastradas).</summary>
+    public Species? Species { get; set; }
+
+    /// <summary>Hachura a desenhar no lugar do símbolo (linhas de maciço).</summary>
+    public HatchPattern? Hatch { get; set; }
+}
+
+/// <summary>Legendas e tabelas: documentação gerada com os recursos nativos do Revit.</summary>
+public sealed class DocumentationService
+{
+    public const string LegendViewName = "Viridian - Legenda de vegetação";
+    public const string SpeciesScheduleName = "Viridian - Vegetação por espécie";
+    public const string PlantScheduleName = "Viridian - Exemplares de vegetação";
+
+    private readonly ViridianSettings _settings;
+    private readonly LabelService _labels;
+
+    public DocumentationService(ViridianSettings settings, LabelService labels)
+    {
+        _settings = settings;
+        _labels = labels;
+    }
+
+    /// <summary>Monta as linhas da legenda a partir dos quantitativos do projeto.</summary>
+    public static IReadOnlyList<LegendEntry> BuildLegendEntries(
+        IReadOnlyList<PlantRecord> plants,
+        IReadOnlyList<MassingInfo> massings,
+        Func<string, Species?> lookup,
+        ViridianSettings settings)
+    {
+        var entries = new List<LegendEntry>();
+        var culture = CultureInfo.GetCultureInfo("pt-BR");
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (IGrouping<string, PlantRecord> group in plants
+                     .Where(p => p.IsRegistered && !p.BelongsToMassing && p.Status != PlantStatus.Removido)
+                     .GroupBy(p => p.SpeciesId)
+                     .OrderBy(g => g.First().SpeciesCode, StringComparer.OrdinalIgnoreCase))
+        {
+            PlantRecord first = group.First();
+            seen.Add(group.Key);
+            entries.Add(new LegendEntry
+            {
+                Code = first.SpeciesCode,
+                PopularName = first.PopularName,
+                ScientificName = first.ScientificName,
+                Quantity = group.Count().ToString("N0", culture) + " un",
+                Species = lookup(group.Key),
+            });
+        }
+
+        foreach (IGrouping<string, MassingInfo> group in ReportBuilder.DistinctMassings(massings)
+                     .GroupBy(m => string.IsNullOrWhiteSpace(m.Record.SpeciesId) ? m.Record.SpeciesCode : m.Record.SpeciesId)
+                     .OrderBy(g => g.First().Record.SpeciesCode, StringComparer.OrdinalIgnoreCase))
+        {
+            MassingRecord first = group.First().Record;
+            double area = group.Sum(m => m.Record.AreaM2);
+            int quantity = group.Sum(m => Math.Max(0, m.Record.Quantity));
+            string amount = SupplyUnits.IsAreaBased(first.SupplyUnit)
+                ? area.ToString("N2", culture) + " m²"
+                : quantity.ToString("N0", culture) + " " + (string.IsNullOrWhiteSpace(first.SupplyUnit) ? "un" : first.SupplyUnit) + " · " + area.ToString("N2", culture) + " m²";
+
+            HatchPattern? hatch = group
+                .Select(m => HatchLibrary.Find(m.Record.HatchPatternKey, settings.CustomHatches))
+                .FirstOrDefault(h => h is not null);
+            entries.Add(new LegendEntry
+            {
+                Code = first.SpeciesCode,
+                PopularName = first.PopularName,
+                ScientificName = first.ScientificName,
+                Quantity = amount,
+                Species = hatch is null ? lookup(first.SpeciesId) : null,
+                Hatch = hatch,
+            });
+        }
+
+        return entries;
+    }
+
+    /// <summary>
+    /// Cria (ou refaz) a vista de desenho com a legenda de vegetação: símbolo ou hachura, código, nomes e quantidade.
+    /// </summary>
+    public ViewDrafting CreateLegend(Document document, IReadOnlyList<LegendEntry> entries, string projectTitle)
+    {
+        if (entries.Count == 0)
+        {
+            throw new ViridianException("Não há vegetação no projeto para compor a legenda.");
+        }
+
+        return Tx.Run(document, "Viridian: legenda", () =>
+        {
+            ViewDrafting view = FindOrCreateDraftingView(document, LegendViewName);
+            ClearView(document, view);
+            const int scale = 100;
+            if (view.Scale != scale)
+            {
+                view.Scale = scale;
+            }
+
+            // Medidas em milímetros no papel, convertidas para o modelo pela escala da vista.
+            double Unit(double paperMm) => RevitUnits.ToFeet(paperMm * scale / 1000.0);
+            ElementId textType = _labels.EnsureTextType(document).Id;
+
+            const double rowHeight = 13;
+            double[] columns = { 0, 20, 42, 92, 152, 190 };
+            string[] headers = { "Símbolo", "Código", "Nome popular", "Nome científico", "Quantidade" };
+
+            double top = 0;
+            AddText(document, view, textType, "LEGENDA DE VEGETAÇÃO" + (string.IsNullOrWhiteSpace(projectTitle) ? string.Empty : " — " + projectTitle), Unit(0), Unit(top + 9));
+
+            double headerTop = top;
+            double headerBottom = headerTop - 8;
+            for (int c = 0; c < headers.Length; c++)
+            {
+                AddText(document, view, textType, headers[c], Unit(columns[c] + 1.5), Unit(headerTop - 2.5));
+            }
+
+            double y = headerBottom;
+            var horizontal = new List<double> { headerTop, headerBottom };
+            foreach (LegendEntry entry in entries)
+            {
+                double rowTop = y;
+                double rowBottom = y - rowHeight;
+                double centerX = (columns[0] + columns[1]) / 2;
+                double centerY = (rowTop + rowBottom) / 2;
+
+                if (entry.Hatch is not null)
+                {
+                    DrawHatchSample(document, view, entry.Hatch, Unit(columns[0] + 3), Unit(rowBottom + 2.5), Unit(columns[1] - 3), Unit(rowTop - 2.5));
+                }
+                else if (entry.Species is not null)
+                {
+                    DrawSymbol(document, view, entry.Species, Unit(centerX), Unit(centerY), Unit(rowHeight - 3));
+                }
+
+                AddText(document, view, textType, entry.Code, Unit(columns[1] + 1.5), Unit(centerY + 1.3));
+                AddText(document, view, textType, entry.PopularName, Unit(columns[2] + 1.5), Unit(centerY + 1.3));
+                AddText(document, view, textType, entry.ScientificName, Unit(columns[3] + 1.5), Unit(centerY + 1.3));
+                AddText(document, view, textType, entry.Quantity, Unit(columns[4] + 1.5), Unit(centerY + 1.3));
+
+                y = rowBottom;
+                horizontal.Add(y);
+            }
+
+            foreach (double line in horizontal)
+            {
+                AddLine(document, view, Unit(columns[0]), Unit(line), Unit(columns[^1]), Unit(line));
+            }
+
+            foreach (double column in columns)
+            {
+                AddLine(document, view, Unit(column), Unit(headerTop), Unit(column), Unit(y));
+            }
+
+            return view;
+        }, suppressWarnings: true);
+    }
+
+    /// <summary>Cria a tabela nativa de vegetação agrupada por espécie (ou devolve a existente).</summary>
+    public ViewSchedule CreateSpeciesSchedule(Document document)
+    {
+        return Tx.Run(document, "Viridian: tabela por espécie", () =>
+        {
+            SharedParameterService.EnsureBound(document);
+            ViewSchedule? existing = FindSchedule(document, SpeciesScheduleName);
+            if (existing is not null)
+            {
+                return existing;
+            }
+
+            ViewSchedule schedule = ViewSchedule.CreateSchedule(document, new ElementId(BuiltInCategory.OST_Planting));
+            schedule.Name = SpeciesScheduleName;
+            ScheduleDefinition definition = schedule.Definition;
+
+            ScheduleField? code = AddParameterField(document, definition, VirParams.SpeciesCode, "Código");
+            AddParameterField(document, definition, VirParams.PopularName, "Nome popular");
+            AddParameterField(document, definition, VirParams.ScientificName, "Nome científico");
+            AddParameterField(document, definition, VirParams.Category, "Categoria");
+            AddParameterField(document, definition, VirParams.SupplyUnit, "Unidade");
+            ScheduleField count = definition.AddField(ScheduleFieldType.Count);
+            count.ColumnHeading = "Quantidade";
+
+            if (code is not null)
+            {
+                definition.AddSortGroupField(new ScheduleSortGroupField(code.FieldId));
+            }
+
+            definition.IsItemized = false;
+            definition.ShowGrandTotal = true;
+            definition.ShowGrandTotalCount = true;
+            return schedule;
+        });
+    }
+
+    /// <summary>Cria a tabela nativa de exemplares, um por linha (ou devolve a existente).</summary>
+    public ViewSchedule CreatePlantSchedule(Document document)
+    {
+        return Tx.Run(document, "Viridian: tabela de exemplares", () =>
+        {
+            SharedParameterService.EnsureBound(document);
+            ViewSchedule? existing = FindSchedule(document, PlantScheduleName);
+            if (existing is not null)
+            {
+                return existing;
+            }
+
+            ViewSchedule schedule = ViewSchedule.CreateSchedule(document, new ElementId(BuiltInCategory.OST_Planting));
+            schedule.Name = PlantScheduleName;
+            ScheduleDefinition definition = schedule.Definition;
+
+            ScheduleField? projectCode = AddParameterField(document, definition, VirParams.ProjectCode, "Código do exemplar");
+            AddParameterField(document, definition, VirParams.SpeciesCode, "Espécie");
+            AddParameterField(document, definition, VirParams.PopularName, "Nome popular");
+            AddParameterField(document, definition, VirParams.Status, "Situação");
+            AddParameterField(document, definition, VirParams.Stage, "Estágio de implantação");
+            AddParameterField(document, definition, VirParams.MassingId, "Maciço");
+            AddParameterField(document, definition, VirParams.Notes, "Observações");
+
+            if (projectCode is not null)
+            {
+                definition.AddSortGroupField(new ScheduleSortGroupField(projectCode.FieldId));
+            }
+
+            definition.IsItemized = true;
+            return schedule;
+        });
+    }
+
+    // ------------------------------------------------------------------ internos
+
+    private static ScheduleField? AddParameterField(Document document, ScheduleDefinition definition, ParamDef def, string heading)
+    {
+        SharedParameterElement? parameter = SharedParameterElement.Lookup(document, def.Guid);
+        if (parameter is null)
+        {
+            return null;
+        }
+
+        SchedulableField? schedulable = definition.GetSchedulableFields().FirstOrDefault(f => f.ParameterId == parameter.Id);
+        if (schedulable is null)
+        {
+            ViridianLog.Warn("O parâmetro " + def.Name + " não está disponível para tabelas de vegetação.");
+            return null;
+        }
+
+        ScheduleField field = definition.AddField(schedulable);
+        field.ColumnHeading = heading;
+        return field;
+    }
+
+    private static ViewSchedule? FindSchedule(Document document, string name)
+    {
+        using var collector = new FilteredElementCollector(document);
+        return collector.OfClass(typeof(ViewSchedule)).Cast<ViewSchedule>()
+            .FirstOrDefault(s => !s.IsTemplate && string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static ViewDrafting FindOrCreateDraftingView(Document document, string name)
+    {
+        using (var views = new FilteredElementCollector(document))
+        {
+            ViewDrafting? existing = views.OfClass(typeof(ViewDrafting)).Cast<ViewDrafting>()
+                .FirstOrDefault(v => !v.IsTemplate && string.Equals(v.Name, name, StringComparison.OrdinalIgnoreCase));
+            if (existing is not null)
+            {
+                return existing;
+            }
+        }
+
+        using var types = new FilteredElementCollector(document);
+        ViewFamilyType type = types.OfClass(typeof(ViewFamilyType)).Cast<ViewFamilyType>()
+                                  .FirstOrDefault(t => t.ViewFamily == ViewFamily.Drafting)
+                              ?? throw new ViridianException("O projeto não possui tipo de vista de desenho para criar a legenda.");
+        ViewDrafting view = ViewDrafting.Create(document, type.Id);
+        view.Name = name;
+        return view;
+    }
+
+    /// <summary>Remove o conteúdo gerado anteriormente na vista da legenda.</summary>
+    private static void ClearView(Document document, View view)
+    {
+        using var collector = new FilteredElementCollector(document, view.Id);
+        List<ElementId> ids = collector
+            .WhereElementIsNotElementType()
+            .Where(e => e is DetailCurve or TextNote or FilledRegion)
+            .Select(e => e.Id)
+            .ToList();
+        if (ids.Count > 0)
+        {
+            document.Delete(ids);
+        }
+    }
+
+    private static void AddText(Document document, View view, ElementId textType, string text, double x, double y)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        TextNote.Create(document, view.Id, new XYZ(x, y, 0), LabelService.ToRevitText(text), textType);
+    }
+
+    private static void AddLine(Document document, View view, double x1, double y1, double x2, double y2)
+    {
+        var a = new XYZ(x1, y1, 0);
+        var b = new XYZ(x2, y2, 0);
+        if (a.DistanceTo(b) > document.Application.ShortCurveTolerance * 2)
+        {
+            document.Create.NewDetailCurve(view, Line.CreateBound(a, b));
+        }
+    }
+
+    /// <summary>Desenha o símbolo da espécie reduzido para caber na célula da legenda.</summary>
+    private static void DrawSymbol(Document document, View view, Species species, double centerX, double centerY, double sizeFeet)
+    {
+        PlantSymbol symbol = SymbolGenerator.Generate(species.SymbolStyle, species.CrownDiameterM, species.EffectiveSymbolSeed);
+        double factor = sizeFeet / RevitUnits.ToFeet(symbol.Diameter);
+        double tolerance = document.Application.ShortCurveTolerance * 1.5;
+
+        XYZ Map(Point2 p) => new(centerX + RevitUnits.ToFeet(p.X) * factor, centerY + RevitUnits.ToFeet(p.Y) * factor, 0);
+
+        foreach (SymbolPrimitive primitive in symbol.ForProfile(DetailProfile.Intermediario))
+        {
+            try
+            {
+                Curve? curve = null;
+                switch (primitive)
+                {
+                    case SymbolLine line:
+                    {
+                        XYZ a = Map(line.A);
+                        XYZ b = Map(line.B);
+                        if (a.DistanceTo(b) >= tolerance)
+                        {
+                            curve = Line.CreateBound(a, b);
+                        }
+
+                        break;
+                    }
+
+                    case SymbolArc arc:
+                    {
+                        XYZ start = Map(arc.Start);
+                        XYZ mid = Map(arc.Mid);
+                        XYZ end = Map(arc.End);
+                        if (start.DistanceTo(end) >= tolerance && start.DistanceTo(mid) >= tolerance && mid.DistanceTo(end) >= tolerance)
+                        {
+                            curve = Arc.Create(start, end, mid);
+                        }
+
+                        break;
+                    }
+                }
+
+                if (curve is not null)
+                {
+                    document.Create.NewDetailCurve(view, curve);
+                }
+            }
+            catch (Autodesk.Revit.Exceptions.ApplicationException)
+            {
+                // Um traço miúdo demais na escala da legenda é simplesmente omitido.
+            }
+        }
+    }
+
+    private static void DrawHatchSample(Document document, View view, HatchPattern hatch, double x1, double y1, double x2, double y2)
+    {
+        try
+        {
+            FilledRegionType type = HatchService.EnsureRegionType(document, hatch);
+            var corners = new[] { new XYZ(x1, y1, 0), new XYZ(x2, y1, 0), new XYZ(x2, y2, 0), new XYZ(x1, y2, 0) };
+            var curves = new List<Curve>();
+            for (int i = 0; i < corners.Length; i++)
+            {
+                curves.Add(Line.CreateBound(corners[i], corners[(i + 1) % corners.Length]));
+            }
+
+            FilledRegion.Create(document, type.Id, view.Id, new List<CurveLoop> { CurveLoop.Create(curves) });
+        }
+        catch (Exception ex) when (ex is Autodesk.Revit.Exceptions.ApplicationException or ViridianException)
+        {
+            ViridianLog.Warn("Não foi possível desenhar a amostra da hachura " + hatch.Name, ex);
+        }
+    }
+}

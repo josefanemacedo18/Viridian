@@ -56,9 +56,10 @@ public class CodingTests
     public void AllocatorContinuesAfterExistingCodesAndNeverRepeats()
     {
         var allocator = new InstanceCodeAllocator(new InstanceCodeFormat());
-        allocator.Register("AR.0003", PlantCategory.Arvore, "AR-001");
-        allocator.Register("AR.0009", PlantCategory.Arvore, "AR-002");
-        allocator.Register("manual-1", PlantCategory.Arvore, "AR-001");
+        allocator.Register("AR.0003");
+        allocator.Register("AR.0009");
+        allocator.Register("manual-1");
+        allocator.Register(null);
         Assert.Equal("AR.0010", allocator.Next(PlantCategory.Arvore, "AR-001"));
         Assert.Equal("AR.0011", allocator.Next(PlantCategory.Arvore, "AR-005"));
         Assert.Equal("PA.0001", allocator.Next(PlantCategory.Palmeira, "PA-001"));
@@ -179,5 +180,38 @@ public class SettingsTests
         Assert.Equal((0x2F, 0x6B, 0x4F), (r, g, b));
         Assert.False(ColorHex.TryParse("#12", out _, out _, out _));
         Assert.Equal("#000000", ColorHex.Normalize(null));
+    }
+}
+
+public class LabelTextTests
+{
+    [Fact]
+    public void PlantLabelsFollowTheModels()
+    {
+        Assert.Equal("AR-001", Viridian.Core.Identification.LabelText.ForPlants(Viridian.Core.Identification.LabelModel.CodigoSimples, "AR-001", "Ipê-amarelo", "Handroanthus chrysotrichus", 1, "AR.0001"));
+        Assert.Equal("5 AR-001", Viridian.Core.Identification.LabelText.ForPlants(Viridian.Core.Identification.LabelModel.CodigoSimples, "AR-001", "Ipê-amarelo", "H. c.", 5, string.Empty));
+        Assert.Equal("AR-001 Ipê-amarelo", Viridian.Core.Identification.LabelText.ForPlants(Viridian.Core.Identification.LabelModel.CodigoNomePopular, "AR-001", "Ipê-amarelo", "H. c.", 1, string.Empty));
+        Assert.Equal("3 AR-001 Handroanthus chrysotrichus", Viridian.Core.Identification.LabelText.ForPlants(Viridian.Core.Identification.LabelModel.CodigoNomeCientifico, "AR-001", "Ipê", "Handroanthus chrysotrichus", 3, string.Empty));
+        Assert.Equal("AR-001", Viridian.Core.Identification.LabelText.ForPlants(Viridian.Core.Identification.LabelModel.CodigoLinhaIndicadora, "AR-001", "Ipê", "H", 1, string.Empty));
+        Assert.Equal("AR-001 Ipê\n12 un", Viridian.Core.Identification.LabelText.ForPlants(Viridian.Core.Identification.LabelModel.AreaQuantidade, "AR-001", "Ipê", "H", 12, string.Empty));
+        Assert.Equal("?", Viridian.Core.Identification.LabelText.ForPlants(Viridian.Core.Identification.LabelModel.CodigoSimples, " ", string.Empty, string.Empty, 1, string.Empty));
+        Assert.True(Viridian.Core.Identification.LabelText.ForcesLeader(Viridian.Core.Identification.LabelModel.CodigoLinhaIndicadora));
+    }
+
+    [Fact]
+    public void MassingLabelsFollowTheModels()
+    {
+        var record = new Viridian.Core.Massing.MassingRecord
+        {
+            Id = "MC-001", SpeciesCode = "FO-001", PopularName = "Grama-amendoim", ScientificName = "Arachis repens",
+            AreaM2 = 45.297, Quantity = 1725, SupplyUnit = "muda",
+        };
+        Assert.Equal("MC-001", Viridian.Core.Identification.LabelText.ForMassing(Viridian.Core.Identification.LabelModel.CodigoMacico, record));
+        Assert.Equal("FO-001 Grama-amendoim", Viridian.Core.Identification.LabelText.ForMassing(Viridian.Core.Identification.LabelModel.CodigoNomePopular, record));
+        Assert.Equal("MC-001\nFO-001 Grama-amendoim\n45,30 m² · 1.725 muda", Viridian.Core.Identification.LabelText.ForMassing(Viridian.Core.Identification.LabelModel.AreaQuantidade, record));
+
+        record.SupplyUnit = "m²";
+        Assert.Equal("45,30 m²", Viridian.Core.Identification.LabelText.AreaAndQuantity(record));
+        Assert.All(Viridian.Core.Identification.LabelText.Models, m => Assert.False(string.IsNullOrWhiteSpace(Viridian.Core.Identification.LabelText.DisplayName(m))));
     }
 }

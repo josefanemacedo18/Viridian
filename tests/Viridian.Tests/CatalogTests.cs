@@ -247,3 +247,32 @@ public sealed class CatalogTests : IDisposable
         Assert.True(Directory.Exists(paths.CustomHatchesFolder));
     }
 }
+
+public class TemplateNameTests
+{
+    [Theory]
+    [InlineData("Metric Planting", 103)]
+    [InlineData("Planting", 100)]
+    [InlineData("Vegetação métrica", 103)]
+    [InlineData("Metric Generic Model", 83)]
+    [InlineData("Generic Model", 80)]
+    [InlineData("Modelo genérico métrico", 83)]
+    [InlineData("Metric Site", 43)]
+    [InlineData("Metric Entourage", 33)]
+    public void SuitableTemplatesAreRanked(string name, int expected) => Assert.Equal(expected, TemplateNames.Score(name));
+
+    [Theory]
+    [InlineData("Metric Generic Model face based")]
+    [InlineData("Metric Generic Model wall based")]
+    [InlineData("Metric Generic Model Adaptive")]
+    [InlineData("Metric Generic Model two level based")]
+    [InlineData("Modelo genérico métrico baseado em face")]
+    [InlineData("Modelo genérico métrico baseado em linha")]
+    [InlineData("Metric RPC Family")]
+    [InlineData("Metric Door")]
+    [InlineData("Metric Generic Tag")]
+    [InlineData("Metric Detail Item")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void UnsuitableTemplatesAreRejected(string? name) => Assert.Equal(0, TemplateNames.Score(name));
+}
