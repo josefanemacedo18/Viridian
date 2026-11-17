@@ -65,6 +65,8 @@ O catálogo padrão traz **382 espécies** usadas no paisagismo brasileiro: 196 
 | **Legenda** | Vista de legenda com o símbolo colorido (ou a amostra da hachura na cor da espécie), **fotografia**, código, nomes e quantidade. |
 | **Quadro de Fotos** | Coloca ao redor da planta a **fotografia de cada espécie**, com código e nome, ligada por linha a um exemplar, como nas pranchas de paisagismo ilustradas. As posições evitam linhas cruzadas; com região de corte ativa, o recorte é ampliado. |
 
+![Quadro de fotos ao redor da planta](docs/img/quadro-fotos.jpg)
+
 ### Quantitativos
 
 | Ferramenta | O que faz |

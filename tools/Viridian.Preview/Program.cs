@@ -19,6 +19,7 @@ File.WriteAllText(Path.Combine(outDir, "variantes.svg"), SvgSheets.VariantSheet(
 File.WriteAllText(Path.Combine(outDir, "hachuras.svg"), SvgSheets.HatchSheet());
 File.WriteAllText(Path.Combine(outDir, "distribuicoes.svg"), SvgSheets.DistributionSheet());
 File.WriteAllText(Path.Combine(outDir, "cores.svg"), SvgSheets.ColorSheet(args.Length > 1 ? args[1] : null));
+File.WriteAllText(Path.Combine(outDir, "quadro-fotos.svg"), SvgSheets.PhotoBoardSheet(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "Viridian.Addin", "Fotos"))));
 Console.WriteLine("Pranchas geradas em " + Path.GetFullPath(outDir));
 
 internal static class SvgSheets
@@ -78,6 +79,55 @@ internal static class SvgSheets
             Draw(sb, symbol, DetailProfile.Detalhado, cx, cy, (cell - 30) / symbol.Diameter, SymbolPaint.For(species, settings.Colors), settings);
             Text(sb, cx, cy + cell / 2 + 8, species.PopularName);
             Text(sb, cx, cy + cell / 2 + 22, species.ScientificName);
+        }
+
+        return End(sb);
+    }
+
+    /// <summary>Exemplo do quadro de fotos: canteiro com espécies e cartões ao redor (mesmo algoritmo do plugin).</summary>
+    public static string PhotoBoardSheet(string photosFolder)
+    {
+        var settings = new ViridianSettings();
+        settings.Normalize();
+        List<Species> all = SeedCatalog.CreateSpecies();
+        string[] names = { "Handroanthus chrysotrichus", "Syagrus romanzoffiana", "Plinia cauliflora", "Arachis repens", "Liriope muscari", "Cordyline fruticosa", "Russelia equisetiformis", "Tradescantia pallida", "Zoysia japonica", "Dypsis lutescens" };
+        List<Species> picked = names.Select(n => all.FirstOrDefault(s => s.ScientificName == n)).OfType<Species>().ToList();
+        var rng = new DeterministicRandom(7);
+        var drawing = new Bounds2(0, 0, 40, 18);
+        var plants = new List<(Species S, Point2 P)>();
+        foreach (Species s in picked)
+        {
+            int count = s.Category is PlantCategory.Arvore or PlantCategory.Palmeira ? 3 : 6;
+            for (int i = 0; i < count; i++)
+            {
+                plants.Add((s, new Point2(rng.Range(2, 38), rng.Range(2, 16))));
+            }
+        }
+
+        var items = picked.Select(s => new Viridian.Core.Identification.PhotoBoardItem(s.Id, plants.Where(p => p.S == s).Select(p => p.P).ToList())).ToList();
+        var cards = Viridian.Core.Identification.PhotoBoardLayout.Arrange(drawing, items, 6.8, 6.8, 1.2);
+        double minX = cards.Min(c => c.Box.MinX) - 1, maxX = cards.Max(c => c.Box.MaxX) + 1, minY = cards.Min(c => c.Box.MinY) - 1, maxY = cards.Max(c => c.Box.MaxY) + 1;
+        const double k = 20;
+        double W(double x) => (x - minX) * k;
+        double H(double y) => (maxY - y) * k;
+        var sb = Begin((maxX - minX) * k, (maxY - minY) * k);
+        sb.Append(Inv, $"<rect x=\"{W(0):0}\" y=\"{H(18):0}\" width=\"{40 * k:0}\" height=\"{18 * k:0}\" fill=\"#E9F1E4\" stroke=\"#3A4A40\" stroke-width=\"2\"/>");
+        foreach ((Species s, Point2 p) in plants.OrderByDescending(x => x.S.CrownDiameterM))
+        {
+            PlantSymbol symbol = SymbolGenerator.Generate(s.SymbolStyle, s.CrownDiameterM, s.EffectiveSymbolSeed);
+            Draw(sb, symbol, DetailProfile.Intermediario, W(p.X), H(p.Y), k, SymbolPaint.For(s, settings.Colors), settings);
+        }
+
+        foreach (var card in cards)
+        {
+            Species s = picked.First(x => x.Id == card.Key);
+            sb.Append(Inv, $"<line x1=\"{W(card.Anchor.X):0.#}\" y1=\"{H(card.Anchor.Y):0.#}\" x2=\"{W(card.Target.X):0.#}\" y2=\"{H(card.Target.Y):0.#}\" stroke=\"#333\" stroke-width=\"1\"/>");
+            sb.Append(Inv, $"<circle cx=\"{W(card.Target.X):0.#}\" cy=\"{H(card.Target.Y):0.#}\" r=\"3\" fill=\"#333\"/>");
+            string photo = Path.Combine(photosFolder, s.PhotoFile);
+            double x = W(card.Box.MinX), y = H(card.Box.MaxY), w = card.Box.Width * k;
+            sb.Append(Inv, $"<image href=\"file://{photo}\" x=\"{x:0.#}\" y=\"{y:0.#}\" width=\"{w:0.#}\" height=\"{w * 0.72:0.#}\" preserveAspectRatio=\"xMidYMid slice\"/>");
+            sb.Append(Inv, $"<text x=\"{x + w / 2:0.#}\" y=\"{y + w * 0.72 + 14:0.#}\" font-family=\"Arial\" font-size=\"11\" font-weight=\"bold\" text-anchor=\"middle\">{System.Net.WebUtility.HtmlEncode((s.Code + " " + s.PopularName).ToUpperInvariant())}</text>");
+            sb.Append(Inv, $"<text x=\"{x + w / 2:0.#}\" y=\"{y + w * 0.72 + 27:0.#}\" font-family=\"Arial\" font-size=\"10\" font-style=\"italic\" text-anchor=\"middle\" fill=\"#444\">{System.Net.WebUtility.HtmlEncode(s.ScientificName)}</text>");
         }
 
         return End(sb);
