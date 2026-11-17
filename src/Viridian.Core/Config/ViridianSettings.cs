@@ -122,6 +122,9 @@ public sealed class ViridianSettings
     /// <summary>Distâncias mínimas entre o plantio e redes, postes, edificações e pavimentos.</summary>
     public InterferenceSettings Interference { get; set; } = new();
 
+    /// <summary>Tamanho do texto e contraste das janelas do Viridian.</summary>
+    public AccessibilitySettings Accessibility { get; set; } = new();
+
     public TierStyle StyleOf(SymbolTier tier) =>
         TierStyles.FirstOrDefault(s => s.Tier == tier) ?? DefaultTierStyles().FirstOrDefault(s => s.Tier == tier) ?? new TierStyle { Tier = tier };
 
@@ -140,6 +143,8 @@ public sealed class ViridianSettings
         Maintenance.Normalize();
         Interference ??= new InterferenceSettings();
         Interference.Normalize();
+        Accessibility ??= new AccessibilitySettings();
+        Accessibility.Normalize();
         Density ??= new DensityRules();
         Density.Normalize();
         InstanceCode ??= new InstanceCodeFormat();
@@ -189,6 +194,24 @@ public sealed class ViridianSettings
 
     private static double Clamp(double value, double min, double max, double fallback) =>
         double.IsFinite(value) ? Math.Clamp(value, min, max) : fallback;
+}
+
+/// <summary>Acessibilidade das janelas.</summary>
+public sealed class AccessibilitySettings
+{
+    /// <summary>Escalas de interface oferecidas (1 = 100%).</summary>
+    public static readonly IReadOnlyList<double> Scales = new[] { 1.0, 1.15, 1.3, 1.5 };
+
+    /// <summary>Ampliação de textos e controles das janelas.</summary>
+    public double TextScale { get; set; } = 1.0;
+
+    /// <summary>Cores de alto contraste (o alto contraste do Windows é seguido automaticamente).</summary>
+    public bool HighContrast { get; set; }
+
+    public void Normalize()
+    {
+        TextScale = double.IsFinite(TextScale) ? Math.Clamp(TextScale, 1.0, 2.0) : 1.0;
+    }
 }
 
 /// <summary>Leitura e escrita de cores no formato #RRGGBB.</summary>

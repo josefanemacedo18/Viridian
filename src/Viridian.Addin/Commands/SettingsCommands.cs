@@ -95,6 +95,7 @@ public sealed class SettingsCommand : CommandBase
         }
 
         SettingsStore.Save(window.Settings);
+        UI.ViridianWindow.Accessibility = window.Settings.Accessibility;
         if (ctx.HasProject)
         {
             // Reaplica padrão gráfico e faixas de escala no projeto aberto com as novas configurações.

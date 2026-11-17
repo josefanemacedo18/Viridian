@@ -231,11 +231,11 @@ internal static class FamilyFills
         return type;
     }
 
+    /// <summary>Padrão sólido; nas famílias o Revit exige padrão de desenho (não de modelo).</summary>
     private static FillPatternElement? SolidPattern(Document document)
     {
-        using var collector = new FilteredElementCollector(document);
-        return collector.OfClass(typeof(FillPatternElement)).Cast<FillPatternElement>()
-            .FirstOrDefault(p => p.GetFillPattern() is { IsSolidFill: true });
+        ElementId id = HatchService.SolidDraftingPattern(document);
+        return id == ElementId.InvalidElementId ? null : document.GetElement(id) as FillPatternElement;
     }
 
     private static FillPatternElement? HatchPattern(Document document)

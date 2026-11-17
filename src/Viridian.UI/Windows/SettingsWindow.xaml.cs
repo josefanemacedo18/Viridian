@@ -152,6 +152,11 @@ public partial class SettingsWindow : ViridianWindow
             DigitsBox.Items.Add(i);
         }
 
+        foreach (double scale in AccessibilitySettings.Scales)
+        {
+            TextScaleBox.Items.Add(new Choice<double>((scale * 100).ToString("0", Num.PtBr) + "%", scale));
+        }
+
         CrownFillBox.Items.Add(new Choice<CrownFillMode>("Cor sólida", CrownFillMode.Solido));
         CrownFillBox.Items.Add(new Choice<CrownFillMode>("Reticulado colorido", CrownFillMode.Reticulado));
         CrownFillBox.Items.Add(new Choice<CrownFillMode>("Sem cor (só linhas)", CrownFillMode.Nenhum));
@@ -188,6 +193,8 @@ public partial class SettingsWindow : ViridianWindow
         }
 
         LoadColors(s.Colors);
+        TextScaleBox.SelectedIndex = Math.Max(0, AccessibilitySettings.Scales.ToList().FindIndex(x => Math.Abs(x - s.Accessibility.TextScale) < 0.01));
+        HighContrastBox.IsChecked = s.Accessibility.HighContrast;
         _interferenceRules = s.Interference.Rules.Select(r => new InterferenceRuleRow(r)).ToList();
         InterferenceList.ItemsSource = _interferenceRules;
         CrownFactorBox.Text = Num.Format(s.Interference.BuildingCrownFactor, "0.##");
@@ -663,6 +670,8 @@ public partial class SettingsWindow : ViridianWindow
         s.AutoApplyScaleProfiles = AutoScaleBox.IsChecked == true;
         s.TierStyles = _tiers.Select(t => new TierStyle { Tier = t.Tier, LineWeight = t.LineWeight, Color = ColorHex.Normalize(t.Color) }).ToList();
         s.SyncMarks = SyncMarksBox.IsChecked == true;
+        s.Accessibility.TextScale = (TextScaleBox.SelectedItem as Choice<double>)?.Value ?? 1.0;
+        s.Accessibility.HighContrast = HighContrastBox.IsChecked == true;
         s.Interference.Rules = rules;
         s.Interference.BuildingCrownFactor = crownFactor;
         s.Interference.CheckPavements = PavementBox.IsChecked == true;

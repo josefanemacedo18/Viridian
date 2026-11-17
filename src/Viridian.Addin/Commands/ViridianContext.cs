@@ -32,6 +32,7 @@ internal sealed class ViridianContext
         UiApp = uiApp;
         UiDoc = uiApp.ActiveUIDocument;
         Settings = SettingsStore.Load();
+        UI.ViridianWindow.Accessibility = Settings.Accessibility;
         Paths = new LibraryPaths(Settings.LibraryRoot);
         try
         {

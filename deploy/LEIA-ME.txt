@@ -1,4 +1,4 @@
-﻿VIRIDIAN 1.0 — Paisagismo 2D técnico para Autodesk Revit 2027
+﻿VIRIDIAN 1.1 — Paisagismo 2D técnico para Autodesk Revit 2027
 ==============================================================
 
 INSTALAR
@@ -21,6 +21,8 @@ PRIMEIROS PASSOS
 2. Viridian > Buscar Espécie: escolha uma espécie e clique em Inserir,
    Distribuir ou Criar maciço.
 3. Viridian > Etiquetar e Viridian > Relatórios para a documentação.
+   Viridian > Prancha Automática monta a prancha com planta, legenda e tabela;
+   Viridian > Exportar CAD gera DWG e a biblioteca de blocos DXF.
 4. Viridian > Escalas: o detalhamento dos símbolos acompanha a escala da vista.
 
 Na primeira inserção de cada espécie o Viridian gera a família 2D a partir
@@ -31,6 +33,15 @@ COMPARTILHAR COM O ESCRITÓRIO
 Em Viridian > Configurações > Biblioteca, aponte a pasta da biblioteca para
 uma pasta de rede. O catálogo, as famílias geradas, os símbolos e as
 hachuras passam a ser compartilhados entre os computadores.
+
+FOTOGRAFIAS
+As fotos do catálogo vêm do iNaturalist, com licenças abertas (CC0, CC BY,
+CC BY-SA). Autores e licenças: pasta Viridian\Fotos\CREDITOS.txt e ficha
+de cada espécie.
+
+PREÇOS
+O Viridian não inclui preços. Importe a tabela do escritório (SINAPI,
+municipal ou própria) em Relatórios > Orçamento.
 
 REGISTRO DE ERROS
 Se algo não funcionar como esperado, o detalhe técnico fica em

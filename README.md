@@ -2,9 +2,9 @@
 
 Plugin para **Autodesk Revit 2027** dedicado à documentação técnica **2D** de projetos de paisagismo.
 
-O Viridian não é um editor paralelo ao Revit. Ele é uma camada de inteligência sobre os recursos nativos: famílias da categoria Vegetação, regiões preenchidas, padrões de preenchimento, parâmetros compartilhados, identificadores e tabelas. Tudo o que ele cria continua sendo elemento nativo do Revit, utilizável por qualquer pessoa do projeto.
+O Viridian não é um editor paralelo ao Revit. Ele é uma camada de inteligência sobre os recursos nativos: famílias da categoria Vegetação, regiões preenchidas, padrões de preenchimento, parâmetros compartilhados, identificadores, tabelas e pranchas. Tudo o que ele cria continua sendo elemento nativo do Revit, utilizável por qualquer pessoa do projeto.
 
-Fluxo de trabalho: **selecionar espécie → inserir ou delimitar maciço → distribuir → identificar → gerar quantitativos → documentar.**
+Fluxo de trabalho: **selecionar espécie → inserir ou delimitar maciço → distribuir → identificar → verificar → quantificar, orçar e planejar a manutenção → montar a prancha.**
 
 ---
 
@@ -22,74 +22,85 @@ Antes de usar em projetos reais, siga o [roteiro de testes](docs/ROTEIRO_DE_TEST
 
 ## Módulos e ferramentas
 
-A aba **Viridian** tem sete painéis.
+A aba **Viridian** tem oito painéis.
 
 ### Biblioteca
 
 | Ferramenta | O que faz |
 |---|---|
-| **Buscar Espécie** | Catálogo botânico com pesquisa sem acentos e filtros projetuais: categoria, origem, forma da copa, altura e copa adultas (faixa), água, luz e crescimento. A ficha mostra o símbolo em cada perfil de escala, a fotografia de referência e os dados técnicos. Dela saem as ações Inserir, Distribuir e Criar maciço. |
-| **Cadastro de espécies** | Nova, editar, duplicar e excluir. Campos: nomes científico e popular, família botânica, categoria, origem, alturas (adulta e de implantação), copa, espaçamento, densidade, unidade de fornecimento, preço, crescimento, água, luz, floração, observações, fotografia, estilo do símbolo, variantes gráficas (1 a 4) e hachura de maciço. |
-| **Importar Família** | Assistente "Importar símbolo personalizado": verifica categoria, linhas 2D, ponto de inserção e tipos; registra a família na biblioteca e a associa a uma espécie. Famílias de **Vegetação** substituem o símbolo gerado (exemplares BIM); **componentes de detalhe** viram o símbolo gráfico dos maciços (não são contados como plantas). |
-| **Atualizar Dados** | Sincroniza o projeto com o catálogo: dados dos tipos, símbolos regerados quando o desenho mudou, maciços e etiquetas. |
+| **Buscar Espécie** | Catálogo botânico com pesquisa sem acentos e filtros projetuais: categoria, origem, forma da copa, altura e copa adultas (faixa), água, luz, crescimento, **bioma**, **mês de floração** e **floração vistosa**. A ficha mostra o símbolo colorido em cada perfil de escala, a **fotografia com autor e licença**, as cores e os dados técnicos. Dela saem as ações Inserir, Distribuir e Criar maciço. |
+| **Cadastro de espécies** | Nova, editar, duplicar e excluir. Além dos dados botânicos e de plantio: biomas de ocorrência, **cor da folhagem**, **cor da flor**, fotografia própria e **códigos da tabela de preços** (insumo e serviço de plantio). |
+| **Importar Família** | Assistente "Importar símbolo personalizado": verifica categoria, linhas 2D, ponto de inserção e tipos; registra a família na biblioteca e a associa a uma espécie. |
+| **Atualizar Dados** | Sincroniza o projeto com o catálogo: dados dos tipos, símbolos regerados quando o desenho ou as cores mudaram, maciços e etiquetas. |
 
-O catálogo inicial traz **120 espécies** de uso corrente no paisagismo brasileiro, distribuídas entre as 8 categorias (árvores, palmeiras, arbustos, herbáceas, forrações, gramados, trepadeiras e aquáticas), com nativas e exóticas identificadas e as exóticas invasoras sinalizadas. Os valores (alturas, copas, espaçamentos e densidades) são **referências de projeto** e devem ser conferidos pelo responsável técnico.
+O catálogo padrão traz **382 espécies** usadas no paisagismo brasileiro: 196 nativas (com os biomas de ocorrência: Amazônia, Caatinga, Cerrado, Mata Atlântica, Pampa e Pantanal) e 186 exóticas comuns no Brasil, com as **invasoras sinalizadas**. São 141 árvores, 36 palmeiras, 53 arbustos, 58 herbáceas, 31 forrações, 8 gramados, 32 trepadeiras e 23 aquáticas. **380 têm fotografia** (iNaturalist, somente licenças CC0, CC BY e CC BY-SA, com os créditos na ficha e em `Fotos\CREDITOS.txt`). Alturas, copas, espaçamentos e densidades são **referências de projeto** e devem ser conferidos pelo responsável técnico.
 
 ### Plantio
 
 | Ferramenta | O que faz |
 |---|---|
-| **Inserir** | Posiciona exemplares clicando na planta, com variante gráfica (fixa ou aleatória), situação, estágio de implantação e observações. ESC conclui. |
-| **Distribuir** | Preenche uma região (região preenchida, piso, toposólido, área, ambiente ou contorno desenhado) nos padrões **triangular, retangular, natural** (disco de Poisson com semente persistente) ou **por densidade**. Controla afastamento das bordas, espaçamento entre linhas, variação de posição, ângulo da malha, quantidade máxima e rotação aleatória. Pode evitar exemplares existentes. Pré-visualização ao vivo antes de inserir. |
-| **Plantio Linear** | Distribui ao longo de um eixo desenhado (alamedas, renques e cercas vivas), com deslocamento lateral. |
+| **Inserir** | Posiciona exemplares com a **prévia nativa do Revit**: o símbolo colorido acompanha o cursor. Variante gráfica fixa ou sorteada, situação, estágio de implantação e observações. ESC conclui. |
+| **Distribuir** | Preenche uma região (região preenchida, piso, toposólido, área, ambiente ou contorno desenhado) nos padrões **triangular, retangular, natural, por densidade, bordadura** (fileiras que acompanham o contorno, inclusive curvas e recortes), **anéis concêntricos**, **agrupamentos** (manchas ímpares de 3, 5, 7 plantas) e **degradê** (rareando de um lado para o outro). Cada padrão mostra só as opções que fazem sentido para ele. Pode evitar exemplares existentes. Pré-visualização colorida ao vivo. |
+| **Plantio Linear** | Eixo por **linha reta** (dois cliques), **polilinha**, **círculo** (centro e raio) ou **linhas, arcos, paredes e redes existentes** (também aceita a seleção feita antes do comando). Define por espaçamento ou por quantidade, com plantas nas duas pontas, a partir do início ou centralizadas; até cinco fileiras paralelas ou alternadas (zigue-zague); deslocamento lateral e eixos fechados. |
 | **Substituir** | Troca a espécie de exemplares e de maciços **preservando posição, código e dados**. |
 | **Editar** | Altera situação (novo, existente, removido, transplantado), estágio, observações e variante gráfica. |
+
+![Padrões de distribuição](docs/img/distribuicoes.png)
 
 ### Maciços
 
 | Ferramenta | O que faz |
 |---|---|
-| **Criar Maciço** | Região de plantio com três modos: **hachura**, **símbolos** ou **combinado**. O modo é sugerido pela densidade (baixa, média, alta e muito alta, configuráveis). Densidade e espaçamento ficam sempre coerentes; a quantidade é calculada pela área, com reserva de reposição. Espécies vendidas por área (grama em m²) são quantificadas em m². |
+| **Criar Maciço** | Região de plantio com três modos: **hachura**, **símbolos** ou **combinado**, sugeridos pela densidade. A região é pintada com a cor da espécie (fundo claro e hachura mais escura). A quantidade é calculada pela área, com reserva de reposição; espécies vendidas por área são quantificadas em m². |
 | **Editar Maciço** | Altera código, representação, hachura, densidade, distribuição e reserva. |
 | **Recalcular** | Depois de alterar o limite de uma região, refaz área, quantidade e símbolos (a mesma semente mantém o mesmo padrão). |
-
-Os dados de cada maciço (código, espécie, área, densidade, espaçamento, quantidade, unidade, padrão, reserva e hachura) ficam gravados na própria região por Extensible Storage.
 
 ### Identificação
 
 | Ferramenta | O que faz |
 |---|---|
-| **Etiquetar** | Seis modelos: código simples, código com nome popular, código com nome científico, código com linha indicadora, código de maciço e etiqueta com área e quantidade. Uma etiqueta por exemplar ou **uma por espécie** com a quantidade ("5 AR-001"). Também aceita os identificadores nativos (tags) de Vegetação do escritório. |
-| **Codificar** | Códigos dos exemplares com formato configurável (`{CAT}`, `{ESP}`, `{N}`), na ordem de leitura da prancha; renumeração dos códigos de espécie **por projeto** (AR-001, AR-002…) sem alterar o catálogo. |
+| **Etiquetar** | Seis modelos de etiqueta, uma por exemplar ou **uma por espécie** com a quantidade. As etiquetas **procuram uma posição livre** ao redor da planta, sem sobrepor outros textos, e ganham linha indicadora quando precisam se afastar. Também aceita os identificadores nativos de Vegetação do escritório. |
+| **Codificar** | Códigos dos exemplares com formato configurável e renumeração dos códigos de espécie **por projeto**. |
 | **Atualizar Etiquetas** | Refaz o texto das etiquetas a partir dos dados atuais. |
-| **Legenda** | Vista de legenda com símbolo (ou amostra da hachura), código, nomes e quantidade. |
+| **Legenda** | Vista de legenda com o símbolo colorido (ou a amostra da hachura na cor da espécie), código, nomes e quantidade. |
 
 ### Quantitativos
 
 | Ferramenta | O que faz |
 |---|---|
-| **Relatórios** | Por espécie (novos, existentes, transplantados, removidos, em maciços e total), por maciço e de **aquisição** (quantidade de projeto, reserva, compra, unidade, preço e total). |
-| **Aquisição** | Abre direto a lista de compra. |
-| **Exportar para Excel** | Planilha `.xlsx` com as três abas, formatada (gerada sem bibliotecas externas). |
-| **Tabelas Nativas** | Cria as tabelas de vegetação do Revit (por espécie e por exemplar), alimentadas pelos parâmetros compartilhados. |
+| **Relatórios** | Por espécie, por maciço, de **aquisição**, **orçamento** e **manutenção**, com exportação para Excel (`.xlsx` com todas as abas). |
+| **Aquisição** | Lista de compra com reserva de reposição, unidade comercial e preço. |
+| **Orçamento** | Fornecimento e plantio a partir de uma **tabela de preços importada** pelo escritório (SINAPI, tabela municipal ou própria, em `.xlsx` ou `.csv`; o cabeçalho é localizado automaticamente). Vincula códigos de insumo e de serviço às espécies (busca na tabela), aplica o **BDI** e aponta unidades divergentes e códigos não encontrados. O Viridian não traz preços: os valores vêm sempre da tabela do usuário ou do cadastro. |
+| **Manutenção** | Cronograma por espécie e mês: **rega de implantação** (pelo mês do plantio) e na estiagem (pela estação seca da região), **adubação** (inclusive de pré-floração), **podas logo após a floração**, poda de formação, limpeza de palmeiras, corte de gramados (quinzenal nas chuvas, mensal na seca), coroamento, tutoramento e **reposição de falhas** aos 30 e 90 dias com a reserva prevista. |
+
+### Documentação
+
+| Ferramenta | O que faz |
+|---|---|
+| **Prancha Automática** | Cria a prancha com a planta ativa, a legenda e a tabela de quantitativos, diagramadas sobre o carimbo escolhido: planta à esquerda, legenda e tabela na coluna da direita, canto do carimbo livre, margens da NBR 10068. Reduz a escala para a planta caber e usa uma vista dependente quando a planta já está em outra prancha. |
+| **Exportar CAD** | Exporta vistas e pranchas para **DWG** (2007 a 2018, em metros ou milímetros, com cores e preenchimentos da vista, opção de coordenadas compartilhadas) e gera a **biblioteca de blocos DXF** dos símbolos (espécies do projeto ou catálogo inteiro), com camadas por nível de detalhe, preenchimento e floração. |
+| **Tabelas Nativas** | Cria as tabelas de vegetação do Revit (por espécie e por exemplar). |
 
 ### Verificação
 
-**Verificar Projeto** lista exemplares sem código, códigos duplicados, famílias não cadastradas, espécies sem identificação botânica, tipos desatualizados em relação ao catálogo, maciços sem densidade, limites de região inválidos, exemplares fora do canteiro, elementos duplicados, maciços duplicados, exemplares e etiquetas órfãos, **conflitos de copa** e **espaçamento insuficiente** (tolerâncias configuráveis). Um clique duplo mostra os elementos no Revit, e há correção automática para códigos, dados desatualizados e registros órfãos.
+| Ferramenta | O que faz |
+|---|---|
+| **Verificar Projeto** | Exemplares sem código, códigos duplicados, famílias não cadastradas, tipos desatualizados, maciços sem densidade, limites inválidos, exemplares fora do canteiro, duplicados, órfãos, **conflitos de copa**, **espaçamento insuficiente** e **interferências**. Clique duplo mostra os elementos; há correção automática para códigos, dados e registros órfãos. |
+| **Interferências** | Distância do tronco a **tubulações, eletrodutos, dutos, eletrocalhas, postes e luminárias, equipamentos elétricos e paredes**, por tipo de planta (árvore, palmeira, arbusto), considerando o diâmetro das redes e a copa adulta junto às fachadas; aponta também plantas **sobre pisos sem berço**. Lê o projeto e os **modelos vinculados** (instalações, arquitetura, infraestrutura). As distâncias são editáveis. |
 
 ### Configurações
 
 | Ferramenta | O que faz |
 |---|---|
-| **Escalas** | Perfis de representação: **Detalhado** (até 1:50), **Intermediário** (até 1:100), **Simplificado** (até 1:250) e **Mínimo** (acima). A dimensão real do símbolo nunca muda; só o detalhamento. É possível fixar o perfil de uma vista. Quando a escala de uma planta muda, o perfil é reaplicado automaticamente. |
-| **Configurações** | Pasta da biblioteca (pode ser de rede), modelo de família, faixas de escala, espessura e cor de cada camada, limites de densidade, prefixo e reservas, padrões de distribuição, formato de código, tolerâncias da análise, etiquetas e **hachuras do escritório** (importação de arquivos `.pat`). |
+| **Escalas** | Perfis de representação **Detalhado**, **Intermediário**, **Simplificado** e **Mínimo**. A dimensão real do símbolo nunca muda; só o detalhamento. |
+| **Configurações** | Biblioteca, escalas, padrão gráfico das linhas, **cores** (preenchimento sólido ou reticulado, clareamento, floração, maciços coloridos e cor-base de cada categoria, com pré-visualização), **interferências**, **acessibilidade**, maciços, plantio, codificação, análise, etiquetas e hachuras do escritório. |
 | **Sobre** | Versão e atalhos para as pastas da biblioteca, de configurações e de registros. |
 
 ---
 
 ## Representação gráfica
 
-Os símbolos 2D são gerados proceduralmente, em **dimensão real**, centrados no ponto de inserção e organizados em seis camadas (subcategorias da Vegetação):
+Os símbolos 2D são gerados proceduralmente, em **dimensão real**, centrados no ponto de inserção e organizados em camadas (subcategorias da Vegetação), ligadas e desligadas conforme a escala da vista:
 
 | Camada | Visível em |
 |---|---|
@@ -99,18 +110,34 @@ Os símbolos 2D são gerados proceduralmente, em **dimensão real**, centrados n
 | VIR Estrutura essencial | Detalhado, Intermediário, Simplificado |
 | VIR Ramificação principal | Detalhado, Intermediário |
 | VIR Detalhe | Detalhado |
+| VIR Preenchimento (copa colorida) | Detalhado, Intermediário, Simplificado |
+| VIR Floração (manchas de flor) | Detalhado, Intermediário |
+
+### Cores
+
+Cada espécie recebe a cor da sua folhagem (ou uma variação suave e estável da cor-base da categoria) e, quando floresce de forma vistosa, manchas na cor da flor. As linhas usam tons de verde-escuro e marrom, que leem bem sobre as copas e também em impressão em preto e branco. O preenchimento pode ser **sólido**, **reticulado** ou desligado.
+
+![Símbolos coloridos do catálogo](docs/img/cores.png)
 
 ![Estilos de símbolo](docs/img/estilos.png)
 
 ![Perfis de representação por escala](docs/img/perfis.png)
 
-São 17 estilos: árvore de copa arredondada, espalhada, colunar, piramidal e irregular, galharia radial, folhagem densa, palmeira pinada e em leque, arbusto em nuvem e pontiagudo, herbácea, forração, gramado, trepadeira, aquática e simples. Cada espécie tem uma semente própria (o desenho é sempre o mesmo para a mesma espécie) e até quatro variantes.
+São 17 estilos de símbolo, cada espécie com semente própria (o desenho é sempre o mesmo para a mesma espécie) e até quatro variantes.
 
 ![Variantes gráficas](docs/img/variantes.png)
 
-As hachuras da biblioteca são padrões de desenho do Revit: pontilhado orgânico, pontilhado denso, traços diagonais, padrão irregular, símbolos repetidos, gramado em tufos, lâmina d'água e hachura simplificada.
-
 ![Hachuras](docs/img/hachuras.png)
+
+---
+
+## Acessibilidade
+
+- Interface inteiramente em português, com números na notação brasileira.
+- **Tamanho do texto e dos controles** de 100% a 150% (Configurações > Acessibilidade).
+- **Alto contraste** próprio, e o alto contraste do Windows é seguido automaticamente.
+- Cores do tema verificadas por teste automatizado contra o contraste mínimo da **WCAG 2.1 (AA)**.
+- Navegação por teclado: Tab entre os campos, Alt + letra sublinhada, Enter confirma e Esc cancela; campos com nomes para leitores de tela.
 
 ---
 
@@ -129,11 +156,12 @@ Opcionalmente, o código da espécie é gravado também em **Marca de tipo** e o
 
 | Pasta | Conteúdo |
 |---|---|
-| `%APPDATA%\Viridian\Biblioteca` (configurável) | `Dados\catalogo.json`, famílias geradas por categoria, `Personalizado\` (famílias, símbolos, hachuras, etiquetas) e `Fotos\` |
+| `%APPDATA%\Viridian\Biblioteca` (configurável) | `Dados\catalogo.json`, `Dados\tabela-precos.json` (tabela importada), famílias geradas por categoria, `Personalizado\` (famílias, símbolos, hachuras, etiquetas) e `Fotos\` (fotos próprias do escritório) |
+| `%APPDATA%\Autodesk\Revit\Addins\2027\Viridian\Fotos` | fotografias do catálogo padrão e `CREDITOS.txt` |
 | `%APPDATA%\Viridian\Config` | `viridian.config.json` e o arquivo de parâmetros compartilhados |
 | `%APPDATA%\Viridian\Logs` | registro de erros |
 
-Os arquivos são gravados de forma atômica. Um catálogo corrompido é copiado para backup e recriado a partir do padrão.
+Os arquivos são gravados de forma atômica. Um catálogo corrompido é copiado para backup e recriado a partir do padrão. Ao atualizar o plugin, as espécies do catálogo padrão que o escritório não editou são atualizadas, e as editadas recebem apenas os dados novos (biomas, cores e foto), preservando o que foi alterado.
 
 ---
 
@@ -155,16 +183,16 @@ No Windows, use `build\package.ps1`. O pacote é gerado em `dist/`.
 
 | Projeto | Responsabilidade |
 |---|---|
-| `Viridian.Core` | Regras sem dependência do Revit: geometria, gerador de símbolos, distribuição, maciços, escalas, codificação, hachuras, relatórios, verificação e exportação `.xlsx` |
-| `Viridian.Library` | Catálogo botânico, catálogo padrão, configurações, pastas e registro de erros |
-| `Viridian.Revit` | Integração com a API: parâmetros compartilhados, Extensible Storage, geração de famílias, plantio, maciços, perfis de escala, etiquetas, legenda e tabelas |
+| `Viridian.Core` | Regras sem dependência do Revit: geometria, símbolos e cores, distribuição e eixos de plantio, maciços, escalas, codificação, hachuras, relatórios, orçamento e leitura de tabelas de preços, cronograma de manutenção, interferências, diagramação de pranchas, verificação e exportação `.xlsx` e `.dxf` |
+| `Viridian.Library` | Catálogo botânico, catálogo padrão (dados e créditos das fotos), tabela de preços, configurações, pastas e registro de erros |
+| `Viridian.Revit` | Integração com a API: parâmetros compartilhados, Extensible Storage, famílias com copa colorida, plantio, eixos, maciços, perfis de escala, etiquetas, legenda, tabelas, pranchas, exportação DWG e leitura de redes nos vínculos |
 | `Viridian.UI` | Janelas WPF |
 | `Viridian.Addin` | `IExternalApplication`, faixa de opções, comandos e atualização automática de escala |
 | `tests/Viridian.Tests` | Testes automatizados (xUnit) |
-| `tools/Viridian.Preview` | Gera pranchas SVG dos símbolos e hachuras para conferência visual |
+| `tools/Viridian.Preview` | Gera pranchas SVG dos símbolos, cores, distribuições e hachuras para conferência visual |
 
 ---
 
 ## Fora do escopo
 
-Modelagem 3D de vegetação, renderização, modelos volumétricos, simulação de crescimento, modelagem de terrenos, ferramentas de desenho de pisos e sistemas de tabelas paralelos ao Revit.
+Modelagem 3D de vegetação, renderização, modelos volumétricos, simulação de crescimento, levantamento arbóreo, cálculo de volume de solo, modelagem de terrenos, ferramentas de desenho de pisos e sistemas de tabelas paralelos ao Revit.
