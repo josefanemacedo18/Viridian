@@ -1,0 +1,38 @@
+﻿VIRIDIAN 1.0 — Paisagismo 2D técnico para Autodesk Revit 2027
+==============================================================
+
+INSTALAR
+1. Feche o Revit.
+2. Extraia este arquivo .zip para qualquer pasta.
+3. Dê dois cliques em "Instalar.cmd".
+4. Abra o Revit 2027: a aba "Viridian" aparece na faixa de opções.
+   Na primeira abertura o Revit pergunta se deve carregar o plugin: escolha
+   "Sempre carregar".
+
+O plugin é instalado somente para o seu usuário do Windows, em:
+  %APPDATA%\Autodesk\Revit\Addins\2027\Viridian
+
+DESINSTALAR
+Feche o Revit e dê dois cliques em "Desinstalar.cmd".
+A biblioteca botânica e as configurações (em %APPDATA%\Viridian) são mantidas.
+
+PRIMEIROS PASSOS
+1. Abra uma vista em planta.
+2. Viridian > Buscar Espécie: escolha uma espécie e clique em Inserir,
+   Distribuir ou Criar maciço.
+3. Viridian > Etiquetar e Viridian > Relatórios para a documentação.
+4. Viridian > Escalas: o detalhamento dos símbolos acompanha a escala da vista.
+
+Na primeira inserção de cada espécie o Viridian gera a família 2D a partir
+do modelo de família instalado com o Revit (Vegetação ou Modelo genérico).
+Se nenhum modelo for encontrado, ele pede que você indique um arquivo .rft.
+
+COMPARTILHAR COM O ESCRITÓRIO
+Em Viridian > Configurações > Biblioteca, aponte a pasta da biblioteca para
+uma pasta de rede. O catálogo, as famílias geradas, os símbolos e as
+hachuras passam a ser compartilhados entre os computadores.
+
+REGISTRO DE ERROS
+Se algo não funcionar como esperado, o detalhe técnico fica em
+  %APPDATA%\Viridian\Logs
+Viridian > Sobre abre essa pasta.
