@@ -86,7 +86,10 @@ public static class HatchService
 
         created.IsMasking = false;
         created.BackgroundPatternId = ElementId.InvalidElementId;
-        created.ForegroundPatternId = pattern is null ? ElementId.InvalidElementId : EnsureFillPattern(document, pattern);
+        ElementId foreground = pattern is null ? ElementId.InvalidElementId : EnsureFillPattern(document, pattern);
+        created.ForegroundPatternId = foreground == ElementId.InvalidElementId || created.IsValidForegroundPatternId(foreground)
+            ? foreground
+            : ElementId.InvalidElementId;
         created.ForegroundPatternColor = paint is null ? new Color(0, 0, 0) : ToColor(paint.Pattern);
         created.LineWeight = 1;
         if (paint is not null)
@@ -116,7 +119,8 @@ public static class HatchService
 
         ElementId solid = SolidDraftingPattern(document);
         FilledRegionType? template = types.FirstOrDefault();
-        if (solid == ElementId.InvalidElementId || template?.Duplicate(name) is not FilledRegionType created)
+        if (solid == ElementId.InvalidElementId || template is null || !template.IsValidForegroundPatternId(solid)
+            || template.Duplicate(name) is not FilledRegionType created)
         {
             return null;
         }
@@ -150,7 +154,7 @@ public static class HatchService
         }
 
         FilledRegionType? template = types.FirstOrDefault();
-        if (template?.Duplicate(name) is not FilledRegionType created)
+        if (template is null || !template.IsValidForegroundPatternId(pattern.Id) || template.Duplicate(name) is not FilledRegionType created)
         {
             return null;
         }

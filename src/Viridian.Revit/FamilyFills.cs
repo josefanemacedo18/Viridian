@@ -27,12 +27,12 @@ internal static class FamilyFills
         SketchPlane sketchPlane,
         double elevation,
         double tolerance,
-        IReadOnlyDictionary<SymbolTier, Category> subcategories,
-        Document? source)
+        IReadOnlyDictionary<SymbolTier, Category> subcategories)
     {
         try
         {
-            FilledRegionType? baseType = FirstRegionType(familyDocument) ?? CopyRegionType(source, familyDocument);
+            // Nunca copiar tipos do projeto: o Revit não permite cópia entre projeto e família.
+            FilledRegionType? baseType = FirstRegionType(familyDocument) ?? BootstrapRegionType(familyDocument, sketchPlane, symbol, elevation, tolerance);
             if (baseType is null)
             {
                 ViridianLog.Warn("O modelo de família não possui tipo de região preenchida; o símbolo será gerado sem cores.");
@@ -139,28 +139,28 @@ internal static class FamilyFills
         return collector.OfClass(typeof(FilledRegionType)).Cast<FilledRegionType>().FirstOrDefault();
     }
 
-    private static FilledRegionType? CopyRegionType(Document? source, Document familyDocument)
+    /// <summary>
+    /// Modelos de família sem nenhum tipo de região preenchida: uma região de máscara temporária faz o Revit
+    /// criar o tipo padrão, que é então usado como base e a região temporária é apagada.
+    /// </summary>
+    private static FilledRegionType? BootstrapRegionType(Document document, SketchPlane sketchPlane, PlantSymbol symbol, double elevation, double tolerance)
     {
-        if (source is null || source.IsFamilyDocument)
-        {
-            return null;
-        }
-
-        FilledRegionType? type = FirstRegionType(source);
-        if (type is null)
+        CurveLoop? loop = PolygonLoop(symbol.FillOutline, elevation, tolerance);
+        if (loop is null)
         {
             return null;
         }
 
         try
         {
-            ICollection<ElementId> copied = ElementTransformUtils.CopyElements(
-                source, new List<ElementId> { type.Id }, familyDocument, Transform.Identity, new CopyPasteOptions());
-            return copied.Select(familyDocument.GetElement).OfType<FilledRegionType>().FirstOrDefault();
+            FilledRegion temporary = FilledRegion.CreateMaskingRegion(document, sketchPlane, new List<CurveLoop> { loop });
+            var type = document.GetElement(temporary.GetTypeId()) as FilledRegionType;
+            document.Delete(temporary.Id);
+            return type;
         }
         catch (Autodesk.Revit.Exceptions.ApplicationException ex)
         {
-            ViridianLog.Warn("Não foi possível copiar um tipo de região preenchida para a família.", ex);
+            ViridianLog.Warn("O modelo de família não permite regiões preenchidas.", ex);
             return null;
         }
     }

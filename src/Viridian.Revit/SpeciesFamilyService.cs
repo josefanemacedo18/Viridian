@@ -258,7 +258,7 @@ public sealed class SpeciesFamilyService
         string standardName = FamilyNameOf(species, variant);
         string familyName = linked.HasValue ? linked.Value.Symbol.Family.Name : UniqueFamilyName(document, standardName, species.Id);
         string typeName = TypeNameOf(species);
-        string file = EnsureFamilyFile(document, document.Application, species, variant, familyName, standardName, hash, typeName);
+        string file = EnsureFamilyFile(document.Application, species, variant, familyName, standardName, hash, typeName);
         Family family = LoadFamilyFile(document, file);
 
         // Ao regerar, o tipo já usado pelos exemplares continua sendo o tipo da espécie.
@@ -332,7 +332,7 @@ public sealed class SpeciesFamilyService
         return standardName + "_" + suffix;
     }
 
-    private string EnsureFamilyFile(Document source, RevitApplication app, Species species, int variant, string familyName, string standardName, string hash, string typeName)
+    private string EnsureFamilyFile(RevitApplication app, Species species, int variant, string familyName, string standardName, string hash, string typeName)
     {
         bool cacheable = string.Equals(familyName, standardName, StringComparison.OrdinalIgnoreCase);
         string cacheFile = Path.Combine(_paths.GeneratedFolder(species.Category), familyName + ".rfa");
@@ -348,14 +348,14 @@ public sealed class SpeciesFamilyService
         string target = cacheable ? cacheFile : Path.Combine(Path.GetTempPath(), "Viridian", "Familias", familyName + ".rfa");
         try
         {
-            BuildWithAnyTemplate(app, symbol, paint, target, typeName, source);
+            BuildWithAnyTemplate(app, symbol, paint, target, typeName);
         }
         catch (Exception ex) when (cacheable && ex is IOException or UnauthorizedAccessException or Autodesk.Revit.Exceptions.FileAccessException)
         {
             // Biblioteca somente leitura ou arquivo em uso: gera em pasta temporária.
             ViridianLog.Warn("Não foi possível gravar a família na biblioteca; usando pasta temporária.", ex);
             target = Path.Combine(Path.GetTempPath(), "Viridian", "Familias", familyName + ".rfa");
-            BuildWithAnyTemplate(app, symbol, paint, target, typeName, source);
+            BuildWithAnyTemplate(app, symbol, paint, target, typeName);
             return target;
         }
 
@@ -368,7 +368,7 @@ public sealed class SpeciesFamilyService
         return target;
     }
 
-    private void BuildWithAnyTemplate(RevitApplication app, PlantSymbol symbol, SymbolPaint paint, string target, string typeName, Document? source)
+    private void BuildWithAnyTemplate(RevitApplication app, PlantSymbol symbol, SymbolPaint paint, string target, string typeName)
     {
         IReadOnlyList<string> candidates = FamilyTemplateLocator.Candidates(app, _settings.FamilyTemplateFile);
         var rejections = new List<string>();
@@ -376,7 +376,7 @@ public sealed class SpeciesFamilyService
         {
             try
             {
-                int skipped = SymbolFamilyBuilder.Build(app, template, symbol, paint, target, _settings, typeName, source);
+                int skipped = SymbolFamilyBuilder.Build(app, template, symbol, paint, target, _settings, typeName);
                 if (skipped > 0)
                 {
                     ViridianLog.Warn($"{skipped} linha(s) do símbolo foram recusadas pelo Revit em {Path.GetFileName(target)}.");
