@@ -2,6 +2,7 @@ using Viridian.Core.Geometry;
 using Viridian.Core.Massing;
 using Viridian.Core.Model;
 using Viridian.Core.Reports;
+using Viridian.Core.Interference;
 
 namespace Viridian.Core.Integrity;
 
@@ -28,6 +29,7 @@ public enum IssueKind
     EtiquetaOrfa,
     ConflitoDeCopa,
     EspacamentoInsuficiente,
+    Interferencia,
 }
 
 /// <summary>Uma inconsistência encontrada no projeto, com os elementos envolvidos.</summary>
@@ -117,6 +119,9 @@ public sealed class IntegrityInput
     public Func<string, Species?> SpeciesLookup { get; init; } = _ => null;
 
     public AnalysisSettings Settings { get; init; } = new();
+
+    /// <summary>Interferências com redes, postes, edificações e pavimentos (calculadas antes, a partir do modelo e dos vínculos).</summary>
+    public IReadOnlyList<InterferenceFinding> Interferences { get; init; } = Array.Empty<InterferenceFinding>();
 }
 
 /// <summary>Verificador de integridade e de conflitos de plantio.</summary>
@@ -146,6 +151,14 @@ public static class IntegrityChecker
             CheckSpacing(input, issues);
         }
 
+        var interferences = new IssueCollector(issues, IssueKind.Interferencia, IssueSeverity.Aviso);
+        foreach (InterferenceFinding finding in input.Interferences)
+        {
+            interferences.Add(InterferenceChecker.DisplayName(finding.Kind) + ": " + finding.Message, finding.PlantElementId);
+        }
+
+        interferences.Finish();
+
         return issues
             .OrderByDescending(i => i.Severity)
             .ThenBy(i => i.Kind)
@@ -168,6 +181,7 @@ public static class IntegrityChecker
         IssueKind.EtiquetaOrfa => "Etiqueta sem elemento",
         IssueKind.ConflitoDeCopa => "Conflito de copa",
         IssueKind.EspacamentoInsuficiente => "Espaçamento insuficiente",
+        IssueKind.Interferencia => "Interferência",
         _ => kind.ToString(),
     };
 

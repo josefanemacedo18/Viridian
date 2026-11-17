@@ -15,6 +15,7 @@ using Viridian.Core.Symbols;
 using Viridian.Library;
 using Viridian.Core.Colors;
 using Viridian.UI.Controls;
+using Viridian.Core.Interference;
 
 namespace Viridian.UI.Windows;
 
@@ -104,6 +105,31 @@ public sealed class CategoryColorRow : INotifyPropertyChanged
     public bool IsValid => Rgb.TryParse(Color, out _);
 }
 
+/// <summary>Linha editável de uma regra de interferência.</summary>
+public sealed class InterferenceRuleRow
+{
+    public InterferenceRuleRow(InterferenceRule rule)
+    {
+        Kind = rule.Kind;
+        Enabled = rule.Enabled;
+        Tree = Num.Format(rule.TreeM);
+        Palm = Num.Format(rule.PalmM);
+        Shrub = Num.Format(rule.ShrubM);
+    }
+
+    public NetworkKind Kind { get; }
+
+    public string Name => InterferenceChecker.DisplayName(Kind);
+
+    public bool Enabled { get; set; }
+
+    public string Tree { get; set; }
+
+    public string Palm { get; set; }
+
+    public string Shrub { get; set; }
+}
+
 /// <summary>Configurações do escritório.</summary>
 public partial class SettingsWindow : ViridianWindow
 {
@@ -111,6 +137,7 @@ public partial class SettingsWindow : ViridianWindow
     private readonly List<HatchPattern> _customHatches;
     private List<TierRow> _tiers = new();
     private List<CategoryColorRow> _categoryColors = new();
+    private List<InterferenceRuleRow> _interferenceRules = new();
     private readonly List<(SymbolPreview View, Species Sample)> _colorPreviews = new();
     private bool _loading = true;
 
@@ -161,6 +188,12 @@ public partial class SettingsWindow : ViridianWindow
         }
 
         LoadColors(s.Colors);
+        _interferenceRules = s.Interference.Rules.Select(r => new InterferenceRuleRow(r)).ToList();
+        InterferenceList.ItemsSource = _interferenceRules;
+        CrownFactorBox.Text = Num.Format(s.Interference.BuildingCrownFactor, "0.##");
+        PavementBox.IsChecked = s.Interference.CheckPavements;
+        LinksBox.IsChecked = s.Interference.IncludeLinks;
+        InterferenceEnabledBox.IsChecked = s.Interference.Enabled;
 
         LowBox.Text = Num.Format(s.Density.LowMax);
         MediumBox.Text = Num.Format(s.Density.MediumMax);
@@ -553,6 +586,31 @@ public partial class SettingsWindow : ViridianWindow
             problems.Add($"Cor inválida para {row.Name} (use o formato #RRGGBB).");
         }
 
+        var rules = new List<InterferenceRule>();
+        foreach (InterferenceRuleRow row in _interferenceRules)
+        {
+            double Distance(string text, string label)
+            {
+                if (!Num.TryParse(text, out double value) || value < 0 || value > 50)
+                {
+                    problems.Add($"Interferências, {row.Name} ({label}): informe uma distância entre 0 e 50 m.");
+                    return 0;
+                }
+
+                return value;
+            }
+
+            rules.Add(new InterferenceRule
+            {
+                Kind = row.Kind,
+                Enabled = row.Enabled,
+                TreeM = Distance(row.Tree, "árvores"),
+                PalmM = Distance(row.Palm, "palmeiras"),
+                ShrubM = Distance(row.Shrub, "arbustos"),
+            });
+        }
+
+        double crownFactor = Number(CrownFactorBox, "Fração do raio da copa até a fachada", 0, 1.5);
         double crownTint = Number(CrownTintBox, "Clareamento da copa", 0, 85);
         double massingTint = Number(MassingTintBox, "Clareamento do fundo dos maciços", 0, 95);
 
@@ -605,6 +663,11 @@ public partial class SettingsWindow : ViridianWindow
         s.AutoApplyScaleProfiles = AutoScaleBox.IsChecked == true;
         s.TierStyles = _tiers.Select(t => new TierStyle { Tier = t.Tier, LineWeight = t.LineWeight, Color = ColorHex.Normalize(t.Color) }).ToList();
         s.SyncMarks = SyncMarksBox.IsChecked == true;
+        s.Interference.Rules = rules;
+        s.Interference.BuildingCrownFactor = crownFactor;
+        s.Interference.CheckPavements = PavementBox.IsChecked == true;
+        s.Interference.IncludeLinks = LinksBox.IsChecked == true;
+        s.Interference.Enabled = InterferenceEnabledBox.IsChecked == true;
         s.Colors = ColorsFromForm();
         s.Colors.CrownTint = crownTint / 100;
         s.Colors.MassingBackgroundTint = massingTint / 100;

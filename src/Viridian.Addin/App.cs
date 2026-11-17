@@ -140,6 +140,9 @@ public sealed class App : IExternalApplication
         Large<CheckCommand, ProjectAvailability>(check, assembly, "Verificar\nProjeto", "check",
             "Encontra exemplares sem código, códigos repetidos, famílias não cadastradas, maciços inválidos, registros órfãos, conflitos de copa e de espaçamento.",
             "Clique duas vezes em uma ocorrência para mostrar os elementos. Correções automáticas disponíveis para códigos, dados desatualizados e registros órfãos.");
+        Large<InterferenceCommand, ProjectAvailability>(check, assembly, "Interfe-\nrências", "interference",
+            "Distâncias entre o plantio e tubulações, eletrodutos, dutos, postes, paredes e pisos, inclusive nos modelos vinculados.",
+            "As distâncias mínimas por tipo de elemento e de planta ficam em Configurações, aba Interferências.");
 
         RibbonPanel settings = app.CreateRibbonPanel(TabName, "Configurações");
         Large<ScaleCommand, ProjectAvailability>(settings, assembly, "Escalas", "scale",

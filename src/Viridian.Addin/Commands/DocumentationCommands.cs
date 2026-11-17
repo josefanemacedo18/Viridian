@@ -270,3 +270,46 @@ public sealed class CheckCommand : CommandBase
         }, n => n > 0);
     }
 }
+
+/// <summary>Verifica somente as interferências do plantio com redes, postes, edificações e pisos (projeto e vínculos).</summary>
+[Transaction(TransactionMode.Manual)]
+[Regeneration(RegenerationOption.Manual)]
+public sealed class InterferenceCommand : CommandBase
+{
+    internal override Result Run(ViridianContext ctx)
+    {
+        Document doc = ctx.Doc;
+        for (int round = 0; round < 50; round++)
+        {
+            ProjectSnapshot snapshot = ProjectReader.Read(doc, ctx.Lookup);
+            List<Core.Interference.InterferencePlant> plants = InterferenceReader.Plants(doc, snapshot.Plants, ctx.Lookup);
+            Core.Interference.InterferenceSettings settings = ctx.Settings.Interference;
+            InterferenceSources sources = InterferenceReader.Read(doc, settings);
+            IReadOnlyList<Core.Interference.InterferenceFinding> findings =
+                Core.Interference.InterferenceChecker.Check(plants, sources.Segments, sources.Points, sources.Pavements, settings);
+
+            var issues = new List<IntegrityIssue>
+            {
+                new()
+                {
+                    Severity = IssueSeverity.Info,
+                    Kind = IssueKind.Interferencia,
+                    Message = $"{plants.Count} exemplar(es) verificados contra {sources.Segments.Count} trecho(s) de redes e paredes, "
+                              + $"{sources.Points.Count} poste(s) e ponto(s) elétricos e {sources.Pavements.Count} piso(s). "
+                              + "Modelos lidos: " + string.Join(", ", sources.Models) + "."
+                              + (sources.Unloaded.Count > 0 ? " Vínculos não carregados (fora da verificação): " + string.Join(", ", sources.Unloaded) + "." : string.Empty),
+                },
+            };
+            issues.AddRange(IntegrityChecker.Run(new IntegrityInput { Interferences = findings, Settings = new AnalysisSettings { CheckCrownConflicts = false, CheckSpacing = false } })
+                .Where(i => i.Kind == IssueKind.Interferencia));
+
+            var window = new IntegrityWindow(issues, ids => ctx.ShowElements(ids)) { Title = "Viridian — Interferências" };
+            if (!ctx.ShowDialog(window) || window.Action != IntegrityAction.Recheck)
+            {
+                return Result.Succeeded;
+            }
+        }
+
+        return Result.Succeeded;
+    }
+}

@@ -165,6 +165,61 @@
                 </ScrollViewer>
             </TabItem>
 
+            <!-- Interferências -->
+            <TabItem Header="Interferências">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="12">
+                        <TextBlock Style="{StaticResource VirSection}" Margin="0,0,0,4" Text="Distância mínima do tronco (m)" />
+                        <TextBlock Style="{StaticResource VirHint}" Text="Valores de referência de manuais de arborização urbana. Ajuste às normas do município e das concessionárias. Zero = não verificar." />
+                        <Grid Margin="0,6,0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="40" />
+                                <ColumnDefinition Width="230" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="80" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="1" Text="Elemento" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="2" Text="Árvores" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="3" Text="Palmeiras" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="4" Text="Arbustos" FontWeight="SemiBold" />
+                        </Grid>
+                        <ItemsControl x:Name="InterferenceList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="40" />
+                                            <ColumnDefinition Width="230" />
+                                            <ColumnDefinition Width="80" />
+                                            <ColumnDefinition Width="80" />
+                                            <ColumnDefinition Width="80" />
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox IsChecked="{Binding Enabled}" VerticalAlignment="Center" AutomationProperties.Name="{Binding Name}" ToolTip="Verificar este tipo de elemento" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" />
+                                        <TextBox Grid.Column="2" Text="{Binding Tree, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,8,2" AutomationProperties.Name="Distância para árvores" />
+                                        <TextBox Grid.Column="3" Text="{Binding Palm, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,8,2" AutomationProperties.Name="Distância para palmeiras" />
+                                        <TextBox Grid.Column="4" Text="{Binding Shrub, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,8,2" AutomationProperties.Name="Distância para arbustos" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="270" />
+                                <ColumnDefinition Width="80" />
+                            </Grid.ColumnDefinitions>
+                            <Label Content="Fração do raio da copa até a fachada" Target="{Binding ElementName=CrownFactorBox}" Padding="0" VerticalAlignment="Center" />
+                            <TextBox x:Name="CrownFactorBox" Grid.Column="1" Margin="0,2,8,2" AutomationProperties.Name="Fração do raio da copa até a fachada"
+                                     ToolTip="0,75 = três quartos do raio da copa adulta devem caber entre o tronco e a parede" />
+                        </Grid>
+                        <CheckBox x:Name="PavementBox" Content="Apontar árvores, palmeiras e arbustos plantados sobre pisos sem abertura (berço)" Margin="0,8,0,0" />
+                        <CheckBox x:Name="LinksBox" Content="Ler também os modelos vinculados (instalações, arquitetura, infraestrutura)" />
+                        <CheckBox x:Name="InterferenceEnabledBox" Content="Incluir as interferências em &quot;Verificar Projeto&quot;" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
             <!-- Maciços -->
             <TabItem Header="Maciços">
                 <StackPanel Margin="12">

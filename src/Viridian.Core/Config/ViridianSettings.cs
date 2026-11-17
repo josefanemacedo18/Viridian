@@ -10,6 +10,7 @@ using Viridian.Core.Scale;
 using Viridian.Core.Symbols;
 using Viridian.Core.Costs;
 using Viridian.Core.Maintenance;
+using Viridian.Core.Interference;
 
 namespace Viridian.Core.Config;
 
@@ -118,6 +119,9 @@ public sealed class ViridianSettings
     /// <summary>Cronograma de manutenção: mês de plantio e estação seca da região.</summary>
     public MaintenanceSettings Maintenance { get; set; } = new();
 
+    /// <summary>Distâncias mínimas entre o plantio e redes, postes, edificações e pavimentos.</summary>
+    public InterferenceSettings Interference { get; set; } = new();
+
     public TierStyle StyleOf(SymbolTier tier) =>
         TierStyles.FirstOrDefault(s => s.Tier == tier) ?? DefaultTierStyles().FirstOrDefault(s => s.Tier == tier) ?? new TierStyle { Tier = tier };
 
@@ -134,6 +138,8 @@ public sealed class ViridianSettings
         Costs.Normalize();
         Maintenance ??= new MaintenanceSettings();
         Maintenance.Normalize();
+        Interference ??= new InterferenceSettings();
+        Interference.Normalize();
         Density ??= new DensityRules();
         Density.Normalize();
         InstanceCode ??= new InstanceCodeFormat();

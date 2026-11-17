@@ -3,6 +3,7 @@ using Viridian.Core.Config;
 using Viridian.Core.Integrity;
 using Viridian.Core.Model;
 using Viridian.Core.Reports;
+using Viridian.Core.Interference;
 
 namespace Viridian.Revit;
 
@@ -45,7 +46,8 @@ public static class ProjectReader
         ProjectSnapshot snapshot,
         Func<string, Species?> lookup,
         ViridianSettings settings,
-        SpeciesFamilyService families)
+        SpeciesFamilyService families,
+        bool interferences = true)
     {
         List<OutdatedType> outdated = families.FindOutdated(document, lookup, snapshot.Project)
             .Select(x => new OutdatedType
@@ -64,7 +66,24 @@ public static class ProjectReader
             OutdatedTypes = outdated,
             SpeciesLookup = lookup,
             Settings = settings.Analysis,
+            Interferences = interferences && settings.Interference.Enabled
+                ? CheckInterferences(document, snapshot, lookup, settings.Interference)
+                : Array.Empty<InterferenceFinding>(),
         };
+    }
+
+    /// <summary>Verifica as distâncias entre o plantio e redes, postes, edificações e pisos (projeto e vínculos).</summary>
+    public static IReadOnlyList<InterferenceFinding> CheckInterferences(
+        Document document, ProjectSnapshot snapshot, Func<string, Species?> lookup, InterferenceSettings settings)
+    {
+        List<InterferencePlant> plants = InterferenceReader.Plants(document, snapshot.Plants, lookup);
+        if (plants.Count == 0)
+        {
+            return Array.Empty<InterferenceFinding>();
+        }
+
+        InterferenceSources sources = InterferenceReader.Read(document, settings);
+        return InterferenceChecker.Check(plants, sources.Segments, sources.Points, sources.Pavements, settings);
     }
 
     /// <summary>Título do projeto para cabeçalhos de relatórios e legendas.</summary>
