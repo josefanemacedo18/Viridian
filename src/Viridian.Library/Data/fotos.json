@@ -1,0 +1,975 @@
+{
+ "sp-acrocomia-aculeata": {
+  "credit": "mauroguanandi",
+  "file": "sp-acrocomia-aculeata.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/584808",
+  "taxon": "https://www.inaturalist.org/taxa/244459"
+ },
+ "sp-aechmea-blanchetiana": {
+  "credit": "Bailey Duncan",
+  "file": "sp-aechmea-blanchetiana.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/195985640",
+  "taxon": "https://www.inaturalist.org/taxa/465582"
+ },
+ "sp-agapanthus-africanus": {
+  "credit": "magriet b",
+  "file": "sp-agapanthus-africanus.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/15987149",
+  "taxon": "https://www.inaturalist.org/taxa/56019"
+ },
+ "sp-agave-attenuata": {
+  "credit": "Joey Santore",
+  "file": "sp-agave-attenuata.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/23685526",
+  "taxon": "https://www.inaturalist.org/taxa/209357"
+ },
+ "sp-ajuga-reptans": {
+  "credit": "Dr. Nasser Halaweh",
+  "file": "sp-ajuga-reptans.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/28863996",
+  "taxon": "https://www.inaturalist.org/taxa/56099"
+ },
+ "sp-alcantarea-imperialis": {
+  "credit": "Diogo Luiz",
+  "file": "sp-alcantarea-imperialis.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/43580259",
+  "taxon": "https://www.inaturalist.org/taxa/511006"
+ },
+ "sp-allamanda-cathartica": {
+  "credit": "dhfischer",
+  "file": "sp-allamanda-cathartica.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/266463281",
+  "taxon": "https://www.inaturalist.org/taxa/62937"
+ },
+ "sp-alpinia-purpurata": {
+  "credit": "Kristof Zyskowski",
+  "file": "sp-alpinia-purpurata.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/66457742",
+  "taxon": "https://www.inaturalist.org/taxa/154466"
+ },
+ "sp-anadenanthera-colubrina": {
+  "credit": "Victor Farjalla Pontes",
+  "file": "sp-anadenanthera-colubrina.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/117649882",
+  "taxon": "https://www.inaturalist.org/taxa/430643"
+ },
+ "sp-arachis-repens": {
+  "credit": "Cricket Raspet",
+  "file": "sp-arachis-repens.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/643345145",
+  "taxon": "https://www.inaturalist.org/taxa/557786"
+ },
+ "sp-araucaria-angustifolia": {
+  "credit": "Carlos Otávio Gussoni",
+  "file": "sp-araucaria-angustifolia.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/77746471",
+  "taxon": "https://www.inaturalist.org/taxa/83168"
+ },
+ "sp-archontophoenix-cunninghamiana": {
+  "credit": "Tiago Lubiana",
+  "file": "sp-archontophoenix-cunninghamiana.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/441254452",
+  "taxon": "https://www.inaturalist.org/taxa/83634"
+ },
+ "sp-asparagus-densiflorus": {
+  "credit": "Tony Rebelo",
+  "file": "sp-asparagus-densiflorus.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/15087224",
+  "taxon": "https://www.inaturalist.org/taxa/127598"
+ },
+ "sp-axonopus-compressus": {
+  "credit": "Kevin Faccenda",
+  "file": "sp-axonopus-compressus.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/233005771",
+  "taxon": "https://www.inaturalist.org/taxa/159110"
+ },
+ "sp-bauhinia-forficata": {
+  "credit": "Fabrício Mil Homens Riella",
+  "file": "sp-bauhinia-forficata.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/251857018",
+  "taxon": "https://www.inaturalist.org/taxa/139568"
+ },
+ "sp-bixa-orellana": {
+  "credit": "Zoltán Stekkelpak",
+  "file": "sp-bixa-orellana.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/108769917",
+  "taxon": "https://www.inaturalist.org/taxa/127676"
+ },
+ "sp-bougainvillea-spectabilis": {
+  "credit": "nebrooks",
+  "file": "sp-bougainvillea-spectabilis.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/451077887",
+  "taxon": "https://www.inaturalist.org/taxa/62949"
+ },
+ "sp-brunfelsia-uniflora": {
+  "credit": "Pieter Huybrechts",
+  "file": "sp-brunfelsia-uniflora.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/50862847",
+  "taxon": "https://www.inaturalist.org/taxa/491268"
+ },
+ "sp-bulbine-frutescens": {
+  "credit": "Nicola van Berkel",
+  "file": "sp-bulbine-frutescens.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/206278792",
+  "taxon": "https://www.inaturalist.org/taxa/428049"
+ },
+ "sp-butia-capitata": {
+  "credit": "B. Phalan",
+  "file": "sp-butia-capitata.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/624613940",
+  "taxon": "https://www.inaturalist.org/taxa/180228"
+ },
+ "sp-buxus-sempervirens": {
+  "credit": "Julien Renoult",
+  "file": "sp-buxus-sempervirens.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/35061056",
+  "taxon": "https://www.inaturalist.org/taxa/133397"
+ },
+ "sp-calliandra-brevipes": {
+  "credit": "Rony Ristow",
+  "file": "sp-calliandra-brevipes.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/301570228",
+  "taxon": "https://www.inaturalist.org/taxa/400277"
+ },
+ "sp-callisia-repens": {
+  "credit": "Victor Farjalla Pontes",
+  "file": "sp-callisia-repens.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/154245279",
+  "taxon": "https://www.inaturalist.org/taxa/159681"
+ },
+ "sp-canna-indica": {
+  "credit": "Guillermo López Escalera Argueta",
+  "file": "sp-canna-indica.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/65414050",
+  "taxon": "https://www.inaturalist.org/taxa/146643"
+ },
+ "sp-cariniana-legalis": {
+  "credit": "Rafael Silva",
+  "file": "sp-cariniana-legalis.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/604587586",
+  "taxon": "https://www.inaturalist.org/taxa/190294"
+ },
+ "sp-cassia-fistula": {
+  "credit": "Tony van Kampen",
+  "file": "sp-cassia-fistula.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/152349950",
+  "taxon": "https://www.inaturalist.org/taxa/68679"
+ },
+ "sp-cassia-grandis": {
+  "credit": "Jim",
+  "file": "sp-cassia-grandis.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/400283750",
+  "taxon": "https://www.inaturalist.org/taxa/160171"
+ },
+ "sp-cassia-leptophylla": {
+  "credit": "Diogo Luiz",
+  "file": "sp-cassia-leptophylla.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/46780912",
+  "taxon": "https://www.inaturalist.org/taxa/335464"
+ },
+ "sp-ceiba-speciosa": {
+  "credit": "Agnes Trekker",
+  "file": "sp-ceiba-speciosa.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/160941799",
+  "taxon": "https://www.inaturalist.org/taxa/154290"
+ },
+ "sp-cenostigma-pluviosum": {
+  "credit": "Thomaz Ricardo Favreto Sinani",
+  "file": "sp-cenostigma-pluviosum.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/410362580",
+  "taxon": "https://www.inaturalist.org/taxa/916728"
+ },
+ "sp-chlorophytum-comosum": {
+  "credit": "Tom Fletcher",
+  "file": "sp-chlorophytum-comosum.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/354883331",
+  "taxon": "https://www.inaturalist.org/taxa/322492"
+ },
+ "sp-clitoria-fairchildiana": {
+  "credit": "Steve J Sewell",
+  "file": "sp-clitoria-fairchildiana.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/62737766",
+  "taxon": "https://www.inaturalist.org/taxa/344722"
+ },
+ "sp-clusia-fluminensis": {
+  "credit": "alessandradalia",
+  "file": "sp-clusia-fluminensis.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/29596923",
+  "taxon": "https://www.inaturalist.org/taxa/604086"
+ },
+ "sp-codiaeum-variegatum": {
+  "credit": "Jayesh Patil",
+  "file": "sp-codiaeum-variegatum.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/105562",
+  "taxon": "https://www.inaturalist.org/taxa/127387"
+ },
+ "sp-cordia-superba": {
+  "credit": "Diogo Luiz",
+  "file": "sp-cordia-superba.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/48786836",
+  "taxon": "https://www.inaturalist.org/taxa/83908"
+ },
+ "sp-cordyline-fruticosa": {
+  "credit": "葉子",
+  "file": "sp-cordyline-fruticosa.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/56700070",
+  "taxon": "https://www.inaturalist.org/taxa/123572"
+ },
+ "sp-cortaderia-selloana": {
+  "credit": "Fernando de Gorocica",
+  "file": "sp-cortaderia-selloana.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/173109660",
+  "taxon": "https://www.inaturalist.org/taxa/64240"
+ },
+ "sp-cupressus-sempervirens": {
+  "credit": "Rockhopper2",
+  "file": "sp-cupressus-sempervirens.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/8573212",
+  "taxon": "https://www.inaturalist.org/taxa/64261"
+ },
+ "sp-cybistax-antisyphilitica": {
+  "credit": "João Medeiros",
+  "file": "sp-cybistax-antisyphilitica.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/2266929",
+  "taxon": "https://www.inaturalist.org/taxa/461865"
+ },
+ "sp-cynodon-dactylon": {
+  "credit": "Douglas Goldman",
+  "file": "sp-cynodon-dactylon.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/250871210",
+  "taxon": "https://www.inaturalist.org/taxa/58371"
+ },
+ "sp-cyperus-giganteus": {
+  "credit": "Pablo H Capovilla",
+  "file": "sp-cyperus-giganteus.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/334462739",
+  "taxon": "https://www.inaturalist.org/taxa/161443"
+ },
+ "sp-cyperus-papyrus": {
+  "credit": "Shaun Swanepoel",
+  "file": "sp-cyperus-papyrus.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/13488403",
+  "taxon": "https://www.inaturalist.org/taxa/161469"
+ },
+ "sp-delonix-regia": {
+  "credit": "葉子",
+  "file": "sp-delonix-regia.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/38635179",
+  "taxon": "https://www.inaturalist.org/taxa/62839"
+ },
+ "sp-dietes-bicolor": {
+  "credit": "Tony Rebelo",
+  "file": "sp-dietes-bicolor.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/58801991",
+  "taxon": "https://www.inaturalist.org/taxa/125855"
+ },
+ "sp-duranta-erecta": {
+  "credit": "Juan Cruzado Cortés",
+  "file": "sp-duranta-erecta.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/97207653",
+  "taxon": "https://www.inaturalist.org/taxa/162153"
+ },
+ "sp-dypsis-lutescens": {
+  "credit": "Dinesh Valke",
+  "file": "sp-dypsis-lutescens.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/125618798",
+  "taxon": "https://www.inaturalist.org/taxa/276548"
+ },
+ "sp-echinodorus-grandiflorus": {
+  "credit": "Holger Braun",
+  "file": "sp-echinodorus-grandiflorus.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/56855119",
+  "taxon": "https://www.inaturalist.org/taxa/206261"
+ },
+ "sp-enterolobium-contortisiliquum": {
+  "credit": "mauroguanandi",
+  "file": "sp-enterolobium-contortisiliquum.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/1539840",
+  "taxon": "https://www.inaturalist.org/taxa/52446"
+ },
+ "sp-erythrina-crista-galli": {
+  "credit": "Florencia Grattarola",
+  "file": "sp-erythrina-crista-galli.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/58497902",
+  "taxon": "https://www.inaturalist.org/taxa/162718"
+ },
+ "sp-erythrina-falcata": {
+  "credit": "Fátima Helena Yáñez",
+  "file": "sp-erythrina-falcata.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/165540138",
+  "taxon": "https://www.inaturalist.org/taxa/479632"
+ },
+ "sp-erythrina-speciosa": {
+  "credit": "bruno_san1409",
+  "file": "sp-erythrina-speciosa.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/572320383",
+  "taxon": "https://www.inaturalist.org/taxa/427620"
+ },
+ "sp-erythrina-velutina": {
+  "credit": "Carlos Henrique",
+  "file": "sp-erythrina-velutina.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/710576047",
+  "taxon": "https://www.inaturalist.org/taxa/327720"
+ },
+ "sp-eugenia-uniflora": {
+  "credit": "Douglas Goldman",
+  "file": "sp-eugenia-uniflora.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/178119392",
+  "taxon": "https://www.inaturalist.org/taxa/83642"
+ },
+ "sp-euterpe-edulis": {
+  "credit": "Rodrigo Paiva Lázaro",
+  "file": "sp-euterpe-edulis.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/148161929",
+  "taxon": "https://www.inaturalist.org/taxa/155135"
+ },
+ "sp-euterpe-oleracea": {
+  "credit": "Lucas Kaminski",
+  "file": "sp-euterpe-oleracea.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/325772564",
+  "taxon": "https://www.inaturalist.org/taxa/365244"
+ },
+ "sp-evolvulus-glomeratus": {
+  "credit": "葉子",
+  "file": "sp-evolvulus-glomeratus.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/54231577",
+  "taxon": "https://www.inaturalist.org/taxa/83424"
+ },
+ "sp-ficus-pumila": {
+  "credit": "胡正恆(Jackson Hu)",
+  "file": "sp-ficus-pumila.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/576285051",
+  "taxon": "https://www.inaturalist.org/taxa/162972"
+ },
+ "sp-gardenia-jasminoides": {
+  "credit": "葉子",
+  "file": "sp-gardenia-jasminoides.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/430635084",
+  "taxon": "https://www.inaturalist.org/taxa/210990"
+ },
+ "sp-goeppertia-zebrina": {
+  "credit": "Diogo Luiz",
+  "file": "sp-goeppertia-zebrina.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/599761860",
+  "taxon": "https://www.inaturalist.org/taxa/1172861"
+ },
+ "sp-handroanthus-albus": {
+  "credit": "Fabrício Mil Homens Riella",
+  "file": "sp-handroanthus-albus.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/448286043",
+  "taxon": "https://www.inaturalist.org/taxa/733298"
+ },
+ "sp-handroanthus-chrysotrichus": {
+  "credit": "Douglas Goldman",
+  "file": "sp-handroanthus-chrysotrichus.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/564845653",
+  "taxon": "https://www.inaturalist.org/taxa/468336"
+ },
+ "sp-handroanthus-heptaphyllus": {
+  "credit": "Victor Farjalla Pontes",
+  "file": "sp-handroanthus-heptaphyllus.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/136600171",
+  "taxon": "https://www.inaturalist.org/taxa/808333"
+ },
+ "sp-handroanthus-impetiginosus": {
+  "credit": "Francisco Farriols Sarabia",
+  "file": "sp-handroanthus-impetiginosus.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/58482025",
+  "taxon": "https://www.inaturalist.org/taxa/281274"
+ },
+ "sp-handroanthus-ochraceus": {
+  "credit": "mauroguanandi",
+  "file": "sp-handroanthus-ochraceus.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/21356",
+  "taxon": "https://www.inaturalist.org/taxa/551431"
+ },
+ "sp-handroanthus-serratifolius": {
+  "credit": "Max G.W. Verheij",
+  "file": "sp-handroanthus-serratifolius.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/159693464",
+  "taxon": "https://www.inaturalist.org/taxa/479408"
+ },
+ "sp-heliconia-psittacorum": {
+  "credit": "Kevin Faccenda",
+  "file": "sp-heliconia-psittacorum.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/288093592",
+  "taxon": "https://www.inaturalist.org/taxa/260753"
+ },
+ "sp-hymenaea-courbaril": {
+  "credit": "bruno_san1409",
+  "file": "sp-hymenaea-courbaril.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/632363123",
+  "taxon": "https://www.inaturalist.org/taxa/139075"
+ },
+ "sp-inga-edulis": {
+  "credit": "Patrícia Mees",
+  "file": "sp-inga-edulis.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/372638799",
+  "taxon": "https://www.inaturalist.org/taxa/209926"
+ },
+ "sp-ixora-coccinea": {
+  "credit": "Ramnarayan K",
+  "file": "sp-ixora-coccinea.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/569822172",
+  "taxon": "https://www.inaturalist.org/taxa/133309"
+ },
+ "sp-jacaranda-cuspidifolia": {
+  "credit": "mauroguanandi",
+  "file": "sp-jacaranda-cuspidifolia.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/1472119",
+  "taxon": "https://www.inaturalist.org/taxa/426940"
+ },
+ "sp-jacaranda-mimosifolia": {
+  "credit": "mauroguanandi",
+  "file": "sp-jacaranda-mimosifolia.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/102444",
+  "taxon": "https://www.inaturalist.org/taxa/77541"
+ },
+ "sp-jacaranda-puberula": {
+  "credit": "Edson Luis Fabro Gasperin",
+  "file": "sp-jacaranda-puberula.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/172597984",
+  "taxon": "https://www.inaturalist.org/taxa/783900"
+ },
+ "sp-lafoensia-pacari": {
+  "credit": "Daniel Schelesky",
+  "file": "sp-lafoensia-pacari.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/166503969",
+  "taxon": "https://www.inaturalist.org/taxa/347879"
+ },
+ "sp-lagerstroemia-indica": {
+  "credit": "no rights reserved",
+  "file": "sp-lagerstroemia-indica.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/316841613",
+  "taxon": "https://www.inaturalist.org/taxa/135394"
+ },
+ "sp-lantana-camara": {
+  "credit": "Dave Brown",
+  "file": "sp-lantana-camara.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/334183965",
+  "taxon": "https://www.inaturalist.org/taxa/50333"
+ },
+ "sp-libidibia-ferrea": {
+  "credit": "André Ambrozio",
+  "file": "sp-libidibia-ferrea.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/301635803",
+  "taxon": "https://www.inaturalist.org/taxa/870085"
+ },
+ "sp-licuala-grandis": {
+  "credit": "Marcio Santos Ferreira",
+  "file": "sp-licuala-grandis.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/605923997",
+  "taxon": "https://www.inaturalist.org/taxa/129540"
+ },
+ "sp-liriope-muscari": {
+  "credit": "scohlendorf",
+  "file": "sp-liriope-muscari.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/81425626",
+  "taxon": "https://www.inaturalist.org/taxa/223938"
+ },
+ "sp-livistona-chinensis": {
+  "credit": "Forest and Kim Starr",
+  "file": "sp-livistona-chinensis.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/121324857",
+  "taxon": "https://www.inaturalist.org/taxa/199373"
+ },
+ "sp-loropetalum-chinense": {
+  "credit": "Amanda Rose Ross",
+  "file": "sp-loropetalum-chinense.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/460588061",
+  "taxon": "https://www.inaturalist.org/taxa/186063"
+ },
+ "sp-magnolia-grandiflora": {
+  "credit": "Douglas Goldman",
+  "file": "sp-magnolia-grandiflora.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/557171383",
+  "taxon": "https://www.inaturalist.org/taxa/83074"
+ },
+ "sp-mandevilla-sanderi": {
+  "credit": "Raúl A. Ruiz M.",
+  "file": "sp-mandevilla-sanderi.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/715096683",
+  "taxon": "https://www.inaturalist.org/taxa/327733"
+ },
+ "sp-mangifera-indica": {
+  "credit": "葉子",
+  "file": "sp-mangifera-indica.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/30951020",
+  "taxon": "https://www.inaturalist.org/taxa/48872"
+ },
+ "sp-monstera-deliciosa": {
+  "credit": "Jacqui Geux",
+  "file": "sp-monstera-deliciosa.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/63451902",
+  "taxon": "https://www.inaturalist.org/taxa/122521"
+ },
+ "sp-moquilea-tomentosa": {
+  "credit": "André Ambrozio",
+  "file": "sp-moquilea-tomentosa.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/332567789",
+  "taxon": "https://www.inaturalist.org/taxa/1424913"
+ },
+ "sp-nandina-domestica": {
+  "credit": "Sam Kieschnick",
+  "file": "sp-nandina-domestica.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/71351881",
+  "taxon": "https://www.inaturalist.org/taxa/127010"
+ },
+ "sp-neomarica-caerulea": {
+  "credit": "Whaldener Endo",
+  "file": "sp-neomarica-caerulea.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/205893929",
+  "taxon": "https://www.inaturalist.org/taxa/977758"
+ },
+ "sp-nymphaea-caerulea": {
+  "credit": "Tony Rebelo",
+  "file": "sp-nymphaea-caerulea.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/15377955",
+  "taxon": "https://www.inaturalist.org/taxa/321502"
+ },
+ "sp-nymphoides-humboldtiana": {
+  "credit": "lallen",
+  "file": "sp-nymphoides-humboldtiana.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/101542301",
+  "taxon": "https://www.inaturalist.org/taxa/807297"
+ },
+ "sp-ophiopogon-japonicus": {
+  "credit": "raibums",
+  "file": "sp-ophiopogon-japonicus.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/107698413",
+  "taxon": "https://www.inaturalist.org/taxa/200061"
+ },
+ "sp-paspalum-notatum": {
+  "credit": "Alan Weakley",
+  "file": "sp-paspalum-notatum.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/4257259",
+  "taxon": "https://www.inaturalist.org/taxa/166188"
+ },
+ "sp-passiflora-edulis": {
+  "credit": "no rights reserved",
+  "file": "sp-passiflora-edulis.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/148725114",
+  "taxon": "https://www.inaturalist.org/taxa/51446"
+ },
+ "sp-paubrasilia-echinata": {
+  "credit": "Eli",
+  "file": "sp-paubrasilia-echinata.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/465890788",
+  "taxon": "https://www.inaturalist.org/taxa/874491"
+ },
+ "sp-peltophorum-dubium": {
+  "credit": "Douglas Goldman",
+  "file": "sp-peltophorum-dubium.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/81606423",
+  "taxon": "https://www.inaturalist.org/taxa/290016"
+ },
+ "sp-petrea-volubilis": {
+  "credit": "Vinayaraj",
+  "file": "sp-petrea-volubilis.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/50913101",
+  "taxon": "https://www.inaturalist.org/taxa/166546"
+ },
+ "sp-phoenix-canariensis": {
+  "credit": "Jesús Cabrera",
+  "file": "sp-phoenix-canariensis.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/102456013",
+  "taxon": "https://www.inaturalist.org/taxa/78554"
+ },
+ "sp-phoenix-roebelenii": {
+  "credit": "Forest and Kim Starr",
+  "file": "sp-phoenix-roebelenii.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/91334656",
+  "taxon": "https://www.inaturalist.org/taxa/204744"
+ },
+ "sp-phormium-tenax": {
+  "credit": "Sue Carnahan",
+  "file": "sp-phormium-tenax.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/61145151",
+  "taxon": "https://www.inaturalist.org/taxa/51754"
+ },
+ "sp-pilea-microphylla": {
+  "credit": "no rights reserved",
+  "file": "sp-pilea-microphylla.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/154147337",
+  "taxon": "https://www.inaturalist.org/taxa/69172"
+ },
+ "sp-pistia-stratiotes": {
+  "credit": "葉子",
+  "file": "sp-pistia-stratiotes.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/138256748",
+  "taxon": "https://www.inaturalist.org/taxa/78589"
+ },
+ "sp-pittosporum-tobira": {
+  "credit": "葉子",
+  "file": "sp-pittosporum-tobira.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/33349195",
+  "taxon": "https://www.inaturalist.org/taxa/78592"
+ },
+ "sp-pleroma-granulosum": {
+  "credit": "Luan Mazzeo",
+  "file": "sp-pleroma-granulosum.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/266824096",
+  "taxon": "https://www.inaturalist.org/taxa/1113012"
+ },
+ "sp-pleroma-mutabile": {
+  "credit": "mauroguanandi",
+  "file": "sp-pleroma-mutabile.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/62434046",
+  "taxon": "https://www.inaturalist.org/taxa/1113011"
+ },
+ "sp-plinia-cauliflora": {
+  "credit": "Douglas",
+  "file": "sp-plinia-cauliflora.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/23791778",
+  "taxon": "https://www.inaturalist.org/taxa/84779"
+ },
+ "sp-plumbago-auriculata": {
+  "credit": "Huey",
+  "file": "sp-plumbago-auriculata.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/342200744",
+  "taxon": "https://www.inaturalist.org/taxa/78631"
+ },
+ "sp-podocarpus-macrophyllus": {
+  "credit": "Kevin Faccenda",
+  "file": "sp-podocarpus-macrophyllus.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/443861046",
+  "taxon": "https://www.inaturalist.org/taxa/135329"
+ },
+ "sp-pontederia-cordata": {
+  "credit": "Michael J. Papay",
+  "file": "sp-pontederia-cordata.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/313455342",
+  "taxon": "https://www.inaturalist.org/taxa/52599"
+ },
+ "sp-pontederia-crassipes": {
+  "credit": "葉子",
+  "file": "sp-pontederia-crassipes.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/28107964",
+  "taxon": "https://www.inaturalist.org/taxa/962637"
+ },
+ "sp-pterogyne-nitens": {
+  "credit": "E. Goossen",
+  "file": "sp-pterogyne-nitens.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/92560832",
+  "taxon": "https://www.inaturalist.org/taxa/442819"
+ },
+ "sp-pyrostegia-venusta": {
+  "credit": "alessandradalia",
+  "file": "sp-pyrostegia-venusta.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/22031462",
+  "taxon": "https://www.inaturalist.org/taxa/126634"
+ },
+ "sp-rhapis-excelsa": {
+  "credit": "no rights reserved",
+  "file": "sp-rhapis-excelsa.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/469211817",
+  "taxon": "https://www.inaturalist.org/taxa/283915"
+ },
+ "sp-rhododendron-simsii": {
+  "credit": "Toby Y",
+  "file": "sp-rhododendron-simsii.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/184614620",
+  "taxon": "https://www.inaturalist.org/taxa/410380"
+ },
+ "sp-roystonea-oleracea": {
+  "credit": "Jean Jacques Godon",
+  "file": "sp-roystonea-oleracea.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/342123019",
+  "taxon": "https://www.inaturalist.org/taxa/283922"
+ },
+ "sp-roystonea-regia": {
+  "credit": "Douglas Goldman",
+  "file": "sp-roystonea-regia.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/79470034",
+  "taxon": "https://www.inaturalist.org/taxa/201453"
+ },
+ "sp-russelia-equisetiformis": {
+  "credit": "Forest and Kim Starr",
+  "file": "sp-russelia-equisetiformis.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/30133833",
+  "taxon": "https://www.inaturalist.org/taxa/122519"
+ },
+ "sp-schinus-molle": {
+  "credit": "no rights reserved",
+  "file": "sp-schinus-molle.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/337012214",
+  "taxon": "https://www.inaturalist.org/taxa/57354"
+ },
+ "sp-schinus-terebinthifolia": {
+  "credit": "Douglas Goldman",
+  "file": "sp-schinus-terebinthifolia.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/254194695",
+  "taxon": "https://www.inaturalist.org/taxa/130872"
+ },
+ "sp-schizolobium-parahyba": {
+  "credit": "Alexis López Hernández",
+  "file": "sp-schizolobium-parahyba.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/464366589",
+  "taxon": "https://www.inaturalist.org/taxa/52443"
+ },
+ "sp-senna-macranthera": {
+  "credit": "Thaian Fernandes",
+  "file": "sp-senna-macranthera.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/119885333",
+  "taxon": "https://www.inaturalist.org/taxa/138576"
+ },
+ "sp-senna-multijuga": {
+  "credit": "Patrícia Mees",
+  "file": "sp-senna-multijuga.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/337358830",
+  "taxon": "https://www.inaturalist.org/taxa/168846"
+ },
+ "sp-sphagneticola-trilobata": {
+  "credit": "portioid",
+  "file": "sp-sphagneticola-trilobata.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/25874811",
+  "taxon": "https://www.inaturalist.org/taxa/246102"
+ },
+ "sp-stenotaphrum-secundatum": {
+  "credit": "Douglas Goldman",
+  "file": "sp-stenotaphrum-secundatum.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/49482131",
+  "taxon": "https://www.inaturalist.org/taxa/79210"
+ },
+ "sp-strelitzia-reginae": {
+  "credit": "Henry de Lange",
+  "file": "sp-strelitzia-reginae.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/375653805",
+  "taxon": "https://www.inaturalist.org/taxa/49143"
+ },
+ "sp-syagrus-romanzoffiana": {
+  "credit": "mauro halpern",
+  "file": "sp-syagrus-romanzoffiana.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/123453473",
+  "taxon": "https://www.inaturalist.org/taxa/79291"
+ },
+ "sp-tabebuia-aurea": {
+  "credit": "Tatters ✾",
+  "file": "sp-tabebuia-aurea.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/95085222",
+  "taxon": "https://www.inaturalist.org/taxa/169520"
+ },
+ "sp-tabebuia-roseoalba": {
+  "credit": "alessandradalia",
+  "file": "sp-tabebuia-roseoalba.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/25952072",
+  "taxon": "https://www.inaturalist.org/taxa/344856"
+ },
+ "sp-tecoma-stans": {
+  "credit": "Robert Taylor",
+  "file": "sp-tecoma-stans.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/20177474",
+  "taxon": "https://www.inaturalist.org/taxa/48363"
+ },
+ "sp-thalia-geniculata": {
+  "credit": "Gina and Bella The Explorers",
+  "file": "sp-thalia-geniculata.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/490884756",
+  "taxon": "https://www.inaturalist.org/taxa/127912"
+ },
+ "sp-thaumatophyllum-bipinnatifidum": {
+  "credit": "B. Phalan",
+  "file": "sp-thaumatophyllum-bipinnatifidum.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/101068019",
+  "taxon": "https://www.inaturalist.org/taxa/985710"
+ },
+ "sp-thunbergia-grandiflora": {
+  "credit": "no rights reserved",
+  "file": "sp-thunbergia-grandiflora.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/270597124",
+  "taxon": "https://www.inaturalist.org/taxa/129036"
+ },
+ "sp-tipuana-tipu": {
+  "credit": "no rights reserved",
+  "file": "sp-tipuana-tipu.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/165440269",
+  "taxon": "https://www.inaturalist.org/taxa/121263"
+ },
+ "sp-trachelospermum-jasminoides": {
+  "credit": "葉子",
+  "file": "sp-trachelospermum-jasminoides.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/34261017",
+  "taxon": "https://www.inaturalist.org/taxa/169856"
+ },
+ "sp-tradescantia-pallida": {
+  "credit": "Ricard Busquets Reverte",
+  "file": "sp-tradescantia-pallida.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/346008855",
+  "taxon": "https://www.inaturalist.org/taxa/169872"
+ },
+ "sp-tradescantia-zebrina": {
+  "credit": "Ricard Busquets Reverte",
+  "file": "sp-tradescantia-zebrina.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/248349882",
+  "taxon": "https://www.inaturalist.org/taxa/169883"
+ },
+ "sp-triplaris-americana": {
+  "credit": "Todd Boland",
+  "file": "sp-triplaris-americana.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/256921561",
+  "taxon": "https://www.inaturalist.org/taxa/186651"
+ },
+ "sp-typha-domingensis": {
+  "credit": "Fabrício Mil Homens Riella",
+  "file": "sp-typha-domingensis.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/240405245",
+  "taxon": "https://www.inaturalist.org/taxa/58392"
+ },
+ "sp-victoria-amazonica": {
+  "credit": "no rights reserved",
+  "file": "sp-victoria-amazonica.jpg",
+  "license": "CC0",
+  "source": "https://www.inaturalist.org/photos/68253999",
+  "taxon": "https://www.inaturalist.org/taxa/179027"
+ },
+ "sp-wodyetia-bifurcata": {
+  "credit": "Steve Fitzgerald",
+  "file": "sp-wodyetia-bifurcata.jpg",
+  "license": "CC BY-SA",
+  "source": "https://www.inaturalist.org/photos/601890667",
+  "taxon": "https://www.inaturalist.org/taxa/135348"
+ },
+ "sp-zoysia-japonica": {
+  "credit": "WATANABE Hitoshi 渡辺仁",
+  "file": "sp-zoysia-japonica.jpg",
+  "license": "CC BY",
+  "source": "https://www.inaturalist.org/photos/370314889",
+  "taxon": "https://www.inaturalist.org/taxa/170451"
+ }
+}

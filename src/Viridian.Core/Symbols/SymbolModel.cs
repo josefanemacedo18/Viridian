@@ -57,15 +57,31 @@ public sealed record SymbolLine(SymbolTier Tier, Point2 A, Point2 B) : SymbolPri
 
 public sealed record SymbolArc(SymbolTier Tier, Point2 Start, Point2 Mid, Point2 End) : SymbolPrimitive(Tier);
 
+/// <summary>Mancha de floração (círculo preenchido com a cor da flor).</summary>
+public readonly record struct FlowerSpot(Point2 Center, double Radius);
+
 /// <summary>Símbolo 2D completo, em metros, centrado na origem (ponto de inserção).</summary>
 public sealed class PlantSymbol
 {
-    public PlantSymbol(SymbolStyle style, double diameter, IReadOnlyList<SymbolPrimitive> primitives)
+    public PlantSymbol(
+        SymbolStyle style,
+        double diameter,
+        IReadOnlyList<SymbolPrimitive> primitives,
+        IReadOnlyList<Point2>? fillOutline = null,
+        IReadOnlyList<FlowerSpot>? flowerSpots = null)
     {
         Style = style;
         Diameter = diameter;
         Primitives = primitives;
+        FillOutline = fillOutline ?? Array.Empty<Point2>();
+        FlowerSpots = flowerSpots ?? Array.Empty<FlowerSpot>();
     }
+
+    /// <summary>Contorno fechado (anel simples, sem cruzamentos) da área colorida da copa.</summary>
+    public IReadOnlyList<Point2> FillOutline { get; }
+
+    /// <summary>Posições das manchas de floração, usadas quando a espécie tem cor de flor.</summary>
+    public IReadOnlyList<FlowerSpot> FlowerSpots { get; }
 
     public SymbolStyle Style { get; }
 

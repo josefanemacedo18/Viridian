@@ -49,6 +49,15 @@ public sealed class SpeciesFilter
 
     public bool OnlyUserDefined { get; set; }
 
+    /// <summary>Bioma de ocorrência (somente espécies nativas daquele bioma).</summary>
+    public Biome? Biome { get; set; }
+
+    /// <summary>Mês de floração (1 a 12).</summary>
+    public int? FloweringMonth { get; set; }
+
+    /// <summary>Somente espécies com cor de floração cadastrada (floração vistosa).</summary>
+    public bool OnlyShowyFlowers { get; set; }
+
     public bool Matches(Species species)
     {
         if (Category.HasValue && species.Category != Category.Value)
@@ -106,12 +115,28 @@ public sealed class SpeciesFilter
             return false;
         }
 
+        if (Biome.HasValue && Biome.Value != Core.Model.Biome.Nenhum && (species.Biomes & Biome.Value) == 0)
+        {
+            return false;
+        }
+
+        if (FloweringMonth.HasValue && !MonthSet.Parse(species.Flowering).Contains(FloweringMonth.Value))
+        {
+            return false;
+        }
+
+        if (OnlyShowyFlowers && string.IsNullOrWhiteSpace(species.FlowerColor))
+        {
+            return false;
+        }
+
         if (string.IsNullOrWhiteSpace(Text))
         {
             return true;
         }
 
-        string haystack = TextSearch.Normalize($"{species.Code} {species.PopularName} {species.ScientificName} {species.BotanicalFamily} {species.Notes}");
+        string haystack = TextSearch.Normalize(
+            $"{species.Code} {species.PopularName} {species.ScientificName} {species.BotanicalFamily} {species.Notes} {Labels.Of(species.Biomes)}");
         return TextSearch.Normalize(Text)
             .Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .All(term => haystack.Contains(term, StringComparison.Ordinal));
@@ -261,6 +286,13 @@ public sealed class CatalogStore
             species.CustomPlantingTypeName ??= string.Empty;
             species.CustomDetailFamilyFile ??= string.Empty;
             species.CustomDetailTypeName ??= string.Empty;
+            species.PhotoCredit ??= string.Empty;
+            species.PhotoLicense ??= string.Empty;
+            species.PhotoSource ??= string.Empty;
+            species.PriceItemCode ??= string.Empty;
+            species.ServiceItemCode ??= string.Empty;
+            species.FoliageColor = ValidColor(species.FoliageColor);
+            species.FlowerColor = ValidColor(species.FlowerColor);
 
             if (!Enum.IsDefined(species.SymbolStyle))
             {
@@ -293,7 +325,14 @@ public sealed class CatalogStore
         return changed;
     }
 
-    /// <summary>Acrescenta ao catálogo as espécies novas do catálogo padrão, sem alterar as existentes.</summary>
+    private static string ValidColor(string? text) =>
+        Core.Colors.Rgb.TryParse(text, out Core.Colors.Rgb color) ? color.Hex : string.Empty;
+
+    /// <summary>
+    /// Atualiza o catálogo com uma nova versão do catálogo padrão: acrescenta as espécies novas, atualiza as do
+    /// padrão que o escritório não alterou e, nas alteradas, apenas completa os campos novos que estiverem vazios.
+    /// Códigos, preços e famílias personalizadas do escritório são sempre preservados.
+    /// </summary>
     internal static bool MergeSeed(SpeciesCatalog catalog)
     {
         if (catalog.SeedVersion >= SeedCatalog.Version)
@@ -301,13 +340,47 @@ public sealed class CatalogStore
             return false;
         }
 
-        var existing = new HashSet<string>(catalog.Species.Select(s => s.Id), StringComparer.OrdinalIgnoreCase);
+        var index = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < catalog.Species.Count; i++)
+        {
+            index[catalog.Species[i].Id] = i;
+        }
+
         var removed = new HashSet<string>(catalog.RemovedSeedIds, StringComparer.OrdinalIgnoreCase);
         var codes = new HashSet<string>(catalog.Species.Select(s => s.Code), StringComparer.OrdinalIgnoreCase);
         foreach (Species seed in SeedCatalog.CreateSpecies())
         {
-            if (existing.Contains(seed.Id) || removed.Contains(seed.Id))
+            if (removed.Contains(seed.Id))
             {
+                continue;
+            }
+
+            if (index.TryGetValue(seed.Id, out int position))
+            {
+                Species current = catalog.Species[position];
+                if (!current.IsUserDefined)
+                {
+                    seed.Code = current.Code;
+                    seed.SymbolSeed = current.SymbolSeed;
+                    seed.UnitPrice = current.UnitPrice;
+                    seed.PriceItemCode = current.PriceItemCode;
+                    seed.ServiceItemCode = current.ServiceItemCode;
+                    seed.CustomPlantingFamilyFile = current.CustomPlantingFamilyFile;
+                    seed.CustomPlantingTypeName = current.CustomPlantingTypeName;
+                    seed.CustomDetailFamilyFile = current.CustomDetailFamilyFile;
+                    seed.CustomDetailTypeName = current.CustomDetailTypeName;
+                    if (!string.IsNullOrWhiteSpace(current.PhotoFile) && string.IsNullOrWhiteSpace(seed.PhotoFile))
+                    {
+                        seed.PhotoFile = current.PhotoFile;
+                    }
+
+                    catalog.Species[position] = seed;
+                }
+                else
+                {
+                    FillMissing(current, seed);
+                }
+
                 continue;
             }
 
@@ -322,6 +395,33 @@ public sealed class CatalogStore
 
         catalog.SeedVersion = SeedCatalog.Version;
         return true;
+    }
+
+    /// <summary>Completa, em uma espécie alterada pelo escritório, apenas os campos que estão vazios.</summary>
+    private static void FillMissing(Species current, Species seed)
+    {
+        if (current.Biomes == Biome.Nenhum)
+        {
+            current.Biomes = seed.Biomes;
+        }
+
+        if (string.IsNullOrWhiteSpace(current.FoliageColor))
+        {
+            current.FoliageColor = seed.FoliageColor;
+        }
+
+        if (string.IsNullOrWhiteSpace(current.FlowerColor))
+        {
+            current.FlowerColor = seed.FlowerColor;
+        }
+
+        if (string.IsNullOrWhiteSpace(current.PhotoFile))
+        {
+            current.PhotoFile = seed.PhotoFile;
+            current.PhotoCredit = seed.PhotoCredit;
+            current.PhotoLicense = seed.PhotoLicense;
+            current.PhotoSource = seed.PhotoSource;
+        }
     }
 }
 

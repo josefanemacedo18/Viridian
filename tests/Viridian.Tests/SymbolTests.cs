@@ -176,3 +176,52 @@ public class SymbolTests
         Assert.Equal(3, empty.Ranges.Count);
     }
 }
+
+public class SymbolFillTests
+{
+    [Theory]
+    [MemberData(nameof(SymbolTests.StylesAndDiameters), MemberType = typeof(SymbolTests))]
+    public void FillIsASimpleRingInsideTheCrown(SymbolStyle style, double diameter)
+    {
+        for (int seed = 1; seed <= 4; seed++)
+        {
+            PlantSymbol symbol = SymbolGenerator.Generate(style, diameter, seed * 104723, seed % 2);
+            IReadOnlyList<Point2> ring = symbol.FillOutline;
+            Assert.True(ring.Count >= 12, $"{style} Ø{diameter}: {ring.Count} vértices");
+            var polygon = new Polygon2(ring);
+            Assert.False(polygon.IsEmpty);
+            Assert.False(polygon.HasSelfIntersections(), $"{style} Ø{diameter}: contorno cruza a si mesmo");
+            Assert.True(polygon.Area > Math.PI * diameter * diameter / 4 * 0.04, $"{style} Ø{diameter}: área pequena demais");
+            double radius = diameter / 2;
+            for (int i = 0; i < ring.Count; i++)
+            {
+                Assert.True(ring[i].Length <= radius * 1.0001);
+                Assert.True(ring[i].DistanceTo(ring[(i + 1) % ring.Count]) >= 0.0029, $"{style} Ø{diameter}: lado curto demais");
+            }
+
+            foreach (FlowerSpot spot in symbol.FlowerSpots)
+            {
+                Assert.True(polygon.Contains(spot.Center));
+                Assert.True(spot.Radius >= 0.012);
+                Assert.True(spot.Center.Length + spot.Radius <= radius);
+            }
+
+            for (int i = 0; i < symbol.FlowerSpots.Count; i++)
+            {
+                for (int j = i + 1; j < symbol.FlowerSpots.Count; j++)
+                {
+                    FlowerSpot a = symbol.FlowerSpots[i], b = symbol.FlowerSpots[j];
+                    Assert.True(a.Center.DistanceTo(b.Center) > a.Radius + b.Radius);
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public void TreesHaveFlowerSpots()
+    {
+        PlantSymbol tree = SymbolGenerator.Generate(SymbolStyle.ArvoreArredondada, 8, 42);
+        Assert.InRange(tree.FlowerSpots.Count, 5, 18);
+        Assert.Equal(tree.FillOutline, SymbolGenerator.Generate(SymbolStyle.ArvoreArredondada, 8, 42).FillOutline);
+    }
+}

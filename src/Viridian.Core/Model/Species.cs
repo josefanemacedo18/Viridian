@@ -21,6 +21,9 @@ public sealed class Species
 
     public PlantOrigin Origin { get; set; }
 
+    /// <summary>Biomas de ocorrência natural (espécies nativas).</summary>
+    public Biome Biomes { get; set; }
+
     public CrownForm CrownForm { get; set; }
 
     /// <summary>Altura na fase adulta, em metros.</summary>
@@ -51,6 +54,12 @@ public sealed class Species
 
     public string Flowering { get; set; } = string.Empty;
 
+    /// <summary>Cor da folhagem (#RRGGBB). Vazio = cor derivada da categoria.</summary>
+    public string FoliageColor { get; set; } = string.Empty;
+
+    /// <summary>Cor da floração (#RRGGBB). Vazio = floração pouco vistosa, não representada.</summary>
+    public string FlowerColor { get; set; } = string.Empty;
+
     public string Notes { get; set; } = string.Empty;
 
     public SymbolStyle SymbolStyle { get; set; }
@@ -66,6 +75,21 @@ public sealed class Species
 
     /// <summary>Arquivo de fotografia de referência (nome relativo à pasta de fotos da biblioteca).</summary>
     public string PhotoFile { get; set; } = string.Empty;
+
+    /// <summary>Autor da fotografia (crédito obrigatório nas licenças Creative Commons).</summary>
+    public string PhotoCredit { get; set; } = string.Empty;
+
+    /// <summary>Licença da fotografia (por exemplo, CC BY 4.0).</summary>
+    public string PhotoLicense { get; set; } = string.Empty;
+
+    /// <summary>Endereço de origem da fotografia.</summary>
+    public string PhotoSource { get; set; } = string.Empty;
+
+    /// <summary>Código do insumo da muda na tabela de preços (SINAPI ou outra).</summary>
+    public string PriceItemCode { get; set; } = string.Empty;
+
+    /// <summary>Código do serviço de plantio na tabela de preços (SINAPI ou outra).</summary>
+    public string ServiceItemCode { get; set; } = string.Empty;
 
     /// <summary>Família Planting personalizada (.rfa) que substitui o símbolo gerado.</summary>
     public string CustomPlantingFamilyFile { get; set; } = string.Empty;
@@ -144,6 +168,16 @@ public static class SpeciesValidator
         if (species.UnitPrice < 0)
         {
             problems.Add("O preço unitário não pode ser negativo.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(species.FoliageColor) && !Colors.Rgb.TryParse(species.FoliageColor, out _))
+        {
+            problems.Add("A cor da folhagem deve estar no formato #RRGGBB.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(species.FlowerColor) && !Colors.Rgb.TryParse(species.FlowerColor, out _))
+        {
+            problems.Add("A cor da floração deve estar no formato #RRGGBB.");
         }
 
         if (species.SymbolVariants < 1 || species.SymbolVariants > Species.MaxVariants)

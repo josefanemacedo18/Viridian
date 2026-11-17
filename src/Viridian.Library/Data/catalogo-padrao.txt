@@ -1,0 +1,391 @@
+# Catálogo padrão do Viridian — espécies nativas do Brasil e exóticas de uso corrente no paisagismo brasileiro.
+# Os valores são referências de projeto e devem ser conferidos pelo responsável técnico.
+# Campos separados por "|":
+# categoria|científico|popular|família|origem|forma|altura|copa|altura da muda|espaçamento|crescimento|água|luz|floração|densidade|unidade|estilo|biomas|folhagem|flor|observações
+# categoria: AR árvore, PA palmeira, AB arbusto, HE herbácea, FO forração, GR gramado, TR trepadeira, AQ aquática
+# origem: N nativa, E exótica, I exótica invasora · forma: R arredondada, E espalhada, C colunar, P piramidal, I irregular
+# crescimento: L lento, M médio, R rápido · água: B baixa, M média, A alta · luz: S sol pleno, MS meia-sombra, SO sombra
+# biomas: A Amazônia, C Caatinga, E Cerrado, M Mata Atlântica, P Pampa, N Pantanal · cores em #RRGGBB (vazio = cor da categoria)
+# A ordem importa: os códigos (AR-001...) seguem a ordem das linhas dentro de cada categoria. Acrescente sempre no fim.
+AR|Handroanthus chrysotrichus|Ipê-amarelo|Bignoniaceae|N|R|8|5|2.0|5|M|M|S|ago–set||||M||#F2C318|
+AR|Handroanthus impetiginosus|Ipê-roxo|Bignoniaceae|N|R|12|8|2.0|8|M|M|S|jun–ago||||CEMN||#C2549E|
+AR|Tabebuia roseoalba|Ipê-branco|Bignoniaceae|N|R|10|6|2.0|6|M|M|S|ago–out||||CEMN||#F1E4EC|
+AR|Cenostigma pluviosum|Sibipiruna|Fabaceae|N|E|14|12|2.5|10|R|M|S|ago–nov||||EM||#F2C232|Sin. Caesalpinia pluviosa var. peltophoroides.
+AR|Paubrasilia echinata|Pau-brasil|Fabaceae|N|R|12|7|2.0|7|L|M|S|set–out||||M||#F4C41C|Sin. Caesalpinia echinata. Espécie ameaçada; verificar procedência das mudas.
+AR|Libidibia ferrea|Pau-ferro|Fabaceae|N|E|15|12|2.5|10|M|M|S|nov–fev||||CM||#F0C52A|Sin. Caesalpinia ferrea.
+AR|Pleroma granulosum|Quaresmeira|Melastomataceae|N|R|9|6|2.0|6|R|M|S|jan–abr e jun–ago||||M||#8A4FB5|Sin. Tibouchina granulosa.
+AR|Schinus terebinthifolia|Aroeira-pimenteira|Anacardiaceae|N|I|8|7|1.8|6|R|B|S|set–jan||||CEMP|||
+AR|Schinus molle|Aroeira-salsa|Anacardiaceae|N|I|8|7|1.8|6|R|B|S|ago–nov||||P|||
+AR|Bauhinia forficata|Pata-de-vaca|Fabaceae|N|I|7|5|1.8|5|R|M|S|out–jan||||EM||#F5F2EA|
+AR|Erythrina speciosa|Eritrina-candelabro|Fabaceae|N|I|5|4|1.8|4|R|A|S|jun–set||||M||#D8263B|
+AR|Ceiba speciosa|Paineira|Malvaceae|N|E|20|15|2.5|15|R|M|S|fev–mai||||EM||#E58CB8|Sin. Chorisia speciosa. Tronco com acúleos.
+AR|Moquilea tomentosa|Oiti|Chrysobalanaceae|N|R|12|10|2.5|8|M|M|S|jun–ago||||M|#3F6E3A||Sin. Licania tomentosa.
+AR|Eugenia uniflora|Pitangueira|Myrtaceae|N|R|6|4|1.5|4|M|M|S|ago–nov||||EMP|||
+AR|Plinia cauliflora|Jabuticabeira|Myrtaceae|N|R|7|5|1.5|5|L|A|S|jul–set e nov–dez||||M|||
+AR|Araucaria angustifolia|Araucária|Araucariaceae|N|P|25|10|1.5|10|M|M|S|string.Empty||||M|#3D6B3A||Espécie ameaçada; corte regulado por legislação específica.
+AR|Triplaris americana|Pau-formiga|Polygonaceae|N|C|15|5|2.0|5|R|M|S|ago–out||||AEN||#C8564A|
+AR|Cordia superba|Babosa-branca|Boraginaceae|N|R|8|6|1.8|6|M|M|S|out–fev||||M||#F5F3EC|
+AR|Hymenaea courbaril|Jatobá|Fabaceae|N|E|18|14|2.0|12|L|M|S|out–dez||||ACEM|||
+AR|Cariniana legalis|Jequitibá-rosa|Lecythidaceae|N|R|30|14|2.0|14|L|M|S|dez–fev||||M|||
+AR|Peltophorum dubium|Canafístula|Fabaceae|N|E|18|12|2.0|10|R|M|S|dez–fev||||CEMN||#F2C21E|
+AR|Lafoensia pacari|Dedaleiro|Lythraceae|N|R|8|5|1.8|5|M|B|S|ago–nov||||EM||#EEE0A0|
+AR|Bixa orellana|Urucum|Bixaceae|N|R|4|3.5|1.2|3.5|R|M|S|jan–mar||||A||#F1A7BE|
+AR|Jacaranda mimosifolia|Jacarandá-mimoso|Bignoniaceae|E|E|13|10|2.0|9|R|M|S|ago–nov||||||#8F7CD6|
+AR|Delonix regia|Flamboyant|Fabaceae|E|E|10|14|2.5|12|R|B|S|out–jan||||||#E3442B|Raízes superficiais vigorosas; manter afastado de pavimentos e redes.
+AR|Lagerstroemia indica|Resedá|Lythraceae|E|R|5|4|1.8|4|M|M|S|nov–mar||||||#D06BAE|
+AR|Magnolia grandiflora|Magnólia-branca|Magnoliaceae|E|P|15|8|2.0|8|L|M|S|set–dez|||||#3F6E3A|#F6F3E8|
+AR|Cassia fistula|Chuva-de-ouro|Fabaceae|E|R|10|7|2.0|7|M|M|S|nov–jan||||||#F4D02C|
+AR|Tipuana tipu|Tipuana|Fabaceae|E|E|15|15|2.5|12|R|M|S|set–dez||||||#F0B72A|
+AR|Mangifera indica|Mangueira|Anacardiaceae|E|R|15|12|1.5|10|M|M|S|jul–out|||||#3F6E3A||
+AR|Podocarpus macrophyllus|Podocarpo|Podocarpaceae|E|C|6|2|1.5|1.5|L|M|S|string.Empty|||||#3E6F45||
+AR|Cupressus sempervirens|Cipreste-italiano|Cupressaceae|E|C|15|1.8|2.0|1.5|M|B|S|string.Empty|||||#355E3F||
+AR|Tecoma stans|Ipê-de-jardim|Bignoniaceae|I|R|5|4|1.5|4|R|B|S|ano todo||||||#F2C318|Exótica invasora: evitar o plantio; consta em listas oficiais de espécies invasoras.
+PA|Syagrus romanzoffiana|Jerivá|Arecaceae|N|R|12|5|3.0|4|M|M|S|set–mar||||EMP|||
+PA|Euterpe edulis|Palmito-juçara|Arecaceae|N|R|10|3.5|1.5|3|L|A|MS|set–dez||||M|||Espécie ameaçada; verificar procedência das mudas.
+PA|Euterpe oleracea|Açaizeiro|Arecaceae|N|R|12|4|1.5|4|M|A|S|ano todo||||A|||Forma touceira.
+PA|Acrocomia aculeata|Macaúba|Arecaceae|N|R|12|5|2.0|5|M|B|S|out–jan||||ACEMN|||Estipe com espinhos.
+PA|Butia capitata|Butiá|Arecaceae|N|R|5|4|1.5|4|L|B|S|set–jan||||E|#7F9E86||
+PA|Roystonea oleracea|Palmeira-imperial|Arecaceae|E|R|30|6|4.0|6|M|M|S|string.Empty|||||||
+PA|Roystonea regia|Palmeira-real|Arecaceae|E|R|20|6|4.0|6|M|M|S|string.Empty|||||||
+PA|Dypsis lutescens|Areca-bambu|Arecaceae|E|R|6|4|2.0|3|M|M|MS|string.Empty|||||||Sin. Chrysalidocarpus lutescens. Forma touceira.
+PA|Phoenix roebelenii|Fênix|Arecaceae|E|R|3|2.5|1.2|2.5|L|M|S|string.Empty|||||||Espinhos na base das folhas.
+PA|Phoenix canariensis|Tamareira-das-canárias|Arecaceae|E|R|15|8|3.0|8|L|B|S|string.Empty|||||#5E7E46||
+PA|Wodyetia bifurcata|Palmeira-rabo-de-raposa|Arecaceae|E|R|10|4|3.0|4|R|M|S|string.Empty|||||||
+PA|Livistona chinensis|Palmeira-leque-da-china|Arecaceae|E|R|10|4|2.0|4|L|M|S|string.Empty|||PalmeiraLeque||#5E8E46||
+PA|Licuala grandis|Licuala|Arecaceae|E|R|3|2|1.0|2|L|A|MS|string.Empty|||PalmeiraLeque||||
+PA|Rhapis excelsa|Palmeira-ráfis|Arecaceae|E|R|3|1.5|1.0|1.2|L|M|MS|string.Empty|||PalmeiraLeque||#4E7E3E||Forma touceira.
+PA|Archontophoenix cunninghamiana|Palmeira-seafórtia|Arecaceae|I|R|15|4|3.0|4|R|M|S|string.Empty|||||||Exótica invasora da Mata Atlântica: evitar o plantio.
+AB|Clusia fluminensis|Clúsia|Clusiaceae|N|R|3|2.5|0.6|1.0|M|B|S|set–jan||||M|#3F6E46||
+AB|Calliandra brevipes|Esponjinha|Fabaceae|N|R|2|2|0.5|1.2|M|M|S|out–mar||||MP||#E8507A|
+AB|Brunfelsia uniflora|Manacá-de-cheiro|Solanaceae|N|R|2.5|1.8|0.6|1.5|M|M|MS|set–dez||||M||#8E6AC8|
+AB|Lantana camara|Lantana|Verbenaceae|N|R|1.2|1.2|0.3|0.8|R|B|S|ano todo||||CEM||#F29B2A|Frutos tóxicos.
+AB|Ixora coccinea|Ixora|Rubiaceae|E|R|2|1.5|0.4|0.8|M|M|S|ano todo||||||#E5452F|
+AB|Buxus sempervirens|Buxinho|Buxaceae|E|R|1.5|1.0|0.3|0.3|L|M|S|string.Empty|||||#4B7A3E||Indicado para cercas vivas e topiaria.
+AB|Duranta erecta|Pingo-de-ouro|Verbenaceae|E|R|1.5|1.2|0.3|0.3|R|M|S|ano todo|||||#C3C640||Nativa das Américas e naturalizada no Brasil. Frutos tóxicos.
+AB|Hibiscus rosa-sinensis|Hibisco|Malvaceae|E|R|3|2|0.6|1.2|R|M|S|ano todo||||||#D93A3A|
+AB|Rhododendron simsii|Azaleia|Ericaceae|E|R|1.5|1.5|0.4|1.0|L|M|MS|jun–set||||||#E06CA5|
+AB|Gardenia jasminoides|Gardênia|Rubiaceae|E|R|1.5|1.2|0.4|1.0|L|M|MS|set–dez|||||#3F6E3A|#F7F5EE|
+AB|Plumbago auriculata|Bela-emília|Plumbaginaceae|E|I|1.5|1.5|0.4|1.0|R|B|S|set–mai||||||#8FB3E6|
+AB|Russelia equisetiformis|Russélia|Plantaginaceae|E|I|1.0|1.2|0.3|0.8|R|B|S|ano todo||||||#E0402F|
+AB|Codiaeum variegatum|Cróton|Euphorbiaceae|E|R|2|1.2|0.4|0.8|M|M|S|string.Empty|||||#C46B2A||
+AB|Pittosporum tobira|Pitósporo|Pittosporaceae|E|R|2.5|2|0.5|1.2|M|B|S|set–nov|||||||
+AB|Loropetalum chinense|Loropétalo|Hamamelidaceae|E|R|2|1.5|0.4|1.0|M|M|S|ago–out|||||#6E3B4E|#D96BA0|
+AB|Nandina domestica|Nandina|Berberidaceae|E|R|1.5|1.0|0.4|0.8|M|M|MS|set–nov|||||#7A8C48||
+AB|Agave attenuata|Agave-dragão|Asparagaceae|E|R|1.2|1.2|0.4|1.0|L|B|S|string.Empty|||ArbustoPontiagudo||#8FB0A0||
+AB|Cordyline fruticosa|Cordiline|Asparagaceae|E|R|2|1.0|0.5|0.8|M|M|MS|string.Empty|||ArbustoPontiagudo||#8E2F4E||
+HE|Heliconia psittacorum|Helicônia-papagaio|Heliconiaceae|N|R|1.2|0.8|0.4|0.6|R|A|MS|ano todo|4|||AE||#F06A2A|
+HE|Neomarica caerulea|Falso-íris|Iridaceae|N|R|0.9|0.7|0.3|0.5|M|M|MS|set–mar|5|||M||#5B7BD5|
+HE|Thaumatophyllum bipinnatifidum|Guaimbê|Araceae|N|R|2.0|2.5|0.5|1.5|M|M|MS|string.Empty|||ArbustoNuvem|EM|#2F6B3A||Sin. Philodendron bipinnatifidum. Planta tóxica se ingerida.
+HE|Alcantarea imperialis|Bromélia-imperial|Bromeliaceae|N|R|1.5|1.5|0.4|1.2|L|B|S|string.Empty|||ArbustoPontiagudo|M|#6F8F55||
+HE|Aechmea blanchetiana|Bromélia-porto-seguro|Bromeliaceae|N|R|0.9|0.9|0.3|0.7|M|B|S|string.Empty|||ArbustoPontiagudo|M|#D88A3A||
+HE|Goeppertia zebrina|Maranta-zebrada|Marantaceae|N|R|0.8|0.6|0.3|0.5|M|A|SO|string.Empty|5|||M|#3F7A45||Sin. Calathea zebrina.
+HE|Ctenanthe setosa|Maranta-cinza|Marantaceae|N|R|1.0|0.8|0.3|0.6|M|A|SO|string.Empty|4|||M|#6E8E7A||
+HE|Canna indica|Cana-da-índia|Cannaceae|N|R|1.5|0.6|0.3|0.5|R|A|S|ano todo|5|||AEM||#E0402F|
+HE|Cortaderia selloana|Capim-dos-pampas|Poaceae|N|R|2.5|1.5|0.5|1.5|R|B|S|fev–mai||||P|#8FA06E|#EDE3C8|
+HE|Strelitzia reginae|Estrelítzia|Strelitziaceae|E|R|1.2|1.0|0.4|0.8|L|M|S|ano todo|||||#5E8A6A|#F28A1E|
+HE|Agapanthus africanus|Agapanto|Amaryllidaceae|E|R|0.6|0.5|0.2|0.4|M|M|S|out–jan|6|||||#6E8FE0|
+HE|Dietes bicolor|Moreia|Iridaceae|E|R|0.7|0.6|0.3|0.5|M|B|S|set–mar|5|||||#F3E47A|
+HE|Hemerocallis × hybrida|Hemerocale|Asphodelaceae|E|R|0.6|0.5|0.2|0.4|M|M|S|set–fev|6|||||#F08A2A|
+HE|Alpinia purpurata|Alpínia|Zingiberaceae|E|R|2.0|1.2|0.5|1.0|R|A|MS|ano todo||||||#D3264F|
+HE|Monstera deliciosa|Costela-de-adão|Araceae|E|R|2.0|2.0|0.5|1.2|M|M|MS|string.Empty|||ArbustoNuvem||#2E6A3C||Planta tóxica se ingerida.
+HE|Liriope muscari|Liríope|Asparagaceae|E|R|0.3|0.3|0.15|0.25|M|M|MS|dez–mar|16||||#3C5E3A|#9C7BD0|
+HE|Asparagus densiflorus|Aspargo-pluma|Asparagaceae|E|R|0.6|0.6|0.2|0.5|M|M|MS|string.Empty|5||||#7DAA48||
+HE|Phormium tenax|Fórmio|Asphodelaceae|E|R|1.5|1.2|0.4|1.0|M|M|S|string.Empty|||ArbustoPontiagudo||#6E5A3E||
+FO|Arachis repens|Grama-amendoim|Fabaceae|N|R|0.2|0.3|0.1|0.25|R|M|S|ano todo|16|||EM||#F2C84A|
+FO|Sphagneticola trilobata|Vedélia|Asteraceae|N|R|0.3|0.4|0.1|0.3|R|M|S|ano todo|12|||AEM||#F2C318|
+FO|Evolvulus glomeratus|Azulzinha|Convolvulaceae|N|R|0.3|0.4|0.1|0.3|M|B|S|ano todo|12|||EM||#4F7FD8|
+FO|Pilea microphylla|Brilhantina|Urticaceae|N|R|0.2|0.3|0.1|0.25|R|M|MS|string.Empty|16|||AM|#7DAF55||
+FO|Callisia repens|Dinheiro-em-penca|Commelinaceae|N|R|0.15|0.3|0.05|0.25|R|M|MS|string.Empty|16|||AEM|#7DAA5A||
+FO|Ophiopogon japonicus|Grama-preta|Asparagaceae|E|R|0.2|0.2|0.1|0.2|L|M|MS|string.Empty|25||||#2F4A33||
+FO|Tradescantia zebrina|Lambari|Commelinaceae|E|R|0.2|0.3|0.1|0.25|R|M|MS|string.Empty|16||||#6F5A8A||
+FO|Tradescantia pallida|Trapoeraba-roxa|Commelinaceae|E|R|0.3|0.4|0.1|0.3|R|B|S|string.Empty|12||||#7A3F7E||
+FO|Chlorophytum comosum|Clorofito|Asparagaceae|E|R|0.3|0.3|0.1|0.25|R|M|MS|string.Empty|16||||#A8C77A||
+FO|Ajuga reptans|Ajuga|Lamiaceae|E|R|0.15|0.3|0.05|0.25|M|A|MS|ago–nov|16||||#5A5A44|#6E6ED8|
+FO|Bulbine frutescens|Bulbine|Asphodelaceae|E|R|0.4|0.4|0.15|0.35|R|B|S|ano todo|9|||||#F2B42A|
+GR|Axonopus compressus|Grama-são-carlos|Poaceae|N|R|0.1|0.3|0.05|0|M|A|MS|string.Empty||m²||AEM|||
+GR|Paspalum notatum|Grama-batatais|Poaceae|N|R|0.15|0.3|0.05|0|M|B|S|string.Empty||m²||EMP|||
+GR|Stenotaphrum secundatum|Grama-santo-agostinho|Poaceae|N|R|0.15|0.3|0.05|0|M|M|MS|string.Empty||m²||MP|||
+GR|Zoysia japonica|Grama-esmeralda|Poaceae|E|R|0.1|0.3|0.05|0|M|M|S|string.Empty||m²|||||
+GR|Cynodon dactylon|Grama-bermuda|Poaceae|E|R|0.1|0.3|0.05|0|R|M|S|string.Empty||m²|||||
+TR|Bougainvillea spectabilis|Primavera|Nyctaginaceae|N|I|5|3|0.8|2.5|R|B|S|ano todo||||M||#C13584|Ramos com espinhos.
+TR|Pyrostegia venusta|Cipó-de-são-joão|Bignoniaceae|N|I|5|2.5|0.5|2.0|R|B|S|mai–set||||CEMP||#F07A1E|
+TR|Allamanda cathartica|Alamanda-amarela|Apocynaceae|N|I|4|2.5|0.5|2.0|R|M|S|ano todo||||AM||#F2C318|Látex tóxico.
+TR|Petrea volubilis|Flor-de-são-miguel|Verbenaceae|N|I|6|2.5|0.5|2.5|M|M|S|ago–nov||||AM||#7D6CC8|
+TR|Mandevilla sanderi|Dipladênia|Apocynaceae|N|I|3|1.0|0.4|0.8|M|M|S|set–mai||||M||#E25A86|Látex tóxico.
+TR|Passiflora edulis|Maracujá|Passifloraceae|N|I|5|2.5|0.4|2.5|R|M|S|set–mai||||AEM||#A88ACF|
+TR|Thunbergia grandiflora|Tumbérgia-azul|Acanthaceae|E|I|6|3|0.5|2.5|R|M|S|ano todo||||||#8A9AD8|
+TR|Trachelospermum jasminoides|Jasmim-estrela|Apocynaceae|E|I|5|2|0.5|1.5|M|M|S|set–dez|||||#3F6E3A|#F6F4EC|
+TR|Ficus pumila|Unha-de-gato|Moraceae|E|I|4|1.5|0.3|0.8|R|M|MS|string.Empty|||||#4F7F3F||
+AQ|Victoria amazonica|Vitória-régia|Nymphaeaceae|N|R|0.1|1.8|0.1|3.0|R|A|S|ano todo||||A|#4E8A45|#F4E6EE|
+AQ|Nymphoides humboldtiana|Estrela-branca|Menyanthaceae|N|R|0.1|0.5|0.1|0.5|R|A|S|ano todo||||AEMN||#F6F4EC|
+AQ|Pontederia crassipes|Aguapé|Pontederiaceae|N|R|0.3|0.4|0.1|0.4|R|A|S|ano todo||||AEMNP||#A88AD8|Sin. Eichhornia crassipes. Crescimento agressivo: exige controle.
+AQ|Pistia stratiotes|Alface-d'água|Araceae|N|R|0.15|0.2|0.05|0.2|R|A|S|string.Empty||||AEMN|#8DBF6A||Crescimento agressivo: exige controle.
+AQ|Pontederia cordata|Rainha-dos-lagos|Pontederiaceae|N|R|0.8|0.5|0.3|0.4|R|A|S|set–mar|||Herbacea|AEMNP||#7B7BD6|
+AQ|Cyperus giganteus|Papiro-brasileiro|Cyperaceae|N|R|2.0|1.0|0.5|0.8|R|A|S|string.Empty|||Herbacea|AEMN|||
+AQ|Typha domingensis|Taboa|Typhaceae|N|R|2.0|0.5|0.5|0.4|R|A|S|string.Empty|||Herbacea|ACEMNP|||
+AQ|Echinodorus grandiflorus|Chapéu-de-couro|Alismataceae|N|R|1.0|0.8|0.3|0.6|M|A|S|set–mar|||Herbacea|EMN||#F6F4EC|
+AQ|Thalia geniculata|Tália|Marantaceae|N|R|2.0|1.0|0.5|0.8|R|A|S|nov–mar|||Herbacea|AEMN||#8F6BC8|
+AQ|Nymphaea caerulea|Ninfeia-azul|Nymphaeaceae|E|R|0.1|1.0|0.1|1.0|M|A|S|set–mar||||||#7D9BE0|
+AQ|Cyperus papyrus|Papiro|Cyperaceae|E|R|2.0|1.0|0.5|0.8|R|A|S|string.Empty|||Herbacea||||
+AR|Handroanthus serratifolius|Ipê-amarelo-da-mata|Bignoniaceae|N|R|20|10|2.0|10|L|M|S|ago–out||||ACEM||#F2C318|Floração intensa sem folhas.
+AR|Handroanthus heptaphyllus|Ipê-roxo-de-sete-folhas|Bignoniaceae|N|R|15|9|2.0|8|M|M|S|jun–set||||EMP||#C2549E|
+AR|Handroanthus ochraceus|Ipê-amarelo-do-cerrado|Bignoniaceae|N|I|8|6|1.8|6|L|B|S|jul–set||||CE||#F0C31C|
+AR|Handroanthus albus|Ipê-amarelo-da-serra|Bignoniaceae|N|R|15|8|2.0|8|M|M|S|ago–set||||EM||#F4C21A|
+AR|Tabebuia aurea|Ipê-amarelo-do-pantanal|Bignoniaceae|N|I|12|8|2.0|8|M|B|S|ago–set||||ACEN|#7A9E86|#F2C318|Conhecida como paratudo; folhagem prateada.
+AR|Cybistax antisyphilitica|Ipê-verde|Bignoniaceae|N|I|8|5|1.8|5|M|B|S|set–nov||||CEM||#B9C77A|
+AR|Jacaranda cuspidifolia|Jacarandá-de-minas|Bignoniaceae|N|E|10|8|2.0|8|R|B|S|set–out||||EN||#8F7CD6|
+AR|Jacaranda puberula|Carobinha|Bignoniaceae|N|R|8|5|1.8|5|R|M|S|set–nov||||M||#9C7FD8|
+AR|Pleroma mutabile|Manacá-da-serra|Melastomataceae|N|R|8|5|1.8|5|R|M|S|dez–mar||||M||#C995D5|As flores mudam do branco ao roxo.
+AR|Erythrina crista-galli|Corticeira-do-banhado|Fabaceae|N|I|8|6|1.8|6|M|A|S|set–dez||||MP||#D3263F|Tolera solo encharcado.
+AR|Erythrina falcata|Corticeira-da-serra|Fabaceae|N|R|20|12|2.0|10|M|M|S|jun–out||||EM||#E0532C|
+AR|Erythrina velutina|Mulungu|Fabaceae|N|E|12|10|2.0|10|R|B|S|jul–set||||CEM||#E5502C|
+AR|Senna multijuga|Pau-cigarra|Fabaceae|N|R|8|6|1.8|6|R|M|S|dez–abr||||EM||#F2C318|
+AR|Senna macranthera|Fedegoso|Fabaceae|N|R|6|5|1.5|5|R|M|S|dez–abr||||EM||#F0C320|
+AR|Cassia grandis|Cássia-rosa|Fabaceae|N|E|15|12|2.0|10|M|M|S|set–nov||||AM||#E89BB0|
+AR|Cassia leptophylla|Falso-barbatimão|Fabaceae|N|E|10|8|2.0|8|R|M|S|nov–fev||||M||#F2C318|
+AR|Schizolobium parahyba|Guapuruvu|Fabaceae|N|E|25|12|2.0|12|R|M|S|ago–out||||M||#F0C11C|Crescimento muito rápido; galhos quebradiços.
+AR|Anadenanthera colubrina|Angico-branco|Fabaceae|N|E|15|12|2.0|10|R|B|S|set–nov||||CEM|||
+AR|Enterolobium contortisiliquum|Tamboril|Fabaceae|N|E|20|18|2.0|15|R|M|S|set–nov||||CEMP|||Copa ampla e raízes vigorosas: exige grandes espaços.
+AR|Inga edulis|Ingá-cipó|Fabaceae|N|E|12|10|2.0|8|R|A|S|ago–dez||||AM|||Atrai fauna; indicada para margens de rios.
+AR|Clitoria fairchildiana|Sombreiro|Fabaceae|N|E|10|12|2.0|10|R|M|S|nov–mar||||A||#A9A0E0|
+AR|Pterogyne nitens|Amendoim-bravo|Fabaceae|N|R|15|8|1.8|8|M|B|S|dez–mar||||CEM|||
+AR|Dalbergia nigra|Jacarandá-da-bahia|Fabaceae|N|R|20|10|1.8|10|L|M|S|set–nov||||M|||Espécie ameaçada; verificar procedência das mudas.
+AR|Piptadenia gonoacantha|Pau-jacaré|Fabaceae|N|E|15|12|1.8|10|R|M|S|nov–jan||||M|||
+AR|Hymenaea stigonocarpa|Jatobá-do-cerrado|Fabaceae|N|E|8|8|1.5|8|L|B|S|out–dez||||CE|||
+AR|Dipteryx alata|Baru|Fabaceae|N|R|15|10|1.5|10|M|B|S|out–jan||||E|||Fruto comestível.
+AR|Copaifera langsdorffii|Copaíba|Fabaceae|N|R|15|10|1.8|10|L|M|S|dez–mar||||ACEM|||
+AR|Mimosa caesalpiniifolia|Sabiá|Fabaceae|N|I|7|5|1.5|5|R|B|S|nov–jan||||C|||Possui acúleos; muito usada em cercas vivas.
+AR|Mimosa scabrella|Bracatinga|Fabaceae|N|R|12|7|1.8|6|R|M|S|jun–set||||M||#F2E39A|
+AR|Cenostigma pyramidale|Catingueira|Fabaceae|N|R|8|6|1.5|6|M|B|S|nov–jan||||C||#F2C318|
+AR|Psidium cattleyanum|Araçá|Myrtaceae|N|R|5|4|1.2|4|M|M|S|set–dez||||MP|||Fruto comestível; atrai aves.
+AR|Eugenia involucrata|Cerejeira-do-rio-grande|Myrtaceae|N|C|8|4|1.5|4|L|M|S|set–out||||MP|||Fruto comestível.
+AR|Eugenia pyriformis|Uvaia|Myrtaceae|N|R|10|6|1.5|6|M|M|S|ago–set||||M|||Fruto comestível.
+AR|Eugenia dysenterica|Cagaiteira|Myrtaceae|N|R|8|6|1.5|6|M|B|S|ago–set||||E|||
+AR|Campomanesia xanthocarpa|Guabiroba|Myrtaceae|N|R|12|8|1.5|7|M|M|S|set–nov||||EMP|||
+AR|Plinia edulis|Cambucá|Myrtaceae|N|R|8|6|1.5|6|L|A|MS|set–nov||||M|||Espécie ameaçada.
+AR|Acca sellowiana|Goiabeira-serrana|Myrtaceae|N|R|5|4|1.2|4|L|M|S|out–dez||||MP|#7A9A8A|#D04A5A|
+AR|Caryocar brasiliense|Pequizeiro|Caryocaraceae|N|I|10|8|1.5|8|L|B|S|ago–nov||||E||#EEE0A0|Fruto comestível; protegido em vários estados.
+AR|Hancornia speciosa|Mangabeira|Apocynaceae|N|I|6|5|1.2|5|L|B|S|ago–nov||||CE|||Látex abundante.
+AR|Aspidosperma polyneuron|Peroba-rosa|Apocynaceae|N|C|30|12|1.8|12|L|M|S|out–dez||||EM|||Espécie ameaçada.
+AR|Kielmeyera coriacea|Pau-santo|Calophyllaceae|N|I|4|3|1.0|3|L|B|S|dez–mar||||E||#F2D7DE|
+AR|Calophyllum brasiliense|Guanandi|Calophyllaceae|N|R|20|10|1.8|8|M|A|S|set–nov||||AEM|#3E6A3A||Tolera solo encharcado.
+AR|Qualea grandiflora|Pau-terra|Vochysiaceae|N|I|8|6|1.5|6|L|B|S|out–jan||||E||#F2C318|
+AR|Vochysia tucanorum|Pau-tucano|Vochysiaceae|N|R|12|7|1.8|7|M|M|S|dez–mar||||EM||#F2C318|
+AR|Myracrodruon urundeuva|Aroeira-do-sertão|Anacardiaceae|N|I|15|8|1.8|8|M|B|S|jun–ago||||CEM|||Espécie protegida; corte regulado.
+AR|Spondias mombin|Cajazeira|Anacardiaceae|N|E|20|12|2.0|12|R|M|S|set–dez||||ACM|||Fruto comestível.
+AR|Spondias tuberosa|Umbuzeiro|Anacardiaceae|N|E|6|10|1.5|10|L|B|S|out–dez||||C|||Fruto comestível; resistente à seca.
+AR|Anacardium occidentale|Cajueiro|Anacardiaceae|N|E|8|12|1.5|10|M|B|S|jun–nov||||ACEM|||Fruto comestível.
+AR|Tapirira guianensis|Pau-pombo|Anacardiaceae|N|R|15|8|1.8|8|R|M|S|ago–out||||ACEM|||Atrai aves.
+AR|Licania rigida|Oiticica|Chrysobalanaceae|N|E|15|15|1.8|12|L|B|S|jun–ago||||C|#3E6E3A||
+AR|Sarcomphalus joazeiro|Juazeiro|Rhamnaceae|N|R|10|10|1.5|10|L|B|S|set–dez||||C|#3E6E3A||Sin. Ziziphus joazeiro. Perenifólio na seca.
+AR|Cecropia pachystachya|Embaúba|Urticaceae|N|E|12|8|2.0|8|R|M|S|ago–nov||||ACEMN|#8FA88E||Pioneira; atrai fauna.
+AR|Cecropia glaziovii|Embaúba-vermelha|Urticaceae|N|E|15|8|2.0|8|R|M|S|set–nov||||M|#7E9A72||
+AR|Croton urucurana|Sangra-d'água|Euphorbiaceae|N|R|10|7|1.8|6|R|A|S|dez–mar||||EMNP|||Indicada para margens de rios.
+AR|Guazuma ulmifolia|Mutamba|Malvaceae|N|E|12|10|1.8|8|R|M|S|out–dez||||ACEM|||
+AR|Luehea divaricata|Açoita-cavalo|Malvaceae|N|E|15|12|1.8|10|M|M|S|dez–fev||||EMP||#E9B9D2|
+AR|Pachira aquatica|Monguba|Malvaceae|N|R|12|10|2.0|8|R|A|S|set–jan||||AM||#EDE2C8|
+AR|Pseudobombax grandiflorum|Embiruçu|Malvaceae|N|E|15|10|2.0|10|M|M|S|jun–set||||M||#EEE6DA|
+AR|Ceiba pentandra|Sumaúma|Malvaceae|N|E|40|30|2.5|30|R|A|S|ago–out||||A|||Árvore gigante: apenas para áreas amplas.
+AR|Bertholletia excelsa|Castanheira-do-pará|Lecythidaceae|N|R|40|25|1.5|25|L|A|S|out–dez||||A|||Espécie protegida; corte proibido.
+AR|Lecythis pisonis|Sapucaia|Lecythidaceae|N|E|25|15|2.0|15|M|M|S|set–out||||AM||#B47FC4|Folhas novas rosadas.
+AR|Couroupita guianensis|Abricó-de-macaco|Lecythidaceae|N|R|20|12|2.0|12|M|A|S|set–mar||||A||#E26A5C|Frutos grandes e pesados: evitar sobre passeios.
+AR|Cariniana estrellensis|Jequitibá-branco|Lecythidaceae|N|R|30|14|1.8|14|L|M|S|out–dez||||EM|||
+AR|Genipa americana|Jenipapeiro|Rubiaceae|N|C|15|6|1.8|7|M|A|S|out–dez||||ACEMN|||Fruto comestível.
+AR|Cordia trichotoma|Louro-pardo|Boraginaceae|N|R|20|8|1.8|8|M|M|S|mar–jun||||CEM|||
+AR|Ocotea porosa|Imbuia|Lauraceae|N|R|20|12|1.8|10|L|M|S|set–nov||||M|||Espécie ameaçada.
+AR|Nectandra megapotamica|Canela-preta|Lauraceae|N|R|15|10|1.8|8|M|M|S|jul–set||||EMP|||
+AR|Podocarpus lambertii|Pinheiro-bravo|Podocarpaceae|N|P|15|6|1.5|6|L|M|S|||||MP|#3E6A45||
+AR|Ilex paraguariensis|Erva-mate|Aquifoliaceae|N|R|10|6|1.2|6|L|M|MS|out–nov||||MP|||
+AR|Sapindus saponaria|Saboneteira|Sapindaceae|N|R|10|8|1.8|8|M|B|S|mai–jul||||ACEMN|||
+AR|Dicksonia sellowiana|Xaxim|Dicksoniaceae|N|R|5|3|1.0|3|L|A|MS||||ArvoreRadial|M|#3F6E3A||Samambaiaçu ameaçado; comércio restrito a plantas legalizadas.
+AR|Ficus benjamina|Fícus-benjamina|Moraceae|E|R|15|12|2.0|10|R|M|S||||||||Raízes agressivas: evitar junto a calçadas, muros e redes.
+AR|Ficus microcarpa|Figueira-lacerdinha|Moraceae|E|R|15|15|2.0|12|R|M|S||||||#3E6E3A||Raízes agressivas: evitar junto a calçadas, muros e redes.
+AR|Ficus elastica|Falsa-seringueira|Moraceae|E|E|20|15|2.0|15|R|M|S||||||#2F5E36||Raízes agressivas: evitar junto a calçadas, muros e redes.
+AR|Ficus lyrata|Figueira-lira|Moraceae|E|R|10|6|1.5|6|M|M|MS||||||#3E6E3A||
+AR|Terminalia catappa|Amendoeira-da-praia|Combretaceae|E|E|12|12|2.0|10|R|M|S||||||||Naturalizada no litoral; tolera salinidade.
+AR|Terminalia mantaly|Sete-copas|Combretaceae|E|P|12|7|2.0|7|R|M|S||||||||Copa em andares.
+AR|Bauhinia variegata|Pata-de-vaca-rosa|Fabaceae|E|R|8|6|1.8|6|R|M|S|jun–set||||||#D98AC0|
+AR|Bauhinia × blakeana|Pata-de-vaca-de-hong-kong|Fabaceae|E|R|8|6|1.8|6|R|M|S|abr–ago||||||#B03A7E|Híbrido estéril, não produz sementes.
+AR|Senna siamea|Cássia-siâmea|Fabaceae|E|R|12|8|2.0|8|R|B|S|nov–mar||||||#F2C318|
+AR|Tamarindus indica|Tamarindeiro|Fabaceae|E|E|15|12|1.8|12|L|B|S|out–dez|||||||Fruto comestível.
+AR|Michelia champaca|Magnólia-amarela|Magnoliaceae|E|P|15|7|2.0|7|M|M|S|ago–dez||||||#F2B23A|Sin. Magnolia champaca. Flores perfumadas.
+AR|Callistemon viminalis|Escova-de-garrafa|Myrtaceae|E|I|6|4|1.5|4|M|M|S|set–dez||||||#D2263A|
+AR|Syzygium malaccense|Jambo-vermelho|Myrtaceae|E|C|12|7|1.8|7|M|A|S|set–nov||||||#D0306E|
+AR|Grevillea robusta|Grevílea|Proteaceae|E|P|20|8|2.0|8|R|B|S|set–nov||||||#F09A2A|Pode se tornar invasora no Sul.
+AR|Grevillea banksii|Grevílea-anã|Proteaceae|E|I|4|3|1.0|3|M|B|S|ano todo||||||#D9393A|
+AR|Corymbia citriodora|Eucalipto-limão|Myrtaceae|E|C|30|10|2.0|10|R|B|S||||||#8FA88E||Folhas aromáticas.
+AR|Platycladus orientalis|Tuia-oriental|Cupressaceae|E|P|6|2.5|1.5|2|L|M|S||||||#4F7A3E||Sin. Thuja orientalis.
+AR|Cupressus macrocarpa|Cipreste-limão|Cupressaceae|E|P|5|2|1.2|1.5|M|M|S||||||#B5C24A||Cultivar Goldcrest, folhagem amarelo-limão.
+AR|Juniperus chinensis|Kaizuka|Cupressaceae|E|C|5|2|1.2|1.5|L|B|S||||||#3E6A45||Cultivar Kaizuka.
+AR|Citrus × limon|Limoeiro|Rutaceae|E|R|5|4|1.2|4|M|M|S|set–nov|||||||Fruto comestível; possui espinhos.
+AR|Persea americana|Abacateiro|Lauraceae|E|R|15|10|1.5|10|M|M|S|jul–set|||||#3E6E3A||Fruto comestível.
+AR|Psidium guajava|Goiabeira|Myrtaceae|E|R|7|6|1.2|6|R|M|S|set–nov|||||||Naturalizada; pode se tornar invasora em áreas naturais.
+AR|Moringa oleifera|Moringa|Moringaceae|E|I|8|5|1.5|5|R|B|S|ano todo|||||||
+AR|Plumeria rubra|Jasmim-manga|Apocynaceae|E|I|5|4|1.2|4|L|B|S|set–mar||||||#E9809A|Látex tóxico.
+AR|Plumeria pudica|Buquê-de-noiva|Apocynaceae|E|R|4|3|1.2|3|M|B|S|ano todo||||||#F7F4EC|Látex tóxico.
+AR|Schefflera actinophylla|Cheflera|Araliaceae|E|R|10|6|1.5|5|R|M|MS||||||#3E7A3A||Pode se tornar invasora em matas.
+AR|Olea europaea|Oliveira|Oleaceae|E|I|8|6|1.5|6|L|B|S||||||#8FA08E||
+AR|Acer palmatum|Bordo-japonês|Sapindaceae|E|R|6|5|1.5|5|L|M|MS||||||#A63A2E||Indicado para clima ameno.
+AR|Melia azedarach|Cinamomo|Meliaceae|I|R|12|10|2.0|8|R|B|S|set–nov||||||#B9A6E0|Exótica invasora: evitar o plantio.
+AR|Leucaena leucocephala|Leucena|Fabaceae|I|I|8|5|1.5|5|R|B|S|ano todo|||||||Exótica invasora: evitar o plantio.
+AR|Spathodea campanulata|Espatódea|Bignoniaceae|I|R|15|10|2.0|10|R|M|S|mai–out||||||#E0482A|Exótica invasora; néctar prejudicial a abelhas nativas.
+AR|Syzygium cumini|Jambolão|Myrtaceae|I|R|15|12|2.0|10|R|M|S|set–nov|||||||Exótica invasora: evitar o plantio.
+AR|Artocarpus heterophyllus|Jaqueira|Moraceae|I|R|15|12|1.5|12|M|M|S||||||#3E6E3A||Exótica invasora na Mata Atlântica: evitar o plantio.
+AR|Pinus elliottii|Pinheiro-americano|Pinaceae|I|P|25|8|1.5|8|R|B|S||||||#3E6040||Exótica invasora em campos e restingas: evitar o plantio.
+AR|Casuarina equisetifolia|Casuarina|Casuarinaceae|I|P|20|8|2.0|8|R|B|S||||||#4E6E50||Exótica invasora em restingas: evitar o plantio.
+AR|Ligustrum lucidum|Alfeneiro|Oleaceae|I|R|10|8|1.8|8|R|M|S|nov–jan|||||||Exótica invasora no Sul e Sudeste: evitar o plantio.
+AR|Hovenia dulcis|Uva-japonesa|Rhamnaceae|I|R|15|10|1.8|10|R|M|S|set–nov|||||||Exótica invasora no Sul: evitar o plantio.
+PA|Syagrus oleracea|Gueroba|Arecaceae|N|R|15|5|2.0|5|M|B|S|||||CEM|||Palmito amargo comestível.
+PA|Syagrus coronata|Licuri|Arecaceae|N|R|8|4|1.5|4|L|B|S|||||C|||
+PA|Mauritia flexuosa|Buriti|Arecaceae|N|R|25|8|2.0|8|L|A|S||||PalmeiraLeque|ACEN|||Palmeira de veredas: exige solo úmido.
+PA|Copernicia prunifera|Carnaúba|Arecaceae|N|R|12|4|2.0|5|L|B|S||||PalmeiraLeque|C|#6E9E7A||
+PA|Copernicia alba|Carandá|Arecaceae|N|R|15|4|2.0|5|L|M|S||||PalmeiraLeque|N|#7E9E7A||Tolera alagamentos periódicos.
+PA|Attalea speciosa|Babaçu|Arecaceae|N|R|20|10|2.0|10|L|M|S|||||ACE|||
+PA|Bactris gasipaes|Pupunha|Arecaceae|N|R|12|5|1.5|5|M|A|S|||||A|||Estipe com espinhos.
+PA|Allagoptera arenaria|Guriri|Arecaceae|N|R|2|2|0.6|1.5|L|B|S|||||M|#7E9A6A||Palmeira de restinga, tolera areia e salinidade.
+PA|Butia odorata|Butiá-da-serra|Arecaceae|N|R|6|4|1.5|4|L|B|S|||||P|#7F9E86||Fruto comestível.
+PA|Cocos nucifera|Coqueiro|Arecaceae|E|R|20|7|2.0|7|M|M|S||||||||Naturalizado no litoral; frutos pesados sobre passeios.
+PA|Dypsis decaryi|Palmeira-triângulo|Arecaceae|E|R|6|4|2.0|4|M|B|S||||||#7E9E86||
+PA|Adonidia merrillii|Palmeira-de-manila|Arecaceae|E|R|6|3|2.0|3|M|M|S||||||||Sin. Veitchia merrillii.
+PA|Ptychosperma macarthurii|Palmeira-macarthur|Arecaceae|E|R|6|3|1.5|2.5|M|M|MS||||||||Forma touceira.
+PA|Caryota mitis|Palmeira-rabo-de-peixe|Arecaceae|E|R|8|4|1.5|3|M|M|MS||||||||Forma touceira; frutos irritantes.
+PA|Washingtonia robusta|Palmeira-de-saia|Arecaceae|E|R|20|4|2.0|4|R|B|S||||PalmeiraLeque||||
+PA|Bismarckia nobilis|Palmeira-azul|Arecaceae|E|R|12|6|2.0|6|L|B|S||||PalmeiraLeque||#8FA9A8||
+PA|Livistona rotundifolia|Palmeira-leque-redonda|Arecaceae|E|R|8|3|1.5|3|M|M|MS||||PalmeiraLeque||||
+PA|Hyophorbe lagenicaulis|Palmeira-garrafa|Arecaceae|E|R|4|3|1.5|3|L|M|S||||||||Estipe dilatado em forma de garrafa.
+PA|Chamaedorea elegans|Palmeira-de-salão|Arecaceae|E|R|2|1|0.8|0.8|L|M|SO||||||||
+PA|Ravenala madagascariensis|Árvore-do-viajante|Strelitziaceae|E|R|10|5|2.0|5|M|A|S||||PalmeiraLeque||#5E8E4E||Folhas em leque plano.
+PA|Cycas revoluta|Cica|Cycadaceae|E|R|2|2|0.6|2|L|B|S||||||#3E6A3A||Cicadácea; planta tóxica.
+AB|Murraya paniculata|Murta-de-cheiro|Rutaceae|E|R|4|2|0.8|1.0|M|M|S|set–mar|||||#3F6E3A|#F7F5EE|Muito usada em cercas vivas.
+AB|Malpighia emarginata|Aceroleira|Malpighiaceae|E|R|4|3|1.0|2.5|R|M|S|set–mar||||||#E9A1C0|Fruto comestível.
+AB|Pleroma heteromallum|Orelha-de-onça|Melastomataceae|N|R|2.5|2|0.6|1.5|R|M|S|nov–mar||||EM|#8FA090|#7B4FB5|
+AB|Calliandra tweediei|Esponjinha-vermelha|Fabaceae|N|R|3|3|0.6|2|R|M|S|ano todo||||MP||#D92B3A|
+AB|Galphimia brasiliensis|Triális|Malpighiaceae|N|R|1.5|1|0.4|0.6|M|M|S|ano todo||||CEM||#F2C318|
+AB|Hamelia patens|Hamélia|Rubiaceae|N|R|3|2|0.6|1.2|R|M|S|ano todo||||A||#E2522A|Atrai beija-flores.
+AB|Eugenia sprengelii|Eugênia|Myrtaceae|N|C|4|2|0.8|0.6|M|M|S|out–dez||||M|#3E6A3A||Muito usada em topiaria e cercas vivas.
+AB|Allamanda blanchetii|Alamanda-roxa|Apocynaceae|N|I|2|2|0.5|1.5|M|B|S|ano todo||||C||#B8507E|Látex tóxico.
+AB|Justicia brandegeeana|Camarão-vermelho|Acanthaceae|E|R|1|0.8|0.3|0.5|R|M|MS|ano todo||||||#C8452E|
+AB|Pachystachys lutea|Camarão-amarelo|Acanthaceae|E|R|1.2|0.8|0.3|0.5|R|M|MS|ano todo||||||#F2C318|
+AB|Cuphea hyssopifolia|Falsa-érica|Lythraceae|E|R|0.6|0.6|0.2|0.4|M|M|S|ano todo||||||#B07ACC|
+AB|Abelia × grandiflora|Abélia|Caprifoliaceae|E|R|2|1.5|0.5|1.0|M|M|S|set–mar||||||#F3E7EE|
+AB|Viburnum suspensum|Viburno|Viburnaceae|E|R|3|2|0.6|0.8|M|M|S||||||#3E6A3A||Indicado para cercas vivas.
+AB|Euphorbia milii|Coroa-de-cristo|Euphorbiaceae|E|R|1|0.8|0.3|0.5|L|B|S|ano todo|||ArbustoPontiagudo|||#D9283A|Látex tóxico e espinhos.
+AB|Euphorbia pulcherrima|Bico-de-papagaio|Euphorbiaceae|E|R|3|2|0.6|1.5|R|M|S|mai–ago||||||#C8202E|Brácteas vermelhas; látex irritante.
+AB|Euphorbia cotinifolia|Leiteiro-vermelho|Euphorbiaceae|E|R|5|3|1.0|2.5|R|M|S||||||#6E2E3A||Látex tóxico.
+AB|Acalypha wilkesiana|Acalifa|Euphorbiaceae|E|R|2|1.5|0.4|1.0|R|M|S||||||#9A3A3A||
+AB|Dracaena fragrans|Pau-d'água|Asparagaceae|E|R|3|1|0.6|0.8|L|M|MS||||ArbustoPontiagudo||#5E8E3E||
+AB|Dracaena marginata|Dracena-de-madagascar|Asparagaceae|E|R|3|1|0.6|0.8|L|B|MS||||ArbustoPontiagudo||#5E7E44||
+AB|Yucca gigantea|Iúca|Asparagaceae|E|R|5|2|1.0|1.5|L|B|S||||ArbustoPontiagudo||#6E8E5A||Sin. Yucca elephantipes. Folhas pontiagudas.
+AB|Hydrangea macrophylla|Hortênsia|Hydrangeaceae|E|R|1.5|1.5|0.4|1.0|M|A|MS|out–fev||||||#8FA6E0|A cor das flores varia com a acidez do solo.
+AB|Camellia japonica|Camélia|Theaceae|E|R|3|2|0.6|1.5|L|M|MS|mai–ago|||||#3E6A3A|#D2385A|
+AB|Rosa × hybrida|Roseira|Rosaceae|E|R|1.5|1|0.4|0.8|M|M|S|ano todo||||||#D9385A|Possui acúleos.
+AB|Nerium oleander|Espirradeira|Apocynaceae|E|R|4|3|0.8|2|R|B|S|set–mar||||||#E66FA0|Planta muito tóxica.
+AB|Cascabela thevetia|Chapéu-de-napoleão|Apocynaceae|E|R|5|3|1.0|2.5|R|B|S|ano todo||||||#F2C318|Sin. Thevetia peruviana. Planta tóxica.
+AB|Mussaenda erythrophylla|Mussaenda|Rubiaceae|E|R|3|2|0.6|1.5|M|M|S|out–abr||||||#D9385A|
+AB|Schefflera arboricola|Cheflera-pequena|Araliaceae|E|R|3|1.5|0.6|0.8|M|M|MS||||||#4F8A3E||
+AB|Jatropha integerrima|Jatrofa|Euphorbiaceae|E|R|3|2|0.6|1.5|R|B|S|ano todo||||||#D9283A|Planta tóxica.
+AB|Caesalpinia pulcherrima|Flamboyanzinho|Fabaceae|E|R|3|3|0.8|2|R|B|S|ano todo||||||#E8662A|Possui acúleos.
+AB|Ligustrum sinense|Ligustrinho|Oleaceae|E|R|3|2|0.6|0.6|R|M|S||||||#6E9E4E||Muito usado em cercas vivas e topiaria.
+AB|Ixora chinensis|Ixora-chinesa|Rubiaceae|E|R|1.5|1|0.4|0.6|M|M|S|ano todo||||||#E8562A|
+AB|Gardenia thunbergia|Gardênia-de-thunberg|Rubiaceae|E|R|3|2|0.6|1.5|L|M|MS|set–dez|||||#3E6A3A|#F7F5EE|
+AB|Brunfelsia pauciflora|Manacá-de-jardim|Solanaceae|N|R|2|1.5|0.5|1.0|M|M|MS|ago–nov||||M||#7E5AC0|Flores do roxo ao branco; planta tóxica.
+AB|Heterocentron elegans|Quaresminha-rasteira|Melastomataceae|E|R|0.3|0.6|0.1|0.4|R|M|S|ano todo||||||#C85AA0|
+AB|Cestrum nocturnum|Dama-da-noite|Solanaceae|E|R|3|2|0.6|1.5|R|M|S|out–mar||||||#F2F0D8|Perfume intenso à noite; planta tóxica.
+HE|Heliconia rostrata|Helicônia-pendente|Heliconiaceae|N|R|3|1.5|0.8|1.2|R|A|MS|ano todo|||ArbustoNuvem|A||#E0402F|Nativa da Amazônia ocidental.
+HE|Heliconia bihai|Helicônia-bihai|Heliconiaceae|N|R|3|1.5|0.8|1.2|R|A|MS|ano todo|||ArbustoNuvem|AM||#D8402A|
+HE|Costus spiralis|Cana-de-macaco|Costaceae|N|R|1.5|0.6|0.4|0.5|R|A|MS|ano todo|4|||AM||#D8402A|
+HE|Stromanthe thalia|Estromante|Marantaceae|N|R|1.2|0.8|0.4|0.6|M|A|SO||4|||M|#4F6E3A||Folhas com verso arroxeado.
+HE|Ctenanthe oppenheimiana|Maranta-tricolor|Marantaceae|N|R|1.0|0.8|0.3|0.6|M|A|SO||4|||M|#8A6E7A||
+HE|Maranta leuconeura|Maranta-pena|Marantaceae|N|R|0.3|0.4|0.15|0.3|M|A|SO||9|||M|#5E8A4E||
+HE|Thaumatophyllum xanadu|Filodendro-xanadu|Araceae|N|R|1.0|1.2|0.3|0.8|M|M|MS||2||ArbustoNuvem|M|#3F7A3A||Planta tóxica se ingerida.
+HE|Dieffenbachia seguine|Comigo-ninguém-pode|Araceae|N|R|1.2|0.8|0.4|0.6|M|M|SO||4|||AM|#6E9E4E||Planta muito tóxica.
+HE|Caladium bicolor|Tinhorão|Araceae|N|R|0.6|0.5|0.2|0.4|R|A|MS||9|||A|#C86A7A||Planta tóxica; perde as folhas no inverno.
+HE|Anthurium andraeanum|Antúrio|Araceae|E|R|0.6|0.5|0.3|0.4|M|A|SO|ano todo|6|||||#D2263A|Planta tóxica.
+HE|Spathiphyllum wallisii|Lírio-da-paz|Araceae|E|R|0.5|0.4|0.3|0.35|M|A|SO|ano todo|8|||||#F7F5EE|Planta tóxica.
+HE|Zantedeschia aethiopica|Copo-de-leite|Araceae|E|R|0.8|0.5|0.3|0.4|M|A|MS|jun–out|6|||||#F7F5EE|Planta tóxica.
+HE|Aglaonema commutatum|Aglaonema|Araceae|E|R|0.6|0.5|0.3|0.4|L|M|SO||6||||#7EA06A||Planta tóxica.
+HE|Alocasia macrorrhizos|Orelha-de-elefante|Araceae|E|R|2|1.5|0.6|1.2|R|A|MS||||ArbustoNuvem||#3E7A3A||Planta tóxica.
+HE|Dracaena trifasciata|Espada-de-são-jorge|Asparagaceae|E|R|0.9|0.4|0.3|0.3|L|B|MS||9||ArbustoPontiagudo||#5E7E44||Sin. Sansevieria trifasciata.
+HE|Clivia miniata|Clívia|Amaryllidaceae|E|R|0.5|0.5|0.3|0.4|L|M|SO|ago–out|6||||#2F5E36|#F07A2A|
+HE|Hippeastrum puniceum|Amarílis|Amaryllidaceae|N|R|0.5|0.3|0.2|0.25|M|M|S|set–nov|16|||AEM||#E0402F|
+HE|Lavandula dentata|Lavanda|Lamiaceae|E|R|0.6|0.6|0.2|0.4|M|B|S|ano todo|6||||#8FA090|#9C7FD0|Aromática.
+HE|Salvia leucantha|Sálvia-mexicana|Lamiaceae|E|R|1.0|1.0|0.3|0.6|R|B|S|mar–ago|3||||#8FA090|#9C5FC0|
+HE|Salvia splendens|Sálvia-vermelha|Lamiaceae|N|R|0.6|0.4|0.2|0.3|R|M|S|ano todo|9|||M||#D8263A|Atrai beija-flores.
+HE|Pentas lanceolata|Pentas|Rubiaceae|E|R|0.6|0.5|0.2|0.4|R|M|S|ano todo|8|||||#D86AA0|
+HE|Begonia cucullata|Begônia-cerosa|Begoniaceae|N|R|0.4|0.3|0.15|0.25|R|M|MS|ano todo|12|||MP||#E07A9A|
+HE|Catharanthus roseus|Vinca|Apocynaceae|E|R|0.5|0.4|0.15|0.3|R|B|S|ano todo|12|||||#E66FA0|Planta tóxica.
+HE|Tagetes erecta|Tagetes|Asteraceae|E|R|0.6|0.4|0.15|0.3|R|M|S|ano todo|9|||||#F28A1E|Ciclo anual.
+HE|Petunia × atkinsiana|Petúnia|Solanaceae|E|R|0.3|0.4|0.1|0.3|R|M|S|ago–mar|12|||||#A04FB5|Ciclo anual.
+HE|Turnera subulata|Chanana|Passifloraceae|N|R|0.6|0.5|0.2|0.4|R|B|S|ano todo|6|||ACEM||#F2EBD0|
+HE|Nephrolepis exaltata|Samambaia|Nephrolepidaceae|N|R|0.6|0.8|0.3|0.5|R|A|SO||4|||AEM|#6EA04A||
+HE|Rumohra adiantiformis|Samambaia-preta|Dryopteridaceae|N|R|0.6|0.6|0.3|0.5|M|A|SO||4|||MP|#3E6A3A||
+HE|Asplenium nidus|Asplênio|Aspleniaceae|E|R|0.8|0.8|0.3|0.6|L|A|SO||2||||#6EA04A||
+HE|Neoregelia cruenta|Bromélia-de-restinga|Bromeliaceae|N|R|0.6|0.8|0.3|0.6|M|B|S||2||ArbustoPontiagudo|M|#8A9A4A|#C83A3A|
+HE|Aechmea fasciata|Bromélia-vaso-prateado|Bromeliaceae|N|R|0.5|0.6|0.3|0.5|M|B|MS||3||ArbustoPontiagudo|M|#8FA8A0|#E07AA0|
+HE|Vriesea carinata|Bromélia-vriésia|Bromeliaceae|N|R|0.3|0.4|0.2|0.35|M|M|MS||6||ArbustoPontiagudo|M||#E0402F|
+HE|Billbergia pyramidalis|Bromélia-flor-de-fogo|Bromeliaceae|N|R|0.6|0.6|0.3|0.5|M|B|MS|dez–mar|3||ArbustoPontiagudo|M||#E0402F|
+HE|Ananas bracteatus|Abacaxi-vermelho|Bromeliaceae|N|R|1.0|1.0|0.4|0.8|M|B|S||2||ArbustoPontiagudo|AEM|#8A4A3E||Folhas com espinhos.
+HE|Etlingera elatior|Bastão-do-imperador|Zingiberaceae|E|R|4|1.5|1.0|1.2|R|A|MS|ano todo|||ArbustoNuvem|||#D8264A|
+HE|Strelitzia nicolai|Estrelítzia-gigante|Strelitziaceae|E|R|6|3|1.5|2.5|M|M|S||||PalmeiraLeque||#4E7E4A||Forma touceira.
+HE|Dianella tasmanica|Dianela|Asphodelaceae|E|R|0.6|0.6|0.2|0.4|M|B|S||6||||#6E8E6A||
+HE|Cenchrus setaceus|Capim-do-texas|Poaceae|E|R|1.0|0.8|0.3|0.6|R|B|S|ano todo|3||||#7A3E4E|#C8A0A8|Sin. Pennisetum setaceum. Pode se tornar invasor.
+HE|Hedychium coronarium|Lírio-do-brejo|Zingiberaceae|I|R|1.8|0.8|0.4|0.6|R|A|S|dez–mai|4|||||#F7F5EE|Exótica invasora em áreas úmidas: evitar o plantio.
+HE|Impatiens walleriana|Beijinho|Balsaminaceae|I|R|0.4|0.4|0.15|0.3|R|A|MS|ano todo|12|||||#E66FA0|Exótica invasora em matas úmidas: evitar o plantio.
+FO|Lantana montevidensis|Lantana-rasteira|Verbenaceae|N|R|0.4|0.8|0.15|0.5|R|B|S|ano todo|4|||MP||#A87AD0|
+FO|Portulaca grandiflora|Onze-horas|Portulacaceae|N|R|0.15|0.3|0.05|0.25|R|B|S|set–mar|16|||EP||#E0408A|
+FO|Gazania rigens|Gazânia|Asteraceae|E|R|0.25|0.3|0.1|0.25|M|B|S|ano todo|12||||#8FA090|#F28A1E|
+FO|Alternanthera brasiliana|Periquito-roxo|Amaranthaceae|N|R|0.5|0.5|0.15|0.35|R|M|S||9|||AEM|#7A2E44||
+FO|Alternanthera ficoidea|Periquito|Amaranthaceae|N|R|0.2|0.3|0.1|0.2|R|M|S||16|||AEM|#9A5A3A||
+FO|Iresine herbstii|Iresine|Amaranthaceae|N|R|0.6|0.5|0.2|0.35|R|M|S||9|||M|#9A2E4A||
+FO|Fittonia albivenis|Fitônia|Acanthaceae|N|R|0.15|0.3|0.05|0.2|M|A|SO||16|||A|#4E7A4E||
+FO|Trachelospermum asiaticum|Jasmim-asiático|Apocynaceae|E|R|0.3|0.6|0.1|0.35|M|M|MS||9||||#3F6E3A||
+FO|Hedera helix|Hera|Araliaceae|E|R|0.2|0.5|0.1|0.35|M|M|SO||9||||#2F5E36||Planta tóxica.
+FO|Ipomoea batatas|Batata-doce-ornamental|Convolvulaceae|E|R|0.3|1.0|0.1|0.6|R|M|S||3||||#A8C640||Cultivar de folhagem verde-limão.
+FO|Sedum mexicanum|Sedum|Crassulaceae|E|R|0.1|0.2|0.05|0.2|R|B|S|set–nov|25||||#B5C850|#F2D23A|
+FO|Aptenia cordifolia|Rosinha-de-sol|Aizoaceae|E|R|0.15|0.5|0.05|0.3|R|B|S|ano todo|9|||||#D8408A|
+FO|Tradescantia spathacea|Abacaxi-roxo|Commelinaceae|E|R|0.3|0.3|0.1|0.25|R|M|MS||12||||#6E3A5A||Sin. Rhoeo spathacea.
+FO|Oxalis triangularis|Trevo-roxo|Oxalidaceae|N|R|0.2|0.3|0.05|0.2|M|M|MS|ano todo|16|||M|#6E2E4E|#F0D7E6|
+FO|Stachys byzantina|Orelha-de-coelho|Lamiaceae|E|R|0.3|0.4|0.1|0.3|M|B|S||9||||#A8B0A0||
+FO|Hemigraphis alternata|Hera-roxa|Acanthaceae|E|R|0.2|0.4|0.05|0.3|R|M|MS||12||||#6E5A6E||
+FO|Episcia cupreata|Episcia|Gesneriaceae|E|R|0.1|0.3|0.05|0.25|M|A|SO|ano todo|16||||#6E5A3E|#E0402F|
+FO|Plectranthus verticillatus|Dinheiro-em-penca-rasteiro|Lamiaceae|E|R|0.2|0.4|0.05|0.3|R|M|MS||12||||#5E8E4E||
+FO|Dichondra microcalyx|Dicondra|Convolvulaceae|N|R|0.05|0.3|0.03|0.2|M|M|MS||25|||MP|#7DAA5A||
+FO|Arachis pintoi|Amendoim-forrageiro|Fabaceae|N|R|0.2|0.3|0.1|0.25|R|M|S|ano todo|16|||E||#F2C84A|
+GR|Zoysia tenuifolia|Grama-coreana|Poaceae|E|R|0.1|0.3|0.05|0|L|M|S|||m²|||#7EB05A||Forma tapete ondulado; pisoteio leve.
+GR|Paspalum vaginatum|Grama-paspalum|Poaceae|N|R|0.1|0.3|0.05|0|M|M|S|||m²||MP|||Tolera salinidade; indicada para o litoral.
+GR|Zoysia matrella|Grama-zoysia-fina|Poaceae|E|R|0.1|0.3|0.05|0|L|M|S|||m²|||||
+TR|Saritaea magnifica|Sarita|Bignoniaceae|E|I|6|3|0.6|2.5|R|M|S|ago–dez||||||#B05AA5|
+TR|Mansoa alliacea|Cipó-alho|Bignoniaceae|N|I|4|2|0.5|2|M|M|S|mai–ago||||A||#A86AD0|Folhas com cheiro de alho.
+TR|Thunbergia mysorensis|Sapatinho-de-judia|Acanthaceae|E|I|8|3|0.6|2.5|R|M|S|ano todo||||||#C8602A|Ideal para pérgolas: cachos pendentes.
+TR|Thunbergia alata|Amarelinha|Acanthaceae|E|I|2|1|0.3|0.8|R|M|S|ano todo||||||#F2A21E|
+TR|Clerodendrum thomsoniae|Lágrima-de-cristo|Lamiaceae|E|I|4|2|0.5|1.5|M|M|MS|set–mar||||||#D8263A|
+TR|Clerodendrum splendens|Clerodendro-vermelho|Lamiaceae|E|I|4|2|0.5|1.5|M|M|MS|jun–set||||||#D8263A|
+TR|Ipomoea horsfalliae|Ipomeia-vermelha|Convolvulaceae|E|I|5|2|0.5|2|M|M|S|mai–set||||||#C8205A|
+TR|Jasminum polyanthum|Jasmim-dos-poetas|Oleaceae|E|I|5|2|0.5|1.5|R|M|S|jul–out||||||#F2DCE6|Perfumado.
+TR|Lonicera japonica|Madressilva|Caprifoliaceae|E|I|5|2|0.5|1.5|R|M|S|set–dez||||||#F2E8C0|Pode se tornar invasora.
+TR|Wisteria sinensis|Glicínia|Fabaceae|E|I|10|4|0.8|3|M|M|S|ago–out||||||#A88AD8|Indicada para clima ameno; planta tóxica.
+TR|Stephanotis floribunda|Jasmim-de-madagascar|Apocynaceae|E|I|4|1.5|0.5|1.2|M|M|MS|set–mar|||||#3E6A3A|#F7F5EE|
+TR|Hoya carnosa|Flor-de-cera|Apocynaceae|E|I|3|1|0.3|0.8|L|B|MS|set–dez||||||#F0D7E6|
+TR|Philodendron hederaceum|Filodendro-cordato|Araceae|N|I|3|1|0.3|0.6|R|M|SO|||||AM|#4F8A3E||Planta tóxica.
+TR|Epipremnum aureum|Jiboia|Araceae|E|I|6|1|0.3|0.6|R|M|SO||||||#6EA04A||Pode se tornar invasora em matas; planta tóxica.
+TR|Monstera adansonii|Costela-de-adão-mini|Araceae|N|I|4|1|0.3|0.6|R|M|SO|||||AM|#3E7A3A||Planta tóxica.
+TR|Parthenocissus tricuspidata|Hera-japonesa|Vitaceae|E|I|10|3|0.3|1.5|R|M|MS||||||#6E9E4E||Fixa-se em muros; folhas avermelham no outono.
+TR|Pandorea jasminoides|Pandorea|Bignoniaceae|E|I|5|2|0.5|1.5|M|M|S|set–mar||||||#F0C0D0|
+TR|Podranea ricasoliana|Sete-léguas|Bignoniaceae|E|I|6|3|0.6|2.5|R|M|S|set–mar||||||#E09AC0|
+TR|Antigonon leptopus|Amor-agarradinho|Polygonaceae|E|I|6|3|0.5|2|R|B|S|ano todo||||||#E86A9A|Pode se tornar invasora.
+TR|Bougainvillea glabra|Primavera-glabra|Nyctaginaceae|N|I|5|3|0.8|2.5|R|B|S|ano todo||||M||#B03A8E|Ramos com espinhos.
+TR|Passiflora alata|Maracujá-doce|Passifloraceae|N|I|5|2.5|0.4|2.5|R|M|S|set–mar||||AEM||#C83A5A|Fruto comestível.
+TR|Aristolochia gigantea|Papo-de-peru|Aristolochiaceae|N|I|6|2.5|0.5|2|R|M|S|ano todo||||M||#8A2E3E|Planta tóxica.
+TR|Combretum fruticosum|Escovinha|Combretaceae|N|I|6|3|0.5|2.5|R|B|S|jun–set||||CEM||#E8662A|Atrai beija-flores.
+AQ|Nymphaea ampla|Ninfeia-branca|Nymphaeaceae|N|R|0.1|1.0|0.1|1.0|M|A|S|ano todo||||AEMN||#F5F2EA|
+AQ|Nymphaea rubra|Ninfeia-vermelha|Nymphaeaceae|E|R|0.1|1.0|0.1|1.0|M|A|S|set–mar||||||#D2405A|
+AQ|Nelumbo nucifera|Lótus|Nelumbonaceae|E|R|1.2|1.0|0.3|1.0|M|A|S|nov–mar||||||#F0A0BA|
+AQ|Sagittaria montevidensis|Sagitária|Alismataceae|N|R|0.8|0.6|0.3|0.5|R|A|S|set–mar|||Herbacea|MP||#F7F5EE|
+AQ|Hydrocotyle bonariensis|Erva-capitão|Araliaceae|N|R|0.15|0.3|0.05|0.25|R|A|S||16||Forracao|MP|#7DAF55||Margens úmidas e solos arenosos.
+AQ|Cyperus alternifolius|Sombrinha-chinesa|Cyperaceae|E|R|1.2|0.8|0.4|0.6|R|A|S||||Herbacea||||
+AQ|Equisetum giganteum|Cavalinha|Equisetaceae|N|R|1.5|0.6|0.4|0.5|R|A|S||||Herbacea|EMP|#5E8E4E||
+AQ|Iris pseudacorus|Íris-amarela|Iridaceae|E|R|1.0|0.6|0.3|0.5|R|A|S|set–nov|||Herbacea|||#F2C318|Pode se tornar invasora em áreas úmidas.
+AQ|Canna glauca|Cana-d'água|Cannaceae|N|R|1.5|0.6|0.4|0.5|R|A|S|ano todo|||Herbacea|AEMN|#6E9E8A|#F2D23A|
+AQ|Salvinia auriculata|Salvínia|Salviniaceae|N|R|0.05|0.1|0.05|0.1|R|A|S|||||AEMN|#7DAF55||Flutuante; crescimento agressivo, exige controle.
+AQ|Hydrocleys nymphoides|Papoula-d'água|Alismataceae|N|R|0.1|0.5|0.1|0.5|R|A|S|ano todo||||AEMN||#F2E06A|
+AQ|Myriophyllum aquaticum|Pinheirinho-d'água|Haloragaceae|N|R|0.3|0.4|0.1|0.3|R|A|S||||Forracao|AMP|#7DB06A||

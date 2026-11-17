@@ -10,7 +10,7 @@ namespace Viridian.Core.Symbols;
 public static class SymbolGenerator
 {
     /// <summary>Versão do algoritmo. Alterá-la invalida o cache de famílias geradas.</summary>
-    public const int Version = 1;
+    public const int Version = 2;
 
     public const double MinDiameter = 0.10;
     public const double MaxDiameter = 60.0;
@@ -93,7 +93,149 @@ public static class SymbolGenerator
                 break;
         }
 
-        return new PlantSymbol(style, d, b.Items);
+        IReadOnlyList<Point2> fill = BuildFill(style, b.Items, r);
+        var flowerRng = new DeterministicRandom(DeterministicRandom.Combine(seed, variant, 104729));
+        IReadOnlyList<FlowerSpot> flowers = BuildFlowers(style, fill, r, flowerRng);
+        return new PlantSymbol(style, d, b.Items, fill, flowers);
+    }
+
+    // ------------------------------------------------------------------ preenchimento e floração
+
+    /// <summary>
+    /// Contorno da área colorida: amostragem radial do contorno da copa. Como todos os contornos são
+    /// radiais em relação ao centro, o anel resultante nunca cruza a si mesmo.
+    /// </summary>
+    private static IReadOnlyList<Point2> BuildFill(SymbolStyle style, IReadOnlyList<SymbolPrimitive> items, double r)
+    {
+        int count = Math.Clamp((int)Math.Ceiling(Geo.TwoPi * r / 0.012), 36, 240);
+        var ring = new List<Point2>(count);
+        double minSpacing = Math.Max(0.003, r * 0.004);
+
+        if (style is SymbolStyle.Herbacea or SymbolStyle.Gramado or SymbolStyle.Simples)
+        {
+            for (int k = 0; k < count; k++)
+            {
+                ring.Add(Point2.Polar(r * 0.94, Geo.TwoPi * k / count));
+            }
+
+            return ring;
+        }
+
+        var segments = new List<(Point2 A, Point2 B)>();
+        foreach (SymbolPrimitive primitive in items)
+        {
+            if (primitive.Tier != SymbolTier.Outline)
+            {
+                continue;
+            }
+
+            switch (primitive)
+            {
+                case SymbolLine line:
+                    segments.Add((line.A, line.B));
+                    break;
+                case SymbolArc arc when ArcInfo.TryFromThreePoints(arc.Start, arc.Mid, arc.End, out ArcInfo info):
+                {
+                    const int parts = 10;
+                    Point2 previous = info.PointAt(0);
+                    for (int i = 1; i <= parts; i++)
+                    {
+                        Point2 next = info.PointAt(i / (double)parts);
+                        segments.Add((previous, next));
+                        previous = next;
+                    }
+
+                    break;
+                }
+
+                case SymbolArc arc:
+                    segments.Add((arc.Start, arc.End));
+                    break;
+            }
+        }
+
+        double floor = r * 0.10;
+        for (int k = 0; k < count; k++)
+        {
+            double angle = Geo.TwoPi * k / count;
+            var dir = new Point2(Math.Cos(angle), Math.Sin(angle));
+            double best = 0;
+            foreach ((Point2 a, Point2 b) in segments)
+            {
+                if (RaySegment(dir, a, b, out double t) && t > best)
+                {
+                    best = t;
+                }
+            }
+
+            double radius = Math.Clamp(best > 0 ? best * 0.995 : floor, floor, r * 0.995);
+            Point2 p = Point2.Polar(radius, angle);
+            if (ring.Count == 0 || ring[^1].DistanceTo(p) >= minSpacing)
+            {
+                ring.Add(p);
+            }
+        }
+
+        while (ring.Count > 3 && ring[0].DistanceTo(ring[^1]) < minSpacing)
+        {
+            ring.RemoveAt(ring.Count - 1);
+        }
+
+        return ring;
+    }
+
+    /// <summary>Interseção do raio que parte da origem com um segmento; t é a distância ao longo do raio.</summary>
+    private static bool RaySegment(Point2 dir, Point2 a, Point2 b, out double t)
+    {
+        t = 0;
+        Point2 e = b - a;
+        double denominator = dir.Cross(e);
+        if (Math.Abs(denominator) < 1e-12)
+        {
+            return false;
+        }
+
+        t = a.Cross(e) / denominator;
+        double u = a.Cross(dir) / denominator;
+        return t > 0 && u >= -1e-9 && u <= 1 + 1e-9;
+    }
+
+    /// <summary>Manchas de floração distribuídas na copa, sem sobreposição.</summary>
+    private static IReadOnlyList<FlowerSpot> BuildFlowers(SymbolStyle style, IReadOnlyList<Point2> fill, double r, DeterministicRandom rng)
+    {
+        if (fill.Count < 3)
+        {
+            return Array.Empty<FlowerSpot>();
+        }
+
+        bool tree = style is >= SymbolStyle.ArvoreArredondada and <= SymbolStyle.ArvoreFolhagem;
+        int wanted = tree ? Math.Clamp((int)Math.Round(r * 2.4), 5, 18) : Math.Clamp((int)Math.Round(r * 9), 3, 9);
+        double spotRadius = tree ? Math.Clamp(r * 0.075, 0.03, 0.55) : Math.Clamp(r * 0.13, 0.012, 0.25);
+        if (spotRadius < 0.012)
+        {
+            return Array.Empty<FlowerSpot>();
+        }
+
+        var polygon = new Polygon2(fill);
+        var spots = new List<FlowerSpot>();
+        for (int attempt = 0; attempt < wanted * 30 && spots.Count < wanted; attempt++)
+        {
+            Point2 c = Point2.Polar(r * Math.Sqrt(rng.Range(0.05, 0.75)), rng.Range(0, Geo.TwoPi));
+            double radius = Math.Max(0.012, spotRadius * rng.Range(0.8, 1.15));
+            if (!polygon.Contains(c) || polygon.DistanceToBoundary(c) < radius * 1.25 || c.Length + radius > r * 0.98)
+            {
+                continue;
+            }
+
+            if (spots.Any(s => s.Center.DistanceTo(c) < (s.Radius + radius) * 1.35))
+            {
+                continue;
+            }
+
+            spots.Add(new FlowerSpot(c, radius));
+        }
+
+        return spots;
     }
 
     // ------------------------------------------------------------------ marcas de centro

@@ -31,7 +31,7 @@ public sealed class CatalogTests : IDisposable
     public void SeedCatalogIsConsistent()
     {
         List<Species> species = SeedCatalog.CreateSpecies();
-        Assert.True(species.Count >= 90, $"apenas {species.Count} espécies");
+        Assert.True(species.Count >= 350, $"apenas {species.Count} espécies");
         Assert.Equal(species.Count, species.Select(s => s.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count());
         Assert.Equal(species.Count, species.Select(s => s.Code).Distinct(StringComparer.OrdinalIgnoreCase).Count());
         Assert.Equal(species.Count, species.Select(s => s.ScientificName).Distinct(StringComparer.OrdinalIgnoreCase).Count());
@@ -43,6 +43,23 @@ public sealed class CatalogTests : IDisposable
             Assert.StartsWith(Labels.Prefix(s.Category) + "-", s.Code);
             Assert.False(string.IsNullOrWhiteSpace(s.BotanicalFamily), s.ScientificName);
             Assert.NotEqual(PlantOrigin.NaoInformada, s.Origin);
+            if (s.Origin == PlantOrigin.Nativa)
+            {
+                Assert.NotEqual(Biome.Nenhum, s.Biomes);
+            }
+            else
+            {
+                Assert.Equal(Biome.Nenhum, s.Biomes);
+            }
+
+            Assert.True(string.IsNullOrEmpty(s.FoliageColor) || Viridian.Core.Colors.Rgb.TryParse(s.FoliageColor, out _), s.ScientificName);
+            Assert.True(string.IsNullOrEmpty(s.FlowerColor) || Viridian.Core.Colors.Rgb.TryParse(s.FlowerColor, out _), s.ScientificName);
+            if (!string.IsNullOrEmpty(s.PhotoFile))
+            {
+                Assert.False(string.IsNullOrWhiteSpace(s.PhotoCredit), s.ScientificName);
+                Assert.Contains(s.PhotoLicense, new[] { "CC0", "CC BY", "CC BY-SA" });
+                Assert.StartsWith("https://", s.PhotoSource);
+            }
             Assert.True(s.AdultHeightM > 0, s.ScientificName);
             Assert.NotNull(HatchLibrary.Find(s.HatchPatternKey));
             Assert.Contains(s.SymbolStyle, SymbolStyles.All);
@@ -129,6 +146,10 @@ public sealed class CatalogTests : IDisposable
         SpeciesCatalog catalog = store.Load();
         Species edited = catalog.Species[0];
         edited.PopularName = "Nome do escritório";
+        edited.IsUserDefined = true;
+        edited.FlowerColor = string.Empty;
+        Species untouched = catalog.Species[1];
+        untouched.PopularName = "Nome antigo do padrão";
         string removedCode = catalog.Species[5].Code;
         catalog.Species.RemoveAt(5);
         catalog.SeedVersion = 0;
@@ -136,7 +157,12 @@ public sealed class CatalogTests : IDisposable
 
         SpeciesCatalog upgraded = new CatalogStore(CatalogFile).Load();
         Assert.Equal(SeedCatalog.CreateSpecies().Count, upgraded.Species.Count);
-        Assert.Equal("Nome do escritório", upgraded.Species.First(s => s.Id == edited.Id).PopularName);
+        Species upgradedEdited = upgraded.Species.First(s => s.Id == edited.Id);
+        Assert.Equal("Nome do escritório", upgradedEdited.PopularName);
+        Assert.Equal(edited.Code, upgradedEdited.Code);
+        Assert.False(string.IsNullOrEmpty(upgradedEdited.FlowerColor)); // campo novo completado
+        Assert.NotEqual("Nome antigo do padrão", upgraded.Species.First(s => s.Id == untouched.Id).PopularName);
+        Assert.Equal(untouched.Code, upgraded.Species.First(s => s.Id == untouched.Id).Code);
         Assert.Equal(upgraded.Species.Count, upgraded.Species.Select(s => s.Code).Distinct().Count());
         Assert.Contains(upgraded.Species, s => s.Code == removedCode);
         Assert.Equal(SeedCatalog.Version, upgraded.SeedVersion);

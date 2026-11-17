@@ -7,4 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Viridian.Core\Viridian.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Data\*.txt;Data\*.json" LogicalName="Viridian.Library.Data.%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>

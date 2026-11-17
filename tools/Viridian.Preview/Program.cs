@@ -13,6 +13,7 @@ File.WriteAllText(Path.Combine(outDir, "estilos.svg"), SvgSheets.StyleSheet());
 File.WriteAllText(Path.Combine(outDir, "perfis.svg"), SvgSheets.ProfileSheet());
 File.WriteAllText(Path.Combine(outDir, "variantes.svg"), SvgSheets.VariantSheet());
 File.WriteAllText(Path.Combine(outDir, "hachuras.svg"), SvgSheets.HatchSheet());
+File.WriteAllText(Path.Combine(outDir, "distribuicoes.svg"), SvgSheets.DistributionSheet());
 Console.WriteLine("Pranchas geradas em " + Path.GetFullPath(outDir));
 
 internal static class SvgSheets
@@ -81,6 +82,52 @@ internal static class SvgSheets
                 Draw(sb, symbol, DetailProfile.Detalhado, cx, cy, (cell - 40) / diameter);
                 Text(sb, cx, cy + cell / 2 + 10, $"Variante {v + 1}");
             }
+        }
+
+        return End(sb);
+    }
+
+    public static string DistributionSheet()
+    {
+        var bed = new Polygon2(new[]
+        {
+            new Point2(0, 0), new Point2(14, -1), new Point2(18, 6), new Point2(12, 12), new Point2(4, 11), new Point2(-1, 6),
+        });
+        var path = new[] { new Point2(-1, 1), new Point2(6, 6), new Point2(12, 3), new Point2(18, 10) };
+        var cases = new (string Title, Viridian.Core.Distribution.DistributionRequest Request, bool UseRegion)[]
+        {
+            ("Triangular", new() { Pattern = Viridian.Core.Distribution.DistributionPattern.Triangular, SpacingM = 1.2, EdgeMarginM = 0.4 }, true),
+            ("Natural", new() { Pattern = Viridian.Core.Distribution.DistributionPattern.Natural, SpacingM = 1.2, EdgeMarginM = 0.4, Seed = 4 }, true),
+            ("Linear — fileira dupla alternada", new() { Pattern = Viridian.Core.Distribution.DistributionPattern.Linear, SpacingM = 1.6, Path = path, Rows = 2, RowArrangement = Viridian.Core.Distribution.RowArrangement.Alternadas, LinearAlignment = Viridian.Core.Distribution.LinearAlignment.Ajustado }, false),
+            ("Bordadura — 2 fileiras", new() { Pattern = Viridian.Core.Distribution.DistributionPattern.Bordadura, SpacingM = 1.0, EdgeMarginM = 0.4, Rows = 2, RowArrangement = Viridian.Core.Distribution.RowArrangement.Alternadas }, true),
+            ("Circular — anéis", new() { Pattern = Viridian.Core.Distribution.DistributionPattern.Circular, SpacingM = 1.2, RowSpacingM = 1.3, EdgeMarginM = 0.4 }, true),
+            ("Agrupamentos 3–7", new() { Pattern = Viridian.Core.Distribution.DistributionPattern.Agrupamentos, SpacingM = 0.8, EdgeMarginM = 0.4, GroupGapM = 1.4, Seed = 9 }, true),
+            ("Degradê", new() { Pattern = Viridian.Core.Distribution.DistributionPattern.Gradiente, SpacingM = 0.7, EdgeMarginM = 0.3, GradientEndPercent = 5, Seed = 2 }, true),
+        };
+        const double cell = 300;
+        const double scale = 14;
+        var sb = Begin(4 * cell, 2 * (cell + 10));
+        for (int i = 0; i < cases.Length; i++)
+        {
+            double ox = (i % 4) * cell + 30;
+            double oy = (i / 4) * (cell + 10) + 250;
+            var result = Viridian.Core.Distribution.PlantDistributor.Distribute(cases[i].UseRegion ? bed : null, cases[i].Request);
+            if (cases[i].UseRegion)
+            {
+                var ring = bed.Rings[0];
+                sb.Append("<polygon points=\"" + string.Join(" ", ring.Select(p => (ox + p.X * scale).ToString("0.#", Inv) + "," + (oy - p.Y * scale).ToString("0.#", Inv))) + "\" fill=\"#EEF5F0\" stroke=\"#2F6B4F\" stroke-width=\"1.2\"/>");
+            }
+            else
+            {
+                sb.Append("<polyline points=\"" + string.Join(" ", path.Select(p => (ox + p.X * scale).ToString("0.#", Inv) + "," + (oy - p.Y * scale).ToString("0.#", Inv))) + "\" fill=\"none\" stroke=\"#C88A12\" stroke-width=\"1.2\" stroke-dasharray=\"4 3\"/>");
+            }
+
+            foreach (Point2 p in result.Points)
+            {
+                sb.Append(Inv, $"<circle cx=\"{ox + p.X * scale:0.#}\" cy=\"{oy - p.Y * scale:0.#}\" r=\"{0.45 * scale:0.#}\" fill=\"#9CC48A\" stroke=\"#2F6B4F\" stroke-width=\"0.8\"/>");
+            }
+
+            Text(sb, ox + 120, oy + 40, $"{cases[i].Title} · {result.Points.Count} un");
         }
 
         return End(sb);

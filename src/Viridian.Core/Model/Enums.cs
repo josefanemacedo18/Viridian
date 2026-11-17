@@ -55,6 +55,19 @@ public enum LightNeed
     Sombra = 3,
 }
 
+/// <summary>Biomas brasileiros de ocorrência natural (combináveis).</summary>
+[Flags]
+public enum Biome
+{
+    Nenhum = 0,
+    Amazonia = 1,
+    Caatinga = 2,
+    Cerrado = 4,
+    MataAtlantica = 8,
+    Pampa = 16,
+    Pantanal = 32,
+}
+
 /// <summary>Situação do exemplar no projeto.</summary>
 public enum PlantStatus
 {
@@ -181,6 +194,23 @@ public static class Labels
         LightNeed.MeiaSombra => "Meia-sombra",
         LightNeed.Sombra => "Sombra",
         _ => "Não informada",
+    };
+
+    public static readonly IReadOnlyList<Biome> Biomes = new[]
+    {
+        Biome.Amazonia, Biome.Caatinga, Biome.Cerrado, Biome.MataAtlantica, Biome.Pampa, Biome.Pantanal,
+    };
+
+    public static string Of(Biome biome) => biome switch
+    {
+        Biome.Amazonia => "Amazônia",
+        Biome.Caatinga => "Caatinga",
+        Biome.Cerrado => "Cerrado",
+        Biome.MataAtlantica => "Mata Atlântica",
+        Biome.Pampa => "Pampa",
+        Biome.Pantanal => "Pantanal",
+        Biome.Nenhum => "—",
+        _ => string.Join(", ", Biomes.Where(b => biome.HasFlag(b)).Select(Of)),
     };
 
     public static string Of(PlantStatus status) => status switch

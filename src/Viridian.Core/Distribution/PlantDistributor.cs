@@ -11,6 +11,51 @@ public enum DistributionPattern
     Natural = 3,
     Densidade = 4,
     Manual = 5,
+
+    /// <summary>Fileiras que acompanham o contorno da região (bordaduras e cercas vivas de canteiro).</summary>
+    Bordadura = 6,
+
+    /// <summary>Anéis concêntricos dentro da região, ou um círculo definido por centro e raio.</summary>
+    Circular = 7,
+
+    /// <summary>Manchas naturalistas com quantidades ímpares de plantas (3, 5, 7...).</summary>
+    Agrupamentos = 8,
+
+    /// <summary>Distribuição natural com densidade decrescente de um lado para o outro (degradê).</summary>
+    Gradiente = 9,
+}
+
+/// <summary>Como o plantio linear define a quantidade de exemplares.</summary>
+public enum LinearMode
+{
+    /// <summary>Pelo espaçamento informado.</summary>
+    Espacamento = 0,
+
+    /// <summary>Por uma quantidade fixa, dividida igualmente ao longo do eixo.</summary>
+    Quantidade = 1,
+}
+
+/// <summary>Posição da primeira planta no plantio linear.</summary>
+public enum LinearAlignment
+{
+    /// <summary>Começa no primeiro ponto do eixo.</summary>
+    Inicio = 0,
+
+    /// <summary>Distribui a sobra igualmente nas duas extremidades.</summary>
+    Centralizado = 1,
+
+    /// <summary>Ajusta o espaçamento para que as duas extremidades recebam plantas.</summary>
+    Ajustado = 2,
+}
+
+/// <summary>Disposição das fileiras no plantio linear.</summary>
+public enum RowArrangement
+{
+    /// <summary>Plantas alinhadas entre fileiras.</summary>
+    Paralelas = 0,
+
+    /// <summary>Fileiras desencontradas meio espaçamento (zigue-zague).</summary>
+    Alternadas = 1,
 }
 
 /// <summary>Obstáculo circular (por exemplo, um exemplar existente) que os novos pontos devem evitar.</summary>
@@ -48,8 +93,41 @@ public sealed class DistributionRequest
     /// <summary>Eixo do plantio linear (polilinha aberta).</summary>
     public IReadOnlyList<Point2> Path { get; set; } = Array.Empty<Point2>();
 
-    /// <summary>Deslocamento lateral em relação ao eixo do plantio linear, em metros.</summary>
+    /// <summary>Deslocamento lateral em relação ao eixo do plantio linear, em metros (positivo = à esquerda).</summary>
     public double PathOffsetM { get; set; }
+
+    /// <summary>O eixo é fechado (o último ponto se liga ao primeiro).</summary>
+    public bool PathClosed { get; set; }
+
+    public LinearMode LinearMode { get; set; } = LinearMode.Espacamento;
+
+    public LinearAlignment LinearAlignment { get; set; } = LinearAlignment.Inicio;
+
+    /// <summary>Quantidade de exemplares por fileira no modo Quantidade.</summary>
+    public int Count { get; set; }
+
+    /// <summary>Quantidade de fileiras (plantio linear e bordadura).</summary>
+    public int Rows { get; set; } = 1;
+
+    public RowArrangement RowArrangement { get; set; } = RowArrangement.Paralelas;
+
+    /// <summary>Centro do plantio circular sem região.</summary>
+    public Point2? CircleCenter { get; set; }
+
+    /// <summary>Raio do plantio circular sem região, em metros.</summary>
+    public double CircleRadiusM { get; set; }
+
+    /// <summary>Menor quantidade de plantas por mancha (agrupamentos).</summary>
+    public int GroupSizeMin { get; set; } = 3;
+
+    /// <summary>Maior quantidade de plantas por mancha (agrupamentos).</summary>
+    public int GroupSizeMax { get; set; } = 7;
+
+    /// <summary>Distância livre entre manchas, em metros. Zero = um espaçamento.</summary>
+    public double GroupGapM { get; set; }
+
+    /// <summary>Densidade no fim do degradê, em porcentagem da densidade inicial (0 a 100).</summary>
+    public double GradientEndPercent { get; set; } = 15;
 
     public IReadOnlyList<Obstacle> Obstacles { get; set; } = Array.Empty<Obstacle>();
 }
@@ -73,7 +151,7 @@ public sealed class DistributionResult
 }
 
 /// <summary>Calcula os pontos de plantio dentro de uma região respeitando limites, afastamentos e espaçamentos.</summary>
-public static class PlantDistributor
+public static partial class PlantDistributor
 {
     /// <summary>Limite de segurança de exemplares por operação.</summary>
     public const int HardLimit = 20000;
@@ -96,6 +174,11 @@ public static class PlantDistributor
             return DistributeLinear(region, request);
         }
 
+        if (request.Pattern == DistributionPattern.Circular && (region is null || region.IsEmpty) && request.CircleCenter.HasValue)
+        {
+            return DistributeCircle(request);
+        }
+
         if (region is null || region.IsEmpty || region.Area <= 0)
         {
             return new DistributionResult { Message = "A região selecionada não possui área válida." };
@@ -108,9 +191,16 @@ public static class PlantDistributor
         }
 
         int limit = request.MaxCount > 0 ? Math.Min(request.MaxCount, HardLimit) : HardLimit;
-        List<Point2>? points = request.Pattern == DistributionPattern.Natural
-            ? Poisson(region, request, spacing, limit, out int computed)
-            : Lattice(region, request, spacing, out computed);
+        int computed;
+        List<Point2>? points = request.Pattern switch
+        {
+            DistributionPattern.Natural => Poisson(region, request, spacing, limit, out computed),
+            DistributionPattern.Bordadura => Border(region, request, spacing, limit, out computed),
+            DistributionPattern.Circular => Rings(region, request, spacing, limit, out computed),
+            DistributionPattern.Agrupamentos => Groups(region, request, spacing, limit, out computed),
+            DistributionPattern.Gradiente => Gradient(region, request, spacing, limit, out computed),
+            _ => Lattice(region, request, spacing, out computed),
+        };
 
         if (points is null || computed > limit)
         {
@@ -356,73 +446,5 @@ public static class PlantDistributor
 
         computed = points.Count;
         return points;
-    }
-
-    // ------------------------------------------------------------------ plantio linear
-
-    private static DistributionResult DistributeLinear(Polygon2? region, DistributionRequest request)
-    {
-        double spacing = request.SpacingM;
-        if (!(spacing >= MinSpacing))
-        {
-            return new DistributionResult { Message = $"O espaçamento deve ser de pelo menos {MinSpacing * 100:0} cm." };
-        }
-
-        IReadOnlyList<Point2> path = request.Path;
-        if (path.Count < 2 || Geo.PolylineLength(path) < 1e-6)
-        {
-            return new DistributionResult { Message = "Defina o eixo do plantio linear com pelo menos dois pontos." };
-        }
-
-        double total = Geo.PolylineLength(path);
-        int count = (int)Math.Floor(total / spacing + 1e-9) + 1;
-        int limit = request.MaxCount > 0 ? Math.Min(request.MaxCount, HardLimit) : HardLimit;
-        if (count > limit)
-        {
-            return new DistributionResult
-            {
-                ComputedCount = count,
-                Exceeded = true,
-                EffectiveSpacingM = spacing,
-                Message = $"A distribuição resultaria em {count} exemplares, acima do máximo de {limit}.",
-            };
-        }
-
-        var result = new List<Point2>(count);
-        int segment = 0;
-        double segmentStart = 0;
-        for (int k = 0; k < count; k++)
-        {
-            double target = k * spacing;
-            while (segment < path.Count - 2 && segmentStart + path[segment].DistanceTo(path[segment + 1]) < target)
-            {
-                segmentStart += path[segment].DistanceTo(path[segment + 1]);
-                segment++;
-            }
-
-            Point2 a = path[segment];
-            Point2 b = path[segment + 1];
-            double length = a.DistanceTo(b);
-            double t = length < 1e-12 ? 0 : Math.Clamp((target - segmentStart) / length, 0, 1);
-            Point2 p = Point2.Lerp(a, b, t);
-            if (request.PathOffsetM != 0)
-            {
-                p += (b - a).Normalized().Perp() * request.PathOffsetM;
-            }
-
-            bool insideRegion = region is null || region.IsEmpty || region.ContainsWithMargin(p, request.EdgeMarginM);
-            if (insideRegion && !request.Obstacles.Any(o => p.DistanceTo(o.Center) < o.Radius))
-            {
-                result.Add(p);
-            }
-        }
-
-        return new DistributionResult
-        {
-            Points = result,
-            ComputedCount = result.Count,
-            EffectiveSpacingM = spacing,
-            Message = result.Count == 0 ? "Nenhum ponto do eixo ficou dentro da região." : string.Empty,
-        };
     }
 }
