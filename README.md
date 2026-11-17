@@ -22,7 +22,7 @@ Antes de usar em projetos reais, siga o [roteiro de testes](docs/ROTEIRO_DE_TEST
 
 ## Módulos e ferramentas
 
-A aba **Viridian** tem oito painéis. **Buscar Espécie** é a biblioteca completa (consulta, filtros e cadastro); **Inserir** é a inserção rápida.
+A aba **Viridian** tem dez painéis. **Buscar Espécie** é a biblioteca completa (consulta, filtros e cadastro); **Inserir** é a inserção rápida.
 
 ### Biblioteca
 
@@ -32,6 +32,8 @@ A aba **Viridian** tem oito painéis. **Buscar Espécie** é a biblioteca comple
 | **Cadastro de espécies** | Nova, editar, duplicar e excluir. Além dos dados botânicos e de plantio: biomas de ocorrência, **cor da folhagem**, **cor da flor**, fotografia própria e **códigos da tabela de preços** (insumo e serviço de plantio). |
 | **Importar Família** | Assistente "Importar símbolo personalizado": verifica categoria, linhas 2D, ponto de inserção e tipos; registra a família na biblioteca e a associa a uma espécie. |
 | **Atualizar Dados** | Sincroniza o projeto com o catálogo: dados dos tipos, símbolos regerados quando o desenho ou as cores mudaram, maciços e etiquetas. |
+
+Cada espécie tem **textura** (fina, média ou grossa, sugerida pelo gênero e pela forma e ajustável no cadastro) e **escala visual** (miúda, média ou monumental, calculada pelo porte adulto), usadas na composição dos canteiros.
 
 O catálogo padrão traz **382 espécies** usadas no paisagismo brasileiro: 196 nativas (com os biomas de ocorrência: Amazônia, Caatinga, Cerrado, Mata Atlântica, Pampa e Pantanal) e 186 exóticas comuns no Brasil, com as **invasoras sinalizadas**. São 141 árvores, 36 palmeiras, 53 arbustos, 58 herbáceas, 31 forrações, 8 gramados, 32 trepadeiras e 23 aquáticas. **380 têm fotografia** (iNaturalist, somente licenças CC0, CC BY e CC BY-SA, com os créditos na ficha e em `Fotos\CREDITOS.txt`). Alturas, copas, espaçamentos e densidades são **referências de projeto** e devem ser conferidos pelo responsável técnico.
 
@@ -84,6 +86,37 @@ O catálogo padrão traz **382 espécies** usadas no paisagismo brasileiro: 196 
 | **Exportar CAD** | Exporta vistas e pranchas para **DWG** (2007 a 2018, em metros ou milímetros, com cores e preenchimentos da vista, opção de coordenadas compartilhadas) e gera a **biblioteca de blocos DXF** dos símbolos (espécies do projeto ou catálogo inteiro), com camadas por nível de detalhe, preenchimento e floração. |
 | **Tabelas Nativas** | Cria as tabelas de vegetação do Revit (por espécie e por exemplar). |
 
+### Composição
+
+| Ferramenta | O que faz |
+|---|---|
+| **Ateliê de Paletas** | Escolha de espécies pela cor: harmonias **monocromática, análoga, complementar e tríade** a partir de um matiz, ou **paletas prontas** (quente tropical, branco e verde, rosa e lilás, azul e roxo, entre outras). Filtra por categoria, somente nativas, somente com floração vistosa e **meses de floração** desejados. As espécies aparecem em ordem de afinidade com a cor da flor e da folhagem, com símbolo e foto; dali é possível inserir ou distribuir. Funciona mesmo sem projeto aberto. |
+| **Verificar Canteiro** | Escolha a região: o canteiro é avaliado por **equilíbrio** (espécie dominante), **diversidade**, **contraste de texturas**, **escala** em relação às dimensões do canteiro, **sub-bosque** sob palmeiras e árvores, e **meses sem floração vistosa**. As observações são recomendações de composição, com clique duplo para ver as plantas; os limites ficam em Configurações > Composição. |
+| **Calendário de Floração** | Quadro de **janeiro a dezembro** com o que floresce no projeto, cada mês pintado na cor da flor, a quantidade de cada espécie e os **meses sem floração** destacados. É criado como vista de desenho, pronta para a prancha. |
+
+![Calendário de floração](docs/img/calendario.jpg)
+
+### Detalhamento
+
+| Ferramenta | O que faz |
+|---|---|
+| **Memorial Ilustrado** | Memorial descritivo em **Word editável** (`.docx`): capa com mosaico de fotos, partido paisagístico (texto-base para completar), paleta vegetal, **ficha de cada espécie com foto**, calendário de floração, especificações de plantio, manutenção e créditos das fotografias. Os dados do projeto vêm de Gerenciar > Informações do projeto. |
+| **Detalhe de Plantio** | Detalhes em corte de **cova de árvore** (com tutor e amarrio), **berço de palmeira**, **cova de arbusto**, **canteiro de forração** e **gramado**, com cotas, chamadas e as **notas de especificação** de cada espécie. As dimensões da cova seguem a altura da muda. |
+| **Corte Esquemático** | Desenhe uma linha na planta: as plantas cortadas (e próximas à linha) aparecem em **silhueta** com altura e copa reais, conforme o tipo (árvore pela forma da copa, palmeira, arbusto, forração), com régua de alturas e códigos. Pode mostrar a vegetação **no plantio, aos 3 ou 6 anos ou na maturidade**. |
+| **Crescimento 2D** | O mesmo canteiro em quatro quadros, **no plantio, aos 3 anos, aos 6 anos e na maturidade**, com as copas estimadas pela taxa de crescimento de cada espécie: mostra quando o canteiro fecha e onde haverá sobreposição. |
+
+As notas de especificação são montadas a partir de **modelos editáveis** (Configurações > Composição): um modelo geral e um por tipo de plantio (árvore, palmeira, arbusto, forração, gramado), com campos como `{nome_popular}`, `{altura_muda}`, `{cova_largura}`, `{cova_profundidade}`, `{camada_solo}`, `{tutor}` e `{espacamento}`.
+
+Os valores de cova, camada de solo, tutoramento e crescimento são **referências de projeto** e devem ser conferidos pelo responsável técnico.
+
+![Detalhe de plantio de árvore](docs/img/detalhe-arvore.jpg)
+
+![Corte esquemático](docs/img/corte.jpg)
+
+![Simulação de crescimento](docs/img/crescimento.jpg)
+
+![Memorial ilustrado](docs/img/memorial.jpg)
+
 ### Verificação
 
 | Ferramenta | O que faz |
@@ -96,7 +129,7 @@ O catálogo padrão traz **382 espécies** usadas no paisagismo brasileiro: 196 
 | Ferramenta | O que faz |
 |---|---|
 | **Escalas** | Perfis de representação **Detalhado**, **Intermediário**, **Simplificado** e **Mínimo**. A dimensão real do símbolo nunca muda; só o detalhamento. |
-| **Configurações** | Biblioteca, escalas, padrão gráfico das linhas, **cores** (preenchimento sólido ou reticulado, clareamento, floração, maciços coloridos e cor-base de cada categoria, com pré-visualização), **interferências**, **acessibilidade**, maciços, plantio, codificação, análise, etiquetas e hachuras do escritório. |
+| **Configurações** | Biblioteca, escalas, padrão gráfico das linhas, **cores** (preenchimento sólido ou reticulado, clareamento, floração, maciços coloridos e cor-base de cada categoria, com pré-visualização), **interferências**, **composição** (limites das regras e modelos das notas de especificação), **acessibilidade**, maciços, plantio, codificação, análise, etiquetas e hachuras do escritório. |
 | **Sobre** | Versão e atalhos para as pastas da biblioteca, de configurações e de registros. |
 
 ---
@@ -186,16 +219,16 @@ No Windows, use `build\package.ps1`. O pacote é gerado em `dist/`.
 
 | Projeto | Responsabilidade |
 |---|---|
-| `Viridian.Core` | Regras sem dependência do Revit: geometria, símbolos e cores, distribuição e eixos de plantio, maciços, escalas, codificação, hachuras, relatórios, orçamento e leitura de tabelas de preços, cronograma de manutenção, interferências, diagramação de pranchas, verificação e exportação `.xlsx` e `.dxf` |
+| `Viridian.Core` | Regras sem dependência do Revit: geometria, símbolos e cores, distribuição e eixos de plantio, maciços, escalas, codificação, hachuras, relatórios, orçamento e leitura de tabelas de preços, cronograma de manutenção, interferências, diagramação de pranchas, verificação, composição (paletas, texturas, calendário de floração, regras de canteiro), detalhamento (detalhes de plantio, cortes, crescimento, especificações), memorial e exportação `.xlsx`, `.docx` e `.dxf` |
 | `Viridian.Library` | Catálogo botânico, catálogo padrão (dados e créditos das fotos), tabela de preços, configurações, pastas e registro de erros |
-| `Viridian.Revit` | Integração com a API: parâmetros compartilhados, Extensible Storage, famílias com copa colorida, plantio, eixos, maciços, perfis de escala, etiquetas, legenda, tabelas, pranchas, exportação DWG e leitura de redes nos vínculos |
+| `Viridian.Revit` | Integração com a API: parâmetros compartilhados, Extensible Storage, famílias com copa colorida, plantio, eixos, maciços, perfis de escala, etiquetas, legenda, tabelas, pranchas, exportação DWG, leitura de redes nos vínculos e desenho das vistas de detalhamento |
 | `Viridian.UI` | Janelas WPF |
 | `Viridian.Addin` | `IExternalApplication`, faixa de opções, comandos e atualização automática de escala |
 | `tests/Viridian.Tests` | Testes automatizados (xUnit) |
-| `tools/Viridian.Preview` | Gera pranchas SVG dos símbolos, cores, distribuições e hachuras para conferência visual |
+| `tools/Viridian.Preview` | Gera pranchas SVG dos símbolos, cores, distribuições, hachuras e detalhamentos, e um memorial de exemplo, para conferência visual |
 
 ---
 
 ## Fora do escopo
 
-Modelagem 3D de vegetação, renderização, modelos volumétricos, simulação de crescimento, levantamento arbóreo, cálculo de volume de solo, modelagem de terrenos, ferramentas de desenho de pisos e sistemas de tabelas paralelos ao Revit.
+Modelagem 3D de vegetação, renderização, modelos volumétricos, levantamento arbóreo, cálculo de volume de solo, modelagem de terrenos, ferramentas de desenho de pisos e sistemas de tabelas paralelos ao Revit.

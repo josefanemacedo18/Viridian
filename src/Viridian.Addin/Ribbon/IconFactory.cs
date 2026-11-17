@@ -276,6 +276,76 @@ internal static class IconFactory
                 Arrow(dc, new Point(18, 17), new Point(30, 17), accent);
                 break;
 
+            case "palette":
+            {
+                dc.DrawEllipse(Fill(Colors.White), main, new Point(16, 16), 13, 11);
+                Color[] dots = { Color.FromRgb(0x9B, 0x6B, 0xD3), Color.FromRgb(0xF2, 0xC2, 0x30), Color.FromRgb(0xE5, 0x60, 0x9A), Color.FromRgb(0x4E, 0x8A, 0x3E) };
+                Point[] at = { new(10, 12), new(16, 9), new(22, 12), new(22, 19) };
+                for (int i = 0; i < dots.Length; i++)
+                {
+                    dc.DrawEllipse(Fill(dots[i]), null, at[i], 3, 3);
+                }
+
+                dc.DrawEllipse(Fill(Colors.White), thin, new Point(11, 20), 2.5, 2.5);
+                break;
+            }
+
+            case "composition":
+                dc.DrawRoundedRectangle(light, main, new Rect(3, 6, 26, 20), 4, 4);
+                Crown(dc, new Point(11, 14), 5, 7, thin, Fill(Color.FromRgb(0x6E, 0x9E, 0x36)));
+                Crown(dc, new Point(21, 18), 4, 6, thin, Fill(Color.FromRgb(0x9B, 0x6B, 0xD3)));
+                dc.DrawEllipse(Fill(Accent), null, new Point(25, 9), 3.5, 3.5);
+                break;
+
+            case "calendar":
+                dc.DrawRoundedRectangle(Fill(Colors.White), main, new Rect(3, 5, 26, 23), 2, 2);
+                dc.DrawRectangle(green, null, new Rect(3, 5, 26, 5));
+                for (int r = 0; r < 3; r++)
+                {
+                    for (int c = 0; c < 4; c++)
+                    {
+                        bool on = (r + c) % 3 == 0;
+                        dc.DrawRectangle(on ? Fill(Color.FromRgb(0xE5, 0x60, 0x9A)) : light, null, new Rect(5 + c * 6, 12 + r * 5, 4.5, 3.5));
+                    }
+                }
+
+                break;
+
+            case "memorial":
+                dc.DrawRectangle(Fill(Colors.White), main, new Rect(6, 3, 20, 26));
+                dc.DrawRectangle(light, thin, new Rect(9, 6, 14, 9));
+                Crown(dc, new Point(16, 10.5), 3.5, 6, thin, Fill(Color.FromRgb(0x6E, 0x9E, 0x36)));
+                for (int i = 0; i < 4; i++)
+                {
+                    dc.DrawLine(thin, new Point(9, 18 + i * 2.6), new Point(i == 3 ? 17 : 23, 18 + i * 2.6));
+                }
+
+                break;
+
+            case "detail":
+                dc.DrawLine(main, new Point(2, 16), new Point(30, 16));
+                dc.DrawRectangle(Fill(Color.FromRgb(0xE3, 0xD3, 0xB8)), main, new Rect(9, 16, 14, 12));
+                dc.DrawEllipse(Fill(Color.FromRgb(0xA9, 0x8A, 0x63)), null, new Point(16, 20), 4, 3);
+                dc.DrawLine(main, new Point(16, 17), new Point(16, 8));
+                Crown(dc, new Point(16, 7), 5, 6, thin, light);
+                break;
+
+            case "section":
+                dc.DrawLine(main, new Point(2, 27), new Point(30, 27));
+                dc.DrawLine(main, new Point(9, 27), new Point(9, 17));
+                dc.DrawEllipse(light, main, new Point(9, 12), 6, 7);
+                dc.DrawLine(main, new Point(23, 27), new Point(23, 22));
+                dc.DrawEllipse(Fill(Color.FromRgb(0x9B, 0x6B, 0xD3)), thin, new Point(23, 19), 5, 4);
+                break;
+
+            case "growth":
+                dc.DrawLine(thin, new Point(2, 27), new Point(30, 27));
+                dc.DrawEllipse(light, thin, new Point(6, 24), 2.5, 2.5);
+                dc.DrawEllipse(light, thin, new Point(14, 21), 4.5, 4.5);
+                dc.DrawEllipse(light, main, new Point(24, 16), 7, 8);
+                Arrow(dc, new Point(4, 9), new Point(14, 4), accent);
+                break;
+
             case "photos":
                 dc.DrawRectangle(Fill(Colors.White), main, new Rect(3, 5, 15, 12));
                 dc.DrawGeometry(light, thin, Geometry.Parse("M 4,16 L 8,11 L 11,14 L 14,10 L 17,16 Z"));

@@ -28,6 +28,22 @@ public sealed class CatalogTests : IDisposable
     private string CatalogFile => Path.Combine(_folder, "Dados", "catalogo.json");
 
     [Fact]
+    public void SeedCatalogFile_HasNoProgrammingLeftovers()
+    {
+        string? root = AppContext.BaseDirectory;
+        while (root is not null && !File.Exists(Path.Combine(root, "Viridian.slnx")))
+        {
+            root = Path.GetDirectoryName(root);
+        }
+
+        string text = File.ReadAllText(Path.Combine(root!, "src", "Viridian.Library", "Data", "catalogo-padrao.txt"));
+        foreach (string leftover in new[] { "string.Empty", "null", "undefined", "NaN", "TODO" })
+        {
+            Assert.DoesNotContain("|" + leftover + "|", text);
+        }
+    }
+
+    [Fact]
     public void SeedCatalog_PhotosCoverAlmostEverySpeciesAndFilesExist()
     {
         List<Species> species = SeedCatalog.CreateSpecies();

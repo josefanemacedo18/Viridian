@@ -11,6 +11,8 @@ using Viridian.Core.Symbols;
 using Viridian.Core.Costs;
 using Viridian.Core.Maintenance;
 using Viridian.Core.Interference;
+using Viridian.Core.Composition;
+using Viridian.Core.Detailing;
 
 namespace Viridian.Core.Config;
 
@@ -145,6 +147,12 @@ public sealed class ViridianSettings
     /// <summary>Tamanho do texto e contraste das janelas do Viridian.</summary>
     public AccessibilitySettings Accessibility { get; set; } = new();
 
+    /// <summary>Regras de composição dos canteiros.</summary>
+    public CompositionSettings Composition { get; set; } = new();
+
+    /// <summary>Modelos das notas de especificação de plantio.</summary>
+    public SpecificationSettings Specifications { get; set; } = new();
+
     public TierStyle StyleOf(SymbolTier tier) =>
         TierStyles.FirstOrDefault(s => s.Tier == tier) ?? DefaultTierStyles().FirstOrDefault(s => s.Tier == tier) ?? new TierStyle { Tier = tier };
 
@@ -166,6 +174,10 @@ public sealed class ViridianSettings
         Interference.Normalize();
         Accessibility ??= new AccessibilitySettings();
         Accessibility.Normalize();
+        Composition ??= new CompositionSettings();
+        Composition.Normalize();
+        Specifications ??= new SpecificationSettings();
+        Specifications.Normalize();
         Density ??= new DensityRules();
         Density.Normalize();
         InstanceCode ??= new InstanceCodeFormat();

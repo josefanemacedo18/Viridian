@@ -279,6 +279,10 @@ public sealed class CatalogStore
             species.BotanicalFamily ??= string.Empty;
             species.SupplyUnit = string.IsNullOrWhiteSpace(species.SupplyUnit) ? "muda" : species.SupplyUnit.Trim();
             species.Flowering ??= string.Empty;
+            if (species.Flowering.Trim() == "string.Empty")
+            {
+                species.Flowering = string.Empty; // sobra de uma versão anterior do catálogo padrão
+            }
             species.Notes ??= string.Empty;
             species.HatchPatternKey ??= string.Empty;
             species.PhotoFile ??= string.Empty;
@@ -403,6 +407,11 @@ public sealed class CatalogStore
         if (current.Biomes == Biome.Nenhum)
         {
             current.Biomes = seed.Biomes;
+        }
+
+        if (current.Texture == Texture.NaoInformada)
+        {
+            current.Texture = seed.Texture;
         }
 
         if (string.IsNullOrWhiteSpace(current.FoliageColor))

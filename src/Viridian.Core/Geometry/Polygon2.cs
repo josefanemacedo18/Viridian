@@ -203,6 +203,54 @@ public sealed class Polygon2
     }
 
     /// <summary>Centroide ponderado pela área (pode ficar fora de polígonos côncavos).</summary>
+    /// <summary>
+    /// Largura e comprimento do menor retângulo que envolve o contorno externo (pela direção de cada aresta),
+    /// útil para canteiros inclinados em relação aos eixos.
+    /// </summary>
+    public (double Width, double Length) OrientedSize()
+    {
+        if (IsEmpty)
+        {
+            return (0, 0);
+        }
+
+        IReadOnlyList<Point2> ring = _rings[0];
+        double bestArea = double.PositiveInfinity;
+        (double, double) best = (Bounds.Width, Bounds.Height);
+        for (int i = 0; i < ring.Count; i++)
+        {
+            Point2 edge = ring[(i + 1) % ring.Count] - ring[i];
+            if (edge.Length < 1e-9)
+            {
+                continue;
+            }
+
+            Point2 u = edge.Normalized();
+            Point2 v = u.Perp();
+            double minU = double.MaxValue, maxU = double.MinValue, minV = double.MaxValue, maxV = double.MinValue;
+            foreach (Point2 p in ring)
+            {
+                double a = p.Dot(u);
+                double b = p.Dot(v);
+                minU = Math.Min(minU, a);
+                maxU = Math.Max(maxU, a);
+                minV = Math.Min(minV, b);
+                maxV = Math.Max(maxV, b);
+            }
+
+            double area = (maxU - minU) * (maxV - minV);
+            if (area < bestArea)
+            {
+                bestArea = area;
+                double w1 = maxU - minU;
+                double w2 = maxV - minV;
+                best = (Math.Min(w1, w2), Math.Max(w1, w2));
+            }
+        }
+
+        return best;
+    }
+
     public Point2 Centroid()
     {
         double areaSum = 0, cx = 0, cy = 0;

@@ -16,6 +16,8 @@ using Viridian.Library;
 using Viridian.Core.Colors;
 using Viridian.UI.Controls;
 using Viridian.Core.Interference;
+using Viridian.Core.Composition;
+using Viridian.Core.Detailing;
 
 namespace Viridian.UI.Windows;
 
@@ -138,6 +140,8 @@ public partial class SettingsWindow : ViridianWindow
     private List<TierRow> _tiers = new();
     private List<CategoryColorRow> _categoryColors = new();
     private List<InterferenceRuleRow> _interferenceRules = new();
+    private Dictionary<string, string> _specTemplates = new();
+    private bool _specLoading;
     private readonly List<(SymbolPreview View, Species Sample)> _colorPreviews = new();
     private bool _loading = true;
 
@@ -195,6 +199,7 @@ public partial class SettingsWindow : ViridianWindow
         LoadColors(s.Colors);
         TextScaleBox.SelectedIndex = Math.Max(0, AccessibilitySettings.Scales.ToList().FindIndex(x => Math.Abs(x - s.Accessibility.TextScale) < 0.01));
         HighContrastBox.IsChecked = s.Accessibility.HighContrast;
+        LoadComposition(s);
         _interferenceRules = s.Interference.Rules.Select(r => new InterferenceRuleRow(r)).ToList();
         InterferenceList.ItemsSource = _interferenceRules;
         CrownFactorBox.Text = Num.Format(s.Interference.BuildingCrownFactor, "0.##");
@@ -318,6 +323,77 @@ public partial class SettingsWindow : ViridianWindow
                 SymbolPaint.For(sample, preview.Colors),
                 preview);
         }
+    }
+
+    private void LoadComposition(ViridianSettings s)
+    {
+        CompositionSettings c = s.Composition;
+        RuleShareBox.IsChecked = c.CheckShare;
+        MaxShareBox.Text = Num.Format(c.MaxSharePercent);
+        RuleDiversityBox.IsChecked = c.CheckDiversity;
+        MinSpeciesBox.Text = c.MinSpecies.ToString(Num.PtBr);
+        MinAreaBox.Text = Num.Format(c.MinAreaForDiversityM2);
+        RuleScaleBox.IsChecked = c.CheckScale;
+        MaxCrownBox.Text = Num.Format(c.MaxCrownToBedPercent);
+        RuleTextureBox.IsChecked = c.CheckTexture;
+        RulePalmBox.IsChecked = c.CheckPalmUnderstory;
+        RuleFloweringBox.IsChecked = c.CheckFlowering;
+
+        s.Specifications.Normalize();
+        _specTemplates = new Dictionary<string, string>(s.Specifications.Templates);
+        _specLoading = true;
+        SpecKindBox.Items.Clear();
+        SpecKindBox.Items.Add(new Choice<string>("Geral (todas as espécies)", SpecificationTemplates.GeneralKey));
+        foreach (DetailKind kind in Enum.GetValues<DetailKind>())
+        {
+            SpecKindBox.Items.Add(new Choice<string>(PlantingDetails.Name(kind), kind.ToString()));
+        }
+
+        SpecKindBox.SelectedIndex = 0;
+        _specLoading = false;
+        ShowSpec();
+    }
+
+    private string SpecKey => (SpecKindBox.SelectedItem as Choice<string>)?.Value ?? SpecificationTemplates.GeneralKey;
+
+    private void ShowSpec()
+    {
+        _specLoading = true;
+        SpecTextBox.Text = _specTemplates.TryGetValue(SpecKey, out string? text) ? text : string.Empty;
+        _specLoading = false;
+        UpdateSpecHint();
+    }
+
+    private void UpdateSpecHint()
+    {
+        IReadOnlyList<string> unknown = SpecificationTemplates.UnknownFields(SpecTextBox.Text);
+        SpecFieldsText.Text = "Campos: " + string.Join(", ", SpecificationTemplates.Fields.Select(f => "{" + f + "}"))
+                              + (unknown.Count > 0 ? "\nCampo(s) desconhecido(s): " + string.Join(", ", unknown.Select(f => "{" + f + "}")) : string.Empty);
+    }
+
+    private void SpecKind_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_specLoading)
+        {
+            ShowSpec();
+        }
+    }
+
+    private void SpecText_Changed(object sender, TextChangedEventArgs e)
+    {
+        if (_specLoading)
+        {
+            return;
+        }
+
+        _specTemplates[SpecKey] = SpecTextBox.Text;
+        UpdateSpecHint();
+    }
+
+    private void SpecDefault_Click(object sender, RoutedEventArgs e)
+    {
+        _specTemplates[SpecKey] = SpecificationTemplates.Defaults()[SpecKey];
+        ShowSpec();
     }
 
     private void ColorSelection_Changed(object sender, SelectionChangedEventArgs e) => UpdateColorPreview();
@@ -618,6 +694,18 @@ public partial class SettingsWindow : ViridianWindow
         }
 
         double crownFactor = Number(CrownFactorBox, "Fração do raio da copa até a fachada", 0, 1.5);
+        double maxShare = Number(MaxShareBox, "Participação máxima de uma espécie", 5, 100);
+        int minSpecies = Integer(MinSpeciesBox, "Mínimo de espécies por canteiro", 1, 20);
+        double minArea = Number(MinAreaBox, "Área mínima para exigir diversidade", 0, 10000);
+        double maxCrown = Number(MaxCrownBox, "Copa adulta em relação ao canteiro", 20, 300);
+        foreach ((string key, string specText) in _specTemplates)
+        {
+            IReadOnlyList<string> unknown = SpecificationTemplates.UnknownFields(specText);
+            if (unknown.Count > 0)
+            {
+                problems.Add($"Nota de especificação \"{key}\": campo(s) desconhecido(s) " + string.Join(", ", unknown.Select(f => "{" + f + "}")) + ".");
+            }
+        }
         double crownTint = Number(CrownTintBox, "Clareamento da copa", 0, 85);
         double massingTint = Number(MassingTintBox, "Clareamento do fundo dos maciços", 0, 95);
 
@@ -672,6 +760,20 @@ public partial class SettingsWindow : ViridianWindow
         s.SyncMarks = SyncMarksBox.IsChecked == true;
         s.Accessibility.TextScale = (TextScaleBox.SelectedItem as Choice<double>)?.Value ?? 1.0;
         s.Accessibility.HighContrast = HighContrastBox.IsChecked == true;
+        s.Composition = new CompositionSettings
+        {
+            CheckShare = RuleShareBox.IsChecked == true,
+            MaxSharePercent = maxShare,
+            CheckDiversity = RuleDiversityBox.IsChecked == true,
+            MinSpecies = minSpecies,
+            MinAreaForDiversityM2 = minArea,
+            CheckScale = RuleScaleBox.IsChecked == true,
+            MaxCrownToBedPercent = maxCrown,
+            CheckTexture = RuleTextureBox.IsChecked == true,
+            CheckPalmUnderstory = RulePalmBox.IsChecked == true,
+            CheckFlowering = RuleFloweringBox.IsChecked == true,
+        };
+        s.Specifications = new SpecificationSettings { Templates = new Dictionary<string, string>(_specTemplates) };
         s.Interference.Rules = rules;
         s.Interference.BuildingCrownFactor = crownFactor;
         s.Interference.CheckPavements = PavementBox.IsChecked == true;

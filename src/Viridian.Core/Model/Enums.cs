@@ -31,6 +31,32 @@ public enum CrownForm
     Irregular = 4,
 }
 
+/// <summary>Textura visual da folhagem (tamanho e recorte das folhas vistos a distância).</summary>
+public enum Texture
+{
+    NaoInformada = 0,
+
+    /// <summary>Folhas miúdas, finas ou recortadas (gramíneas, coníferas, folhas compostas miúdas).</summary>
+    Fina = 1,
+
+    Media = 2,
+
+    /// <summary>Folhas grandes e marcantes (palmeiras, bromélias, filodendros, bananeiras).</summary>
+    Grossa = 3,
+}
+
+/// <summary>Escala visual pelo porte adulto.</summary>
+public enum VisualScale
+{
+    /// <summary>Até cerca de 1 m de altura e de copa: forrações, herbáceas baixas.</summary>
+    Miuda = 0,
+
+    Media = 1,
+
+    /// <summary>A partir de 12 m de altura ou 10 m de copa: árvores de grande porte.</summary>
+    Monumental = 2,
+}
+
 public enum GrowthRate
 {
     NaoInformado = 0,
@@ -160,6 +186,21 @@ public static class Labels
         PlantOrigin.Exotica => "Exótica",
         PlantOrigin.ExoticaInvasora => "Exótica invasora",
         _ => "Não informada",
+    };
+
+    public static string Of(Texture texture) => texture switch
+    {
+        Texture.Fina => "Fina",
+        Texture.Media => "Média",
+        Texture.Grossa => "Grossa",
+        _ => "Não informada",
+    };
+
+    public static string Of(VisualScale scale) => scale switch
+    {
+        VisualScale.Miuda => "Miúda",
+        VisualScale.Monumental => "Monumental",
+        _ => "Média",
     };
 
     public static string Of(CrownForm form) => form switch

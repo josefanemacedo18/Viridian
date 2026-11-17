@@ -57,6 +57,11 @@ public partial class SpeciesEditorWindow : ViridianWindow
             VariantsBox.Items.Add(i);
         }
 
+        foreach (Texture texture in new[] { Texture.Fina, Texture.Media, Texture.Grossa })
+        {
+            TextureBox.Items.Add(new Choice<Texture>(Labels.Of(texture), texture));
+        }
+
         foreach (Biome biome in Labels.Biomes)
         {
             BiomePanel.Children.Add(new CheckBox { Content = Labels.Of(biome), Tag = biome, Margin = new Thickness(0, 3, 14, 3) });
@@ -131,6 +136,8 @@ public partial class SpeciesEditorWindow : ViridianWindow
             box.IsChecked = box.Tag is Biome biome && (s.Biomes & biome) != 0;
         }
 
+        Select(TextureBox, s.EffectiveTexture);
+        ScaleText.Text = Labels.Of(s.Scale);
         FoliageColorBox.Text = s.FoliageColor;
         FlowerColorBox.Text = s.FlowerColor;
         PriceCodeBox.Text = s.PriceItemCode;
@@ -406,6 +413,12 @@ public partial class SpeciesEditorWindow : ViridianWindow
             .Aggregate(Biome.Nenhum, (all, b) => all | (Biome)b.Tag);
         s.FoliageColor = NormalizeColor(FoliageColorBox.Text, "cor da folhagem", problems);
         s.FlowerColor = NormalizeColor(FlowerColorBox.Text, "cor da flor", problems);
+        s.Texture = Value(TextureBox, s.EffectiveTexture);
+        if (!string.IsNullOrWhiteSpace(s.Flowering) && MonthSet.Parse(s.Flowering).IsEmpty)
+        {
+            problems.Add("Não reconheci os meses de floração. Use, por exemplo: ago–out, set–nov e mar–abr, ano todo.");
+        }
+
         s.PriceItemCode = PriceCodeBox.Text.Trim();
         s.ServiceItemCode = ServiceCodeBox.Text.Trim();
         s.SymbolStyle = Value(StyleBox, s.SymbolStyle);

@@ -229,6 +229,8 @@ public partial class SpeciesBrowserWindow : ViridianWindow
             new("Água", Labels.Of(species.Water)),
             new("Luminosidade", Labels.Of(species.Light)),
             new("Floração", string.IsNullOrWhiteSpace(species.Flowering) ? "—" : species.Flowering),
+            new("Textura", Labels.Of(species.EffectiveTexture) + (species.Texture == Texture.NaoInformada ? " (sugerida)" : string.Empty)),
+            new("Escala visual", Labels.Of(species.Scale)),
             new("Biomas", species.Biomes == Biome.Nenhum ? (species.Origin == PlantOrigin.Nativa ? "—" : "não nativa do Brasil") : Labels.Of(species.Biomes)),
             new("Cores", ColorText(species)),
             new("Símbolo", species.HasCustomPlantingFamily ? "Família personalizada: " + Path.GetFileName(species.CustomPlantingFamilyFile) : SymbolStyles.DisplayName(species.SymbolStyle)),

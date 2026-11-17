@@ -1,4 +1,4 @@
-﻿VIRIDIAN 1.1 — Paisagismo 2D técnico para Autodesk Revit 2027
+﻿VIRIDIAN 1.2 — Paisagismo 2D técnico para Autodesk Revit 2027
 ==============================================================
 
 INSTALAR
@@ -24,6 +24,10 @@ PRIMEIROS PASSOS
    Viridian > Prancha Automática monta a prancha com planta, legenda e tabela;
    Viridian > Exportar CAD gera DWG e a biblioteca de blocos DXF.
 4. Viridian > Escalas: o detalhamento dos símbolos acompanha a escala da vista.
+5. Composição: Ateliê de Paletas (espécies por harmonia de cores e floração),
+   Verificar Canteiro e Calendário de Floração.
+6. Detalhamento: Memorial Ilustrado (Word editável), Detalhe de Plantio,
+   Corte Esquemático e Crescimento 2D.
 
 Na primeira inserção de cada espécie o Viridian gera a família 2D a partir
 do modelo de família instalado com o Revit (Vegetação ou Modelo genérico).

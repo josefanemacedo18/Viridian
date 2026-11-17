@@ -8,8 +8,8 @@ Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Virid
 
 1. Instale com `Instalar.cmd` e abra o Revit 2027.
 2. Escolha **Sempre carregar** no aviso de segurança.
-3. Confira a aba **Viridian** com os painéis Biblioteca, Plantio, Maciços, Identificação, Quantitativos, Documentação, Verificação e Configurações, todos com ícones.
-4. Sem projeto aberto, **Buscar Espécie**, **Importar Família**, **Configurações** e **Sobre** ficam disponíveis; os demais, desativados.
+3. Confira a aba **Viridian** com os painéis Biblioteca, Plantio, Maciços, Identificação, Quantitativos, Documentação, Composição, Detalhamento, Verificação e Configurações, todos com ícones.
+4. Sem projeto aberto, **Buscar Espécie**, **Importar Família**, **Ateliê de Paletas**, **Configurações** e **Sobre** ficam disponíveis; os demais, desativados.
 
 ## 2. Biblioteca
 
@@ -107,3 +107,23 @@ Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Virid
 2. Importe um `.pat` em Configurações > Hachuras e use-o em um maciço.
 3. Importar Família: registre uma família de Vegetação própria para uma espécie e aceite atualizar os exemplares do projeto.
 4. Feche e reabra o projeto: maciços, etiquetas e códigos devem continuar vinculados.
+
+## 14. Composição
+
+1. **Ateliê de Paletas** sem projeto aberto: escolha a paleta pronta "Quente tropical"; a lista deve trazer primeiro espécies de flor amarela, laranja ou vermelha, com símbolo e foto.
+2. Troque para a harmonia **Complementar** e mova a cor-base: a lista se reordena. Marque só os meses de inverno e "Somente com floração vistosa": aparecem as espécies que florescem nesses meses.
+3. Com um projeto aberto em planta, use **Inserir** e **Distribuir** a partir do Ateliê.
+4. Buscar Espécie: a ficha mostra **Textura** e **Escala visual**. Edite uma espécie, troque a textura, salve e confira na ficha.
+5. **Verificar Canteiro** em um canteiro com uma espécie dominando (por exemplo, 20 plantas de uma e 2 de outra): deve haver aviso de equilíbrio. Em um canteiro só de texturas finas, a observação de contraste de texturas. Clique duplo mostra as plantas citadas; **Verificar novamente** refaz a análise depois de alterar o canteiro.
+6. Configurações > Composição: altere a participação máxima de uma espécie e verifique o canteiro de novo; o resultado deve acompanhar o novo limite.
+7. **Calendário de Floração**: cria a vista de desenho "Viridian - Calendário de floração" com os doze meses, as cores das flores e os meses sem floração. Rode de novo depois de inserir outra espécie: a mesma vista é atualizada, sem duplicar.
+
+## 15. Detalhamento
+
+1. **Detalhe de Plantio** > Todas as espécies do projeto: uma vista de desenho por tipo de plantio (árvore, palmeira, arbusto, forração, gramado) presente no projeto, em escala 1:20, com cotas legíveis, chamadas sem sobreposição e as notas de especificação de cada espécie abaixo.
+2. Detalhe de Plantio > Uma espécie: escolha uma árvore com muda alta; a cova deve ser maior que a de uma muda pequena.
+3. Configurações > Composição: edite o modelo de especificação de árvore (por exemplo, acrescente "Irrigar após o plantio."). Um campo inexistente, como `{xyz}`, deve ser recusado ao salvar. Refaça o detalhe e confira a nota.
+4. **Corte Esquemático** > Na maturidade: clique em dois pontos atravessando um canteiro com árvores, palmeiras e arbustos. A vista mostra as silhuetas na altura e copa adultas, a régua de alturas e os códigos. Repita com "No plantio": as plantas devem aparecer menores.
+5. **Crescimento 2D**: escolha um canteiro. A vista mostra quatro quadros (plantio, 3 anos, 6 anos, maturidade), com as copas crescendo e o canteiro fechando.
+6. Coloque as vistas criadas em uma prancha e imprima em PDF: textos, cores e linhas devem sair corretos.
+7. **Memorial Ilustrado**: preencha antes Gerenciar > Informações do projeto (nome, número, cliente, endereço, autor). Salve o `.docx` e abra no Word: capa com fotos, partido, paleta, fichas com foto, calendário, especificações, manutenção e créditos. Edite um texto e salve: o arquivo deve continuar íntegro.

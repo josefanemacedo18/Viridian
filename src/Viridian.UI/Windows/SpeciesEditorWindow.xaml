@@ -101,6 +101,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <TextBlock Style="{StaticResource VirLabel}" Text="Crescimento" />
                             <ComboBox x:Name="GrowthBox" Grid.Column="1" />
@@ -110,10 +111,17 @@
                             <TextBlock Grid.Row="1" Style="{StaticResource VirLabel}" Text="Luminosidade" />
                             <ComboBox x:Name="LightBox" Grid.Row="1" Grid.Column="1" />
                             <TextBlock Grid.Row="1" Grid.Column="2" Style="{StaticResource VirLabel}" Text="Floração" Margin="12,0,8,0" />
-                            <TextBox x:Name="FloweringBox" Grid.Row="1" Grid.Column="3" />
+                            <TextBox x:Name="FloweringBox" Grid.Row="1" Grid.Column="3" ToolTip="Meses de floração, por exemplo ago–out, set–nov e mar–abr, ano todo" />
 
-                            <TextBlock Grid.Row="2" Style="{StaticResource VirLabel}" Text="Observações" VerticalAlignment="Top" Margin="0,6,8,0" />
-                            <TextBox x:Name="NotesBox" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" AcceptsReturn="True" TextWrapping="Wrap"
+                            <TextBlock Grid.Row="2" Style="{StaticResource VirLabel}" Text="Textura da folhagem" />
+                            <ComboBox x:Name="TextureBox" Grid.Row="2" Grid.Column="1" AutomationProperties.Name="Textura da folhagem"
+                                      ToolTip="Fina: folhas miúdas ou recortadas. Grossa: folhas grandes e marcantes. Usada nas regras de composição." />
+                            <TextBlock Grid.Row="2" Grid.Column="2" Style="{StaticResource VirLabel}" Text="Escala visual" Margin="12,0,8,0" />
+                            <TextBlock x:Name="ScaleText" Grid.Row="2" Grid.Column="3" VerticalAlignment="Center" Foreground="{StaticResource VirMuted}"
+                                       ToolTip="Calculada pela altura e pela copa adultas" />
+
+                            <TextBlock Grid.Row="3" Style="{StaticResource VirLabel}" Text="Observações" VerticalAlignment="Top" Margin="0,6,8,0" />
+                            <TextBox x:Name="NotesBox" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3" AcceptsReturn="True" TextWrapping="Wrap"
                                      MinHeight="48" MaxHeight="90" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" />
                         </Grid>
                     </GroupBox>

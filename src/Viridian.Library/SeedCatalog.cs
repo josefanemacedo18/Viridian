@@ -31,7 +31,7 @@ public sealed class PhotoInfo
 public static class SeedCatalog
 {
     /// <summary>Versão do catálogo padrão. Ao aumentá-la, os catálogos existentes são atualizados.</summary>
-    public const int Version = 2;
+    public const int Version = 3;
 
     public const string IdPrefix = "sp-";
 
@@ -151,6 +151,9 @@ public static class SeedCatalog
             HatchPatternKey = HatchLibrary.DefaultKeyFor(category),
             IsUserDefined = false,
         };
+
+        // Textura: proposta inicial pela categoria, forma da copa e gênero (editável no cadastro).
+        species.Texture = Core.Composition.TextureRules.Suggest(species);
 
         if (PhotoCredits.TryGetValue(id, out PhotoInfo? photo))
         {

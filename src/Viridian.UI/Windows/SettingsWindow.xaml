@@ -241,6 +241,54 @@
                 </StackPanel>
             </TabItem>
 
+            <!-- Composição e especificações -->
+            <TabItem Header="Composição">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="12">
+                        <TextBlock Style="{StaticResource VirSection}" Margin="0,0,0,4" Text="Regras de composição dos canteiros" />
+                        <TextBlock Style="{StaticResource VirHint}" Text="São recomendações: aparecem em Verificar Canteiro e nunca impedem o projeto." />
+                        <Grid Margin="0,6,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="300" />
+                                <ColumnDefinition Width="90" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <CheckBox x:Name="RuleShareBox" Content="Participação máxima de uma espécie (%)" />
+                            <TextBox x:Name="MaxShareBox" Grid.Column="1" AutomationProperties.Name="Participação máxima de uma espécie em porcentagem" />
+                            <CheckBox x:Name="RuleDiversityBox" Grid.Row="1" Content="Mínimo de espécies por canteiro" />
+                            <TextBox x:Name="MinSpeciesBox" Grid.Row="1" Grid.Column="1" AutomationProperties.Name="Mínimo de espécies por canteiro" />
+                            <TextBlock Grid.Row="2" Style="{StaticResource VirLabel}" Text="   ... a partir de (m²)" />
+                            <TextBox x:Name="MinAreaBox" Grid.Row="2" Grid.Column="1" AutomationProperties.Name="Área mínima para exigir diversidade" />
+                            <CheckBox x:Name="RuleScaleBox" Grid.Row="3" Content="Copa adulta até (% da menor dimensão do canteiro)" />
+                            <TextBox x:Name="MaxCrownBox" Grid.Row="3" Grid.Column="1" AutomationProperties.Name="Copa adulta em porcentagem da menor dimensão do canteiro" />
+                        </Grid>
+                        <CheckBox x:Name="RuleTextureBox" Content="Contraste de texturas (ao menos duas texturas em canteiros com 3 ou mais espécies)" />
+                        <CheckBox x:Name="RulePalmBox" Content="Palmeiras com plantio de base (sub-bosque)" />
+                        <CheckBox x:Name="RuleFloweringBox" Content="Floração distribuída ao longo do ano" />
+
+                        <TextBlock Style="{StaticResource VirSection}" Text="Notas de especificação de plantio" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Label Content="_Modelo" Target="{Binding ElementName=SpecKindBox}" Padding="0" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <ComboBox x:Name="SpecKindBox" Grid.Column="1" SelectionChanged="SpecKind_Changed" AutomationProperties.Name="Modelo de nota de especificação" />
+                            <Button Grid.Column="2" Content="Restaurar texto padrão" Click="SpecDefault_Click" />
+                        </Grid>
+                        <TextBox x:Name="SpecTextBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120" MaxHeight="220" VerticalScrollBarVisibility="Auto"
+                                 VerticalContentAlignment="Top" Margin="0,6,0,0" TextChanged="SpecText_Changed" AutomationProperties.Name="Texto da nota de especificação" />
+                        <TextBlock x:Name="SpecFieldsText" Style="{StaticResource VirHint}" Margin="0,4,0,0" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
             <!-- Maciços -->
             <TabItem Header="Maciços">
                 <StackPanel Margin="12">

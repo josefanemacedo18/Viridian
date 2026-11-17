@@ -54,6 +54,15 @@ public sealed class Species
 
     public string Flowering { get; set; } = string.Empty;
 
+    /// <summary>Textura visual da folhagem. Não informada = sugestão pela categoria e pelo gênero.</summary>
+    public Texture Texture { get; set; }
+
+    /// <summary>Textura considerada nas análises: a cadastrada ou a sugerida.</summary>
+    public Texture EffectiveTexture => Texture != Texture.NaoInformada ? Texture : Composition.TextureRules.Suggest(this);
+
+    /// <summary>Escala visual pelo porte adulto.</summary>
+    public VisualScale Scale => Composition.TextureRules.ScaleOf(this);
+
     /// <summary>Cor da folhagem (#RRGGBB). Vazio = cor derivada da categoria.</summary>
     public string FoliageColor { get; set; } = string.Empty;
 

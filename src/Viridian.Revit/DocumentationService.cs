@@ -298,7 +298,7 @@ public sealed class DocumentationService
             .FirstOrDefault(s => !s.IsTemplate && string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static ViewDrafting FindOrCreateDraftingView(Document document, string name)
+    public static ViewDrafting FindOrCreateDraftingView(Document document, string name)
     {
         using (var views = new FilteredElementCollector(document))
         {
@@ -332,7 +332,7 @@ public sealed class DocumentationService
     }
 
     /// <summary>Remove o conteúdo gerado anteriormente na vista da legenda.</summary>
-    private static void ClearView(Document document, View view)
+    public static void ClearView(Document document, View view)
     {
         using var collector = new FilteredElementCollector(document, view.Id);
         List<ElementId> ids = collector

@@ -30,6 +30,7 @@ public enum IssueKind
     ConflitoDeCopa,
     EspacamentoInsuficiente,
     Interferencia,
+    Composicao,
 }
 
 /// <summary>Uma inconsistência encontrada no projeto, com os elementos envolvidos.</summary>
@@ -182,6 +183,7 @@ public static class IntegrityChecker
         IssueKind.ConflitoDeCopa => "Conflito de copa",
         IssueKind.EspacamentoInsuficiente => "Espaçamento insuficiente",
         IssueKind.Interferencia => "Interferência",
+        IssueKind.Composicao => "Composição",
         _ => kind.ToString(),
     };
 

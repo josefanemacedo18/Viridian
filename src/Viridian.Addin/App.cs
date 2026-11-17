@@ -139,6 +139,28 @@ public sealed class App : IExternalApplication
             Small<SchedulesCommand, ProjectAvailability>(assembly, "Tabelas Nativas", "schedule",
                 "Cria as tabelas de vegetação do Revit (por espécie e por exemplar)."));
 
+        RibbonPanel composition = app.CreateRibbonPanel(TabName, "Composição");
+        Large<PaletteCommand, AlwaysAvailable>(composition, assembly, "Ateliê de\nPaletas", "palette",
+            "Escolha espécies por harmonia de cores (monocromática, análoga, complementar, tríade ou paletas prontas) e pela época de floração.",
+            "As espécies aparecem em ordem de afinidade pela cor da flor e da folhagem; dali é possível inserir ou distribuir.");
+        Stack(composition,
+            Small<BedCheckCommand, ProjectAvailability>(assembly, "Verificar Canteiro", "composition",
+                "Avalia a composição de um canteiro: equilíbrio entre espécies, diversidade, contraste de texturas, escala, sub-bosque de palmeiras e floração ao longo do ano."),
+            Small<FloweringCalendarCommand, ProjectAvailability>(assembly, "Calendário de Floração", "calendar",
+                "Quadro com o que está florido em cada mês do ano no projeto, nas cores das flores, e os meses sem floração."));
+
+        RibbonPanel detailing = app.CreateRibbonPanel(TabName, "Detalhamento");
+        Large<MemorialCommand, ProjectAvailability>(detailing, assembly, "Memorial\nIlustrado", "memorial",
+            "Memorial descritivo em Word editável: capa, partido, paleta vegetal, fichas com foto, calendário de floração, especificações, manutenção e créditos.",
+            "Os dados do projeto (nome, número, cliente, endereço, autor) vêm de Gerenciar > Informações do projeto.");
+        Stack(detailing,
+            Small<PlantingDetailCommand, ProjectAvailability>(assembly, "Detalhe de Plantio", "detail",
+                "Cova de árvore, berço de palmeira, cova de arbusto, canteiro de forração e gramado, em corte com cotas e notas de especificação."),
+            Small<SectionCommand, ProjectAvailability>(assembly, "Corte Esquemático", "section",
+                "Desenhe uma linha na planta: as plantas cortadas aparecem em silhueta com altura e copa reais, no plantio, aos 3 ou 6 anos ou na maturidade."),
+            Small<GrowthCommand, ProjectAvailability>(assembly, "Crescimento 2D", "growth",
+                "O mesmo canteiro no plantio, aos 3 e 6 anos e na maturidade, com as copas estimadas pela taxa de crescimento."));
+
         RibbonPanel check = app.CreateRibbonPanel(TabName, "Verificação");
         Large<CheckCommand, ProjectAvailability>(check, assembly, "Verificar\nProjeto", "check",
             "Encontra exemplares sem código, códigos repetidos, famílias não cadastradas, maciços inválidos, registros órfãos, conflitos de copa e de espaçamento.",
