@@ -9,6 +9,7 @@ using Viridian.Core.Model;
 using Viridian.Core.Reports;
 using Viridian.Revit;
 using Viridian.UI.Windows;
+using Viridian.Library;
 
 namespace Viridian.Addin.Commands;
 
@@ -27,13 +28,33 @@ internal static class PlantingFlows
         }
 
         PlantOptions chosen = options.Options;
+        IReadOnlyList<FamilySymbol> variants = ctx.Grouped("Viridian: preparar " + species.PopularName, () => ctx.EnsureVariants(species, chosen.VariantIndex), _ => true);
+        string projectCode = ctx.ProjectCode(species);
+        var placementOptions = new PlacementOptions { Status = chosen.Status, Stage = chosen.Stage, Notes = chosen.Notes, Seed = Environment.TickCount64 };
+
+        // Prévia nativa: o símbolo (com as cores) acompanha o cursor, com a barra de opções do Revit.
+        List<ElementId>? placed = PlaceWithPreview(ctx, variants);
+        if (placed is not null)
+        {
+            if (placed.Count == 0)
+            {
+                return Result.Cancelled;
+            }
+
+            ctx.Grouped("Viridian: identificar " + species.PopularName, () =>
+                Tx.Run(ctx.Doc, "Viridian: identificar exemplares", () =>
+                    ctx.Planting.CompletePlaced(ctx.Doc, placed, variants, species, projectCode, placementOptions, chosen.VariantIndex < 0)), _ => true);
+            ctx.Select(placed);
+            return Result.Succeeded;
+        }
+
         var created = new List<ElementId>();
         ctx.Grouped("Viridian: inserir " + species.PopularName, () =>
         {
-            IReadOnlyList<FamilySymbol> symbols = ctx.EnsureVariants(species, chosen.VariantIndex);
-            string code = ctx.ProjectCode(species);
-            var placement = new PlacementOptions { Status = chosen.Status, Stage = chosen.Stage, Notes = chosen.Notes };
-            long seed = Environment.TickCount64;
+            IReadOnlyList<FamilySymbol> symbols = variants;
+            string code = projectCode;
+            var placement = placementOptions;
+            long seed = placementOptions.Seed;
             while (true)
             {
                 XYZ point;
@@ -57,6 +78,56 @@ internal static class PlantingFlows
 
         ctx.Select(created);
         return created.Count > 0 ? Result.Succeeded : Result.Cancelled;
+    }
+
+    /// <summary>
+    /// Posiciona exemplares com a ferramenta nativa do Revit e devolve os criados. Retorna nulo quando a
+    /// ferramenta nativa não está disponível para a vista (nesse caso a inserção segue por cliques).
+    /// </summary>
+    private static List<ElementId>? PlaceWithPreview(ViridianContext ctx, IReadOnlyList<FamilySymbol> variants)
+    {
+        Document doc = ctx.Doc;
+        var ids = new HashSet<ElementId>(variants.Select(v => v.Id));
+        var added = new List<ElementId>();
+
+        void OnChanged(object? sender, Autodesk.Revit.DB.Events.DocumentChangedEventArgs e)
+        {
+            if (!e.GetDocument().Equals(doc))
+            {
+                return;
+            }
+
+            foreach (ElementId id in e.GetAddedElementIds())
+            {
+                if (doc.GetElement(id) is FamilyInstance instance && ids.Contains(instance.Symbol.Id))
+                {
+                    added.Add(id);
+                }
+            }
+        }
+
+        Autodesk.Revit.ApplicationServices.Application app = ctx.UiApp.Application;
+        app.DocumentChanged += OnChanged;
+        try
+        {
+            ctx.UiDocument.PromptForFamilyInstancePlacement(variants[0]);
+        }
+        catch (Autodesk.Revit.Exceptions.OperationCanceledException)
+        {
+            // ESC conclui a inserção.
+        }
+        catch (Exception ex) when (ex is Autodesk.Revit.Exceptions.ArgumentException or Autodesk.Revit.Exceptions.InvalidOperationException)
+        {
+            ViridianLog.Warn("Inserção com prévia indisponível; usando cliques.", ex);
+            return added.Count > 0 ? added : null;
+        }
+        finally
+        {
+            app.DocumentChanged -= OnChanged;
+        }
+
+        // Exemplares desfeitos com Ctrl+Z durante a inserção não existem mais.
+        return added.Where(id => doc.GetElement(id) is not null).Distinct().ToList();
     }
 
     /// <summary>Distribuição automática dentro de uma região.</summary>

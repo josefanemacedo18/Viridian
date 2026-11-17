@@ -73,6 +73,9 @@ public sealed class LabelService
             ElementId textType = EnsureTextType(document).Id;
             ILookup<string, LabelEntry> existing = ExistingLabels(document, view);
             int created = 0;
+            LabelLayout layout = OccupiedLayout(document, view, plants.Select(p => p.UniqueId));
+            double scale = Math.Max(1, view.Scale);
+            double gap = _settings.Labels.TextSizeMm * 0.5 * scale / 1000.0;
 
             IEnumerable<List<FamilyInstance>> groups = request.GroupBySpecies
                 ? plants.GroupBy(p => p.GetTypeId()).Select(g => g.ToList())
@@ -100,7 +103,9 @@ public sealed class LabelService
                 RemoveEquivalent(document, existing, link);
                 Point2 location = PlantingService.LocationOf(anchor);
                 double radius = Math.Max(0.05, VirParams.GetMeters(symbol, VirParams.CrownDiameter) / 2);
-                CreateNote(document, view, textType, text, location, radius, request.Leader || LabelText.ForcesLeader(request.Model), link);
+                (double width, double height) = LabelLayout.EstimateSize(text, _settings.Labels.TextSizeMm, scale);
+                LabelPlacement placement = layout.Place(location, OffsetOf(radius, scale), width, height, gap);
+                CreateNote(document, view, textType, text, location, radius, request.Leader || LabelText.ForcesLeader(request.Model), link, placement: placement);
                 created++;
             }
 
@@ -263,6 +268,36 @@ public sealed class LabelService
 
     private sealed record LabelEntry(TextNote Note, LabelLink Link);
 
+    /// <summary>Distância da etiqueta ao centro do elemento, em metros.</summary>
+    private double OffsetOf(double clearanceM, double scale) => clearanceM * 0.75 + _settings.Labels.OffsetMm * scale / 1000.0;
+
+    /// <summary>
+    /// Textos já existentes na vista, que as novas etiquetas devem evitar. As etiquetas dos próprios elementos
+    /// que estão sendo etiquetados ficam de fora, porque serão substituídas.
+    /// </summary>
+    private static LabelLayout OccupiedLayout(Document document, View view, IEnumerable<string> targetUniqueIds)
+    {
+        var targets = new HashSet<string>(targetUniqueIds, StringComparer.Ordinal);
+        var layout = new LabelLayout();
+        using var collector = new FilteredElementCollector(document, view.Id);
+        foreach (TextNote note in collector.OfClass(typeof(TextNote)).Cast<TextNote>())
+        {
+            if (ElementData.TryRead(note, ElementData.KindLabel, out LabelLink link) && link.TargetUniqueIds.Any(targets.Contains))
+            {
+                continue;
+            }
+
+            if (note.get_BoundingBox(view) is BoundingBoxXYZ box)
+            {
+                Point2 min = RevitUnits.ToPoint2(box.Min);
+                Point2 max = RevitUnits.ToPoint2(box.Max);
+                layout.Occupy(new Bounds2(Math.Min(min.X, max.X), Math.Min(min.Y, max.Y), Math.Max(min.X, max.X), Math.Max(min.Y, max.Y)));
+            }
+        }
+
+        return layout;
+    }
+
     private static string KeyOf(LabelLink link) =>
         link.Model.ToString(CultureInfo.InvariantCulture) + "|" + string.Join(",", link.TargetUniqueIds.OrderBy(x => x, StringComparer.Ordinal));
 
@@ -323,12 +358,14 @@ public sealed class LabelService
         double clearanceM,
         bool leader,
         LabelLink link,
-        bool centered = false)
+        bool centered = false,
+        LabelPlacement? placement = null)
     {
         double z = PlantingService.LevelOf(view)?.ProjectElevation ?? 0;
         double scale = Math.Max(1, view.Scale);
-        double offsetM = clearanceM * 0.75 + _settings.Labels.OffsetMm * scale / 1000.0;
-        Point2 position = centered ? target : target + new Point2(offsetM, offsetM);
+        double offsetM = OffsetOf(clearanceM, scale);
+        Point2 position = centered ? target : placement?.TopLeft ?? target + new Point2(offsetM, offsetM);
+        leader = leader || placement is { NeedsLeader: true };
 
         using var options = new TextNoteOptions(textType)
         {

@@ -144,6 +144,48 @@ public sealed class PlantingService
         }, suppressWarnings: true);
     }
 
+    /// <summary>
+    /// Completa exemplares posicionados com a prévia nativa do Revit: sorteia a variante gráfica (quando há mais de uma),
+    /// aplica o deslocamento vertical configurado e grava código e dados. Precisa de transação aberta.
+    /// </summary>
+    public int CompletePlaced(
+        Document document,
+        IEnumerable<ElementId> instanceIds,
+        IReadOnlyList<FamilySymbol> variantSymbols,
+        Species species,
+        string projectSpeciesCode,
+        PlacementOptions options,
+        bool randomVariant)
+    {
+        List<FamilyInstance> instances = instanceIds.Select(id => document.GetElement(id)).OfType<FamilyInstance>().ToList();
+        if (instances.Count == 0)
+        {
+            return 0;
+        }
+
+        SharedParameterService.EnsureBound(document);
+        InstanceCodeAllocator allocator = CreateAllocator(document, instances.Select(i => i.Id));
+        var rng = new DeterministicRandom(DeterministicRandom.Combine(options.Seed, 5381));
+        double offset = RevitUnits.ToFeet(_settings.Planting.ElevationOffsetM);
+        foreach (FamilyInstance instance in instances)
+        {
+            int variant = Math.Max(0, variantSymbols.ToList().FindIndex(s => s.Id == instance.Symbol.Id));
+            if (randomVariant && variantSymbols.Count > 1)
+            {
+                variant = rng.NextInt(0, variantSymbols.Count);
+                if (instance.Symbol.Id != variantSymbols[variant].Id)
+                {
+                    instance.ChangeTypeId(variantSymbols[variant].Id);
+                }
+            }
+
+            SetElevationOffset(instance, offset);
+            WriteInstanceData(instance, allocator.Next(species.Category, projectSpeciesCode), options, variant);
+        }
+
+        return instances.Count;
+    }
+
     /// <summary>Grava identificação e dados em exemplares inseridos pela ferramenta nativa do Revit.</summary>
     public void Initialize(Document document, IEnumerable<ElementId> instanceIds, Species species, string projectSpeciesCode, PlacementOptions options, int variant)
     {
