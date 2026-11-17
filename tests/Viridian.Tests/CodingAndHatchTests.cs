@@ -152,7 +152,7 @@ public class SettingsTests
         Assert.Equal("MAC", copy.MassingPrefix);
         Assert.Equal(40, copy.Scales.Ranges[0].MaxDenominator);
         Assert.Equal("#1A7F37", copy.StyleOf(SymbolTier.Outline).Color);
-        Assert.Equal(TierVisibility.AllTiers.Count, copy.TierStyles.Count);
+        Assert.Equal(TierVisibility.LineTiers.Count, copy.TierStyles.Count);
     }
 
     [Fact]
@@ -164,7 +164,7 @@ public class SettingsTests
         settings.Normalize();
         Assert.Equal(16, settings.StyleOf(SymbolTier.Outline).LineWeight);
         Assert.Equal("#000000", settings.StyleOf(SymbolTier.Outline).Color);
-        Assert.Equal(TierVisibility.AllTiers.Count, settings.TierStyles.Count);
+        Assert.Equal(TierVisibility.LineTiers.Count, settings.TierStyles.Count);
         Assert.NotNull(settings.Scales);
         Assert.Equal("MC", settings.MassingPrefix);
         Assert.Equal(0.8, settings.Labels.TextSizeMm);

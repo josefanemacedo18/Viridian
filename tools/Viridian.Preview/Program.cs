@@ -3,6 +3,10 @@ using System.Text;
 using Viridian.Core.Geometry;
 using Viridian.Core.Scale;
 using Viridian.Core.Symbols;
+using Viridian.Core.Colors;
+using Viridian.Core.Config;
+using Viridian.Core.Model;
+using Viridian.Library;
 
 // Ferramenta de desenvolvimento: gera pranchas SVG com os símbolos para conferência visual.
 // Uso: Viridian.Preview <pasta de saída>
@@ -14,6 +18,7 @@ File.WriteAllText(Path.Combine(outDir, "perfis.svg"), SvgSheets.ProfileSheet());
 File.WriteAllText(Path.Combine(outDir, "variantes.svg"), SvgSheets.VariantSheet());
 File.WriteAllText(Path.Combine(outDir, "hachuras.svg"), SvgSheets.HatchSheet());
 File.WriteAllText(Path.Combine(outDir, "distribuicoes.svg"), SvgSheets.DistributionSheet());
+File.WriteAllText(Path.Combine(outDir, "cores.svg"), SvgSheets.ColorSheet(args.Length > 1 ? args[1] : null));
 Console.WriteLine("Pranchas geradas em " + Path.GetFullPath(outDir));
 
 internal static class SvgSheets
@@ -35,6 +40,44 @@ internal static class SvgSheets
             PlantSymbol symbol = SymbolGenerator.Generate(styles[i], diameter, 1234 + i);
             Draw(sb, symbol, DetailProfile.Detalhado, cx, cy, (cell - 40) / diameter);
             Text(sb, cx, cy + cell / 2 + 12, SymbolStyles.DisplayName(styles[i]) + $" · Ø{diameter.ToString("0.#", Inv)} m");
+        }
+
+        return End(sb);
+    }
+
+    /// <summary>Espécies do catálogo padrão desenhadas com as cores da planta.</summary>
+    public static string ColorSheet(string? filter)
+    {
+        var settings = new ViridianSettings();
+        settings.Normalize();
+        if (filter == "reticulado")
+        {
+            settings.Colors.CrownFill = CrownFillMode.Reticulado;
+        }
+
+        List<Species> all = SeedCatalog.CreateSpecies();
+        var picked = new List<Species>();
+        foreach (PlantCategory category in Labels.Categories)
+        {
+            List<Species> ofCategory = all.Where(s => s.Category == category).ToList();
+            int take = category == PlantCategory.Arvore ? 12 : 6;
+            int step = Math.Max(1, ofCategory.Count / take);
+            picked.AddRange(ofCategory.Where((_, i) => i % step == 0).Take(take));
+        }
+
+        const int cols = 8;
+        const double cell = 190;
+        int rows = (int)Math.Ceiling(picked.Count / (double)cols);
+        var sb = Begin(cols * cell, rows * (cell + 34));
+        for (int i = 0; i < picked.Count; i++)
+        {
+            Species species = picked[i];
+            double cx = (i % cols) * cell + cell / 2;
+            double cy = (i / cols) * (cell + 34) + cell / 2;
+            PlantSymbol symbol = SymbolGenerator.Generate(species.SymbolStyle, species.CrownDiameterM, species.EffectiveSymbolSeed);
+            Draw(sb, symbol, DetailProfile.Detalhado, cx, cy, (cell - 30) / symbol.Diameter, SymbolPaint.For(species, settings.Colors), settings);
+            Text(sb, cx, cy + cell / 2 + 8, species.PopularName);
+            Text(sb, cx, cy + cell / 2 + 22, species.ScientificName);
         }
 
         return End(sb);
@@ -196,11 +239,35 @@ internal static class SvgSheets
         _ => 0.55,
     };
 
-    public static void Draw(StringBuilder sb, PlantSymbol symbol, DetailProfile profile, double cx, double cy, double scale)
+    public static void Draw(StringBuilder sb, PlantSymbol symbol, DetailProfile profile, double cx, double cy, double scale, SymbolPaint? paint = null, ViridianSettings? settings = null)
     {
+        if (paint is not null && paint.Mode != CrownFillMode.Nenhum && symbol.FillOutline.Count >= 3 && TierVisibility.IsVisible(SymbolTier.Fill, profile))
+        {
+            string points = string.Join(" ", symbol.FillOutline.Select(p => $"{(cx + p.X * scale).ToString("0.##", Inv)},{(cy - p.Y * scale).ToString("0.##", Inv)}"));
+            if (paint.Mode == CrownFillMode.Solido)
+            {
+                sb.Append(Inv, $"<polygon points=\"{points}\" fill=\"{paint.Crown.Hex}\" stroke=\"none\"/>");
+            }
+            else
+            {
+                string id = "h" + sb.Length.ToString(Inv);
+                sb.Append(Inv, $"<defs><pattern id=\"{id}\" width=\"5\" height=\"5\" patternUnits=\"userSpaceOnUse\" patternTransform=\"rotate(45)\"><path d=\"M0 0 V5 M0 0 H5\" stroke=\"{paint.Crown.Hex}\" stroke-width=\"0.7\"/></pattern></defs>");
+                sb.Append(Inv, $"<polygon points=\"{points}\" fill=\"url(#{id})\" stroke=\"none\"/>");
+            }
+        }
+
+        if (paint?.Flower is Rgb flower && TierVisibility.IsVisible(SymbolTier.Flowers, profile))
+        {
+            foreach (FlowerSpot spot in symbol.FlowerSpots)
+            {
+                sb.Append(Inv, $"<circle cx=\"{cx + spot.Center.X * scale:0.##}\" cy=\"{cy - spot.Center.Y * scale:0.##}\" r=\"{Math.Max(0.8, spot.Radius * scale):0.##}\" fill=\"{flower.Hex}\"/>");
+            }
+        }
+
         foreach (SymbolPrimitive p in symbol.ForProfile(profile))
         {
-            string stroke = $"stroke=\"black\" stroke-width=\"{Weight(p.Tier).ToString("0.##", Inv)}\" fill=\"none\" stroke-linecap=\"round\"";
+            string color = settings is null || paint is null ? "black" : Rgb.Parse(settings.StyleOf(p.Tier).Color, Rgb.Black).Hex;
+            string stroke = $"stroke=\"{color}\" stroke-width=\"{Weight(p.Tier).ToString("0.##", Inv)}\" fill=\"none\" stroke-linecap=\"round\"";
             switch (p)
             {
                 case SymbolLine l:

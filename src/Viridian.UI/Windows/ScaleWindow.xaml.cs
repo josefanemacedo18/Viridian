@@ -1,6 +1,8 @@
 using System.Windows;
 using System.Windows.Controls;
 using Viridian.Core.Config;
+using Viridian.Core.Colors;
+using Viridian.Core.Model;
 using Viridian.Core.Scale;
 using Viridian.Core.Symbols;
 
@@ -88,7 +90,9 @@ public partial class ScaleWindow : ViridianWindow
         DetailProfile profile = Override ?? _settings.Scales.Resolve(_scale);
         ProfileText.Text = $"Perfil exibido: {ScaleProfileSet.DisplayName(profile)} — {ScaleProfileSet.Description(profile)}"
                            + (Override.HasValue ? " (fixado manualmente)" : " (definido pela escala)");
-        SymbolView.Show(SymbolGenerator.Generate(SymbolStyle.ArvoreArredondada, 8, 20260417), profile);
+        // Exemplo: árvore com floração, para mostrar também as manchas de flor.
+        var sample = new Species { Category = PlantCategory.Arvore, SymbolStyle = SymbolStyle.ArvoreArredondada, CrownDiameterM = 8, SymbolSeed = 20260417, FlowerColor = "#E07BB5" };
+        SymbolView.Show(SymbolGenerator.Generate(SymbolStyle.ArvoreArredondada, 8, 20260417), profile, SymbolPaint.For(sample, _settings.Colors), _settings);
     }
 
     private void OverrideBox_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdatePreview();

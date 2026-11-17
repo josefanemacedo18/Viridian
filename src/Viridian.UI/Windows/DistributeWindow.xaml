@@ -4,10 +4,10 @@
                    xmlns:ui="clr-namespace:Viridian.UI"
                    xmlns:c="clr-namespace:Viridian.UI.Controls"
                    Title="Viridian — Distribuir vegetação"
-                   Width="900" Height="640" MinWidth="820" MinHeight="580">
+                   Width="960" Height="680" MinWidth="860" MinHeight="600">
     <Grid Margin="12">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="320" />
+            <ColumnDefinition Width="350" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
@@ -15,45 +15,163 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <TextBlock x:Name="HeaderText" Grid.ColumnSpan="2" Style="{StaticResource VirHeader}" Text="Distribuir vegetação" TextWrapping="Wrap" />
+        <StackPanel Grid.ColumnSpan="2">
+            <TextBlock x:Name="HeaderText" Style="{StaticResource VirHeader}" Text="Distribuir vegetação" TextWrapping="Wrap" Margin="0" />
+            <TextBlock x:Name="SourceText" Style="{StaticResource VirHint}" Margin="0,2,0,8" />
+        </StackPanel>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,12,0">
             <StackPanel>
-                <GroupBox Header="Distribuição">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="150" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <TextBlock Style="{StaticResource VirLabel}" Text="Padrão" />
-                        <ComboBox x:Name="PatternBox" Grid.Column="1" SelectionChanged="Input_Changed" />
-                        <TextBlock Grid.Row="1" Style="{StaticResource VirLabel}" Text="Espaçamento (m)" />
-                        <TextBox x:Name="SpacingBox" Grid.Row="1" Grid.Column="1" TextChanged="Input_Changed" />
-                        <TextBlock x:Name="RowSpacingLabel" Grid.Row="2" Style="{StaticResource VirLabel}" Text="Entre linhas (m)" />
-                        <TextBox x:Name="RowSpacingBox" Grid.Row="2" Grid.Column="1" TextChanged="Input_Changed" ToolTip="Vazio = automático conforme o padrão" />
-                        <TextBlock x:Name="DensityLabel" Grid.Row="3" Style="{StaticResource VirLabel}" Text="Densidade (un/m²)" />
-                        <TextBox x:Name="DensityBox" Grid.Row="3" Grid.Column="1" TextChanged="Input_Changed" />
-                        <TextBlock x:Name="MarginLabel" Grid.Row="4" Style="{StaticResource VirLabel}" Text="Afastamento das bordas (m)" />
-                        <TextBox x:Name="MarginBox" Grid.Row="4" Grid.Column="1" TextChanged="Input_Changed" />
-                        <TextBlock x:Name="JitterLabel" Grid.Row="5" Style="{StaticResource VirLabel}" Text="Variação de posição (%)" />
-                        <TextBox x:Name="JitterBox" Grid.Row="5" Grid.Column="1" TextChanged="Input_Changed" />
-                        <TextBlock x:Name="AngleLabel" Grid.Row="6" Style="{StaticResource VirLabel}" Text="Ângulo da malha (°)" />
-                        <TextBox x:Name="AngleBox" Grid.Row="6" Grid.Column="1" TextChanged="Input_Changed" />
-                        <TextBlock Grid.Row="7" Style="{StaticResource VirLabel}" Text="Quantidade máxima" />
-                        <TextBox x:Name="MaxBox" Grid.Row="7" Grid.Column="1" TextChanged="Input_Changed" />
-                    </Grid>
+                <GroupBox Header="Padrão de plantio">
+                    <StackPanel>
+                        <ComboBox x:Name="PatternBox" SelectionChanged="Pattern_Changed" AutomationProperties.Name="Padrão de plantio" />
+                        <TextBlock x:Name="PatternHint" Style="{StaticResource VirHint}" Margin="0,4,0,0" />
+                    </StackPanel>
                 </GroupBox>
-                <CheckBox x:Name="RotationBox" Content="Girar cada exemplar aleatoriamente" />
+
+                <GroupBox Header="Medidas">
+                    <StackPanel>
+                        <Grid x:Name="LinearModeRow" Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label x:Name="LinearModeLabel" Content="Definir por" Target="{Binding ElementName=LinearModeBox}" Padding="0" VerticalAlignment="Center" />
+                            <ComboBox x:Name="LinearModeBox" Grid.Column="1" SelectionChanged="Input_Changed" ToolTip="Como a quantidade de plantas é definida" AutomationProperties.Name="Definir por" />
+                        </Grid>
+                        <Grid x:Name="SpacingRow" Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label x:Name="SpacingLabel" Content="Espaçamento (m)" Target="{Binding ElementName=SpacingBox}" Padding="0" VerticalAlignment="Center" />
+                            <TextBox x:Name="SpacingBox" Grid.Column="1" TextChanged="Input_Changed" ToolTip="Distância entre plantas" AutomationProperties.Name="Espaçamento (m)" />
+                        </Grid>
+                        <Grid x:Name="CountRow" Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label x:Name="CountLabel" Content="Plantas por fileira" Target="{Binding ElementName=CountBox}" Padding="0" VerticalAlignment="Center" />
+                            <TextBox x:Name="CountBox" Grid.Column="1" TextChanged="Input_Changed" ToolTip="Quantidade fixa, dividida igualmente ao longo do eixo" AutomationProperties.Name="Plantas por fileira" />
+                        </Grid>
+                        <Grid x:Name="AlignmentRow" Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label x:Name="AlignmentLabel" Content="Extremidades" Target="{Binding ElementName=AlignmentBox}" Padding="0" VerticalAlignment="Center" />
+                            <ComboBox x:Name="AlignmentBox" Grid.Column="1" SelectionChanged="Input_Changed" ToolTip="Onde ficam a primeira e a última planta" AutomationProperties.Name="Extremidades" />
+                        </Grid>
+                        <Grid x:Name="DensityRow" Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label x:Name="DensityLabel" Content="Densidade (un/m²)" Target="{Binding ElementName=DensityBox}" Padding="0" VerticalAlignment="Center" />
+                            <TextBox x:Name="DensityBox" Grid.Column="1" TextChanged="Input_Changed" ToolTip="Unidades por metro quadrado" AutomationProperties.Name="Densidade (un/m²)" />
+                        </Grid>
+                        <Grid x:Name="RowsRow" Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label x:Name="RowsLabel" Content="Fileiras" Target="{Binding ElementName=RowsBox}" Padding="0" VerticalAlignment="Center" />
+                            <ComboBox x:Name="RowsBox" Grid.Column="1" SelectionChanged="Input_Changed" ToolTip="Quantidade de fileiras paralelas" AutomationProperties.Name="Fileiras" />
+                        </Grid>
+                        <Grid x:Name="ArrangementRow" Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label x:Name="ArrangementLabel" Content="Disposição" Target="{Binding ElementName=ArrangementBox}" Padding="0" VerticalAlignment="Center" />
+                            <ComboBox x:Name="ArrangementBox" Grid.Column="1" SelectionChanged="Input_Changed" ToolTip="Fileiras alinhadas ou desencontradas" AutomationProperties.Name="Disposição" />
+                        </Grid>
+                        <Grid x:Name="RowSpacingRow" Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label x:Name="RowSpacingLabel" Content="Entre fileiras (m)" Target="{Binding ElementName=RowSpacingBox}" Padding="0" VerticalAlignment="Center" />
+                            <TextBox x:Name="RowSpacingBox" Grid.Column="1" TextChanged="Input_Changed" ToolTip="Vazio = automático conforme o padrão" AutomationProperties.Name="Entre fileiras (m)" />
+                        </Grid>
+                        <Grid x:Name="OffsetRow" Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label x:Name="OffsetLabel" Content="Deslocamento lateral (m)" Target="{Binding ElementName=OffsetBox}" Padding="0" VerticalAlignment="Center" />
+                            <TextBox x:Name="OffsetBox" Grid.Column="1" TextChanged="Input_Changed" ToolTip="Distância do eixo; positivo = à esquerda do sentido do traçado" AutomationProperties.Name="Deslocamento lateral (m)" />
+                        </Grid>
+                        <Grid x:Name="GroupRow" Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label x:Name="GroupLabel" Content="Plantas por mancha" Target="{Binding ElementName=GroupMinBox}" Padding="0" VerticalAlignment="Center" />
+                            <Grid Grid.Column="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="GroupMinBox" TextChanged="Input_Changed" ToolTip="Menor e maior quantidade de plantas em cada mancha (números ímpares ficam mais naturais)" AutomationProperties.Name="Mínimo de plantas por mancha" />
+                                <TextBlock Grid.Column="1" Text="a" Margin="6,0" VerticalAlignment="Center" />
+                                <TextBox x:Name="GroupMaxBox" Grid.Column="2" TextChanged="Input_Changed" ToolTip="Menor e maior quantidade de plantas em cada mancha (números ímpares ficam mais naturais)" AutomationProperties.Name="Máximo de plantas por mancha" />
+                            </Grid>
+                        </Grid>
+                        <Grid x:Name="GapRow" Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label x:Name="GapLabel" Content="Entre manchas (m)" Target="{Binding ElementName=GapBox}" Padding="0" VerticalAlignment="Center" />
+                            <TextBox x:Name="GapBox" Grid.Column="1" TextChanged="Input_Changed" ToolTip="Distância livre entre manchas. Vazio = um espaçamento" AutomationProperties.Name="Entre manchas (m)" />
+                        </Grid>
+                        <Grid x:Name="GradientRow" Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label x:Name="GradientLabel" Content="Densidade final (%)" Target="{Binding ElementName=GradientEndBox}" Padding="0" VerticalAlignment="Center" />
+                            <TextBox x:Name="GradientEndBox" Grid.Column="1" TextChanged="Input_Changed" ToolTip="Densidade no fim do degradê, em porcentagem da inicial" AutomationProperties.Name="Densidade final (%)" />
+                        </Grid>
+                        <Grid x:Name="MarginRow" Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label x:Name="MarginLabel" Content="Afastamento das bordas (m)" Target="{Binding ElementName=MarginBox}" Padding="0" VerticalAlignment="Center" />
+                            <TextBox x:Name="MarginBox" Grid.Column="1" TextChanged="Input_Changed" ToolTip="Distância mínima entre as plantas e o limite do canteiro" AutomationProperties.Name="Afastamento das bordas (m)" />
+                        </Grid>
+                        <Grid x:Name="JitterRow" Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label x:Name="JitterLabel" Content="Variação de posição (%)" Target="{Binding ElementName=JitterBox}" Padding="0" VerticalAlignment="Center" />
+                            <TextBox x:Name="JitterBox" Grid.Column="1" TextChanged="Input_Changed" ToolTip="Desloca cada planta aleatoriamente, em porcentagem do espaçamento (0 a 50)" AutomationProperties.Name="Variação de posição (%)" />
+                        </Grid>
+                        <Grid x:Name="AngleRow" Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label x:Name="AngleLabel" Content="Ângulo da malha (°)" Target="{Binding ElementName=AngleBox}" Padding="0" VerticalAlignment="Center" />
+                            <TextBox x:Name="AngleBox" Grid.Column="1" TextChanged="Input_Changed" ToolTip="Rotação da malha" AutomationProperties.Name="Ângulo da malha (°)" />
+                        </Grid>
+                        <Grid x:Name="MaxRow" Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label x:Name="MaxLabel" Content="Quantidade máxima" Target="{Binding ElementName=MaxBox}" Padding="0" VerticalAlignment="Center" />
+                            <TextBox x:Name="MaxBox" Grid.Column="1" TextChanged="Input_Changed" ToolTip="Proteção contra distribuições grandes demais" AutomationProperties.Name="Quantidade máxima" />
+                        </Grid>
+                        <CheckBox x:Name="ClosedBox" Content="Eixo fechado (o fim se liga ao início)" Checked="Input_Changed" Unchecked="Input_Changed" />
+                    </StackPanel>
+                </GroupBox>
+                <CheckBox x:Name="RotationBox" Content="Girar cada exemplar aleatoriamente (no próprio lugar)" />
                 <CheckBox x:Name="AvoidBox" Content="Respeitar exemplares existentes" Checked="Input_Changed" Unchecked="Input_Changed"
                           ToolTip="Não posiciona novos exemplares a menos de um espaçamento dos que já existem" />
                 <Button x:Name="ReseedButton" Content="Nova distribuição" Click="Reseed_Click" HorizontalAlignment="Left" Margin="0,6,0,0"
@@ -62,7 +180,7 @@
                 <GroupBox Header="Exemplares" Margin="0,10,0,0">
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="160" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
@@ -70,12 +188,12 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <TextBlock Style="{StaticResource VirLabel}" Text="Variante gráfica" />
-                        <ComboBox x:Name="VariantBox" Grid.Column="1" />
-                        <TextBlock Grid.Row="1" Style="{StaticResource VirLabel}" Text="Situação" />
-                        <ComboBox x:Name="StatusBox" Grid.Row="1" Grid.Column="1" />
-                        <TextBlock Grid.Row="2" Style="{StaticResource VirLabel}" Text="Estágio de implantação" />
-                        <TextBox x:Name="StageBox" Grid.Row="2" Grid.Column="1" />
+                        <Label Content="Variante gráfica" Target="{Binding ElementName=VariantBox}" Padding="0" VerticalAlignment="Center" />
+                        <ComboBox x:Name="VariantBox" Grid.Column="1" AutomationProperties.Name="Variante gráfica" />
+                        <Label Grid.Row="1" Content="Situação" Target="{Binding ElementName=StatusBox}" Padding="0" VerticalAlignment="Center" />
+                        <ComboBox x:Name="StatusBox" Grid.Row="1" Grid.Column="1" AutomationProperties.Name="Situação" />
+                        <Label Grid.Row="2" Content="Estágio de implantação" Target="{Binding ElementName=StageBox}" Padding="0" VerticalAlignment="Center" />
+                        <TextBox x:Name="StageBox" Grid.Row="2" Grid.Column="1" AutomationProperties.Name="Estágio de implantação" />
                     </Grid>
                 </GroupBox>
             </StackPanel>
@@ -87,7 +205,7 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <Border BorderBrush="{StaticResource VirBorder}" BorderThickness="1">
-                <c:PlanPreview x:Name="Preview" />
+                <c:PlanPreview x:Name="Preview" AutomationProperties.Name="Pré-visualização da distribuição" />
             </Border>
             <StackPanel Grid.Row="1" Margin="0,8,0,0">
                 <TextBlock x:Name="SummaryText" Style="{StaticResource VirValue}" />
@@ -96,7 +214,7 @@
         </Grid>
 
         <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button x:Name="OkButton" Content="Distribuir" Click="Ok_Click" IsDefault="True" Style="{StaticResource VirPrimaryButton}" />
+            <Button x:Name="OkButton" Content="_Distribuir" Click="Ok_Click" IsDefault="True" Style="{StaticResource VirPrimaryButton}" />
             <Button Content="Cancelar" IsCancel="True" />
         </StackPanel>
     </Grid>

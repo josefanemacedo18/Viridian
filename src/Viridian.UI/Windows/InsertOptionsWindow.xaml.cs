@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
+using Viridian.Core.Colors;
+using Viridian.Core.Config;
 using Viridian.Core.Model;
 using Viridian.Core.Scale;
 using Viridian.Core.Symbols;
@@ -31,14 +33,17 @@ public partial class InsertOptionsWindow : ViridianWindow
 {
     private readonly Species _species;
     private readonly bool _editing;
+    private readonly ViridianSettings? _settings;
 
     /// <param name="species">Espécie dos exemplares.</param>
     /// <param name="defaultStage">Texto sugerido para o estágio de implantação.</param>
     /// <param name="editingCount">Quantidade de exemplares em edição; zero quando a janela é usada para inserir.</param>
     /// <param name="current">Valores atuais (edição).</param>
-    public InsertOptionsWindow(Species species, string defaultStage, int editingCount = 0, PlantOptions? current = null)
+    /// <param name="settings">Configurações (cores da pré-visualização).</param>
+    public InsertOptionsWindow(Species species, string defaultStage, int editingCount = 0, PlantOptions? current = null, ViridianSettings? settings = null)
     {
         _species = species;
+        _settings = settings;
         _editing = editingCount > 0;
         InitializeComponent();
 
@@ -92,7 +97,9 @@ public partial class InsertOptionsWindow : ViridianWindow
         int variant = Math.Max(0, (VariantBox.SelectedItem as Choice<int>)?.Value ?? 0);
         SymbolView.Show(
             SymbolGenerator.Generate(_species.SymbolStyle, _species.CrownDiameterM, _species.EffectiveSymbolSeed, variant),
-            DetailProfile.Detalhado);
+            DetailProfile.Detalhado,
+            SymbolPaint.For(_species, (_settings ?? new ViridianSettings()).Colors),
+            _settings);
     }
 
     private void VariantBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

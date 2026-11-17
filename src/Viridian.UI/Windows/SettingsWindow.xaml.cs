@@ -13,6 +13,8 @@ using Viridian.Core.Model;
 using Viridian.Core.Scale;
 using Viridian.Core.Symbols;
 using Viridian.Library;
+using Viridian.Core.Colors;
+using Viridian.UI.Controls;
 
 namespace Viridian.UI.Windows;
 
@@ -68,12 +70,48 @@ public sealed class TierRow : INotifyPropertyChanged
     private void Raise([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
+/// <summary>Linha editável da cor-base de uma categoria.</summary>
+public sealed class CategoryColorRow : INotifyPropertyChanged
+{
+    private string _color;
+
+    public CategoryColorRow(PlantCategory category, string color)
+    {
+        Category = category;
+        _color = color;
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public PlantCategory Category { get; }
+
+    public string Name => Labels.Plural(Category);
+
+    public string Color
+    {
+        get => _color;
+        set
+        {
+            _color = value ?? string.Empty;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Color)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Swatch)));
+        }
+    }
+
+    public Brush Swatch =>
+        Rgb.TryParse(Color, out Rgb rgb) ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(rgb.R, rgb.G, rgb.B)) : Brushes.Transparent;
+
+    public bool IsValid => Rgb.TryParse(Color, out _);
+}
+
 /// <summary>Configurações do escritório.</summary>
 public partial class SettingsWindow : ViridianWindow
 {
     private readonly LibraryPaths _paths;
     private readonly List<HatchPattern> _customHatches;
     private List<TierRow> _tiers = new();
+    private List<CategoryColorRow> _categoryColors = new();
+    private readonly List<(SymbolPreview View, Species Sample)> _colorPreviews = new();
     private bool _loading = true;
 
     public SettingsWindow(ViridianSettings settings, LibraryPaths paths)
@@ -87,8 +125,14 @@ public partial class SettingsWindow : ViridianWindow
             DigitsBox.Items.Add(i);
         }
 
+        CrownFillBox.Items.Add(new Choice<CrownFillMode>("Cor sólida", CrownFillMode.Solido));
+        CrownFillBox.Items.Add(new Choice<CrownFillMode>("Reticulado colorido", CrownFillMode.Reticulado));
+        CrownFillBox.Items.Add(new Choice<CrownFillMode>("Sem cor (só linhas)", CrownFillMode.Nenhum));
+        BuildColorPreviews();
+
         Load(Settings);
         _loading = false;
+        UpdateColorPreview();
         UpdateScaleText();
         UpdateCodeExample();
         FillHatches(null);
@@ -111,6 +155,12 @@ public partial class SettingsWindow : ViridianWindow
         _tiers = s.TierStyles.Select(t => new TierRow(t)).ToList();
         TierList.ItemsSource = _tiers;
         SyncMarksBox.IsChecked = s.SyncMarks;
+        foreach (TierRow tier in _tiers)
+        {
+            tier.PropertyChanged += (_, _) => UpdateColorPreview();
+        }
+
+        LoadColors(s.Colors);
 
         LowBox.Text = Num.Format(s.Density.LowMax);
         MediumBox.Text = Num.Format(s.Density.MediumMax);
@@ -138,6 +188,110 @@ public partial class SettingsWindow : ViridianWindow
         TextSizeBox.Text = Num.Format(s.Labels.TextSizeMm);
         OffsetBox.Text = Num.Format(s.Labels.OffsetMm);
         LeaderBox.IsChecked = s.Labels.LeaderByDefault;
+    }
+
+    private void LoadColors(ColorSettings colors)
+    {
+        CrownFillBox.SelectedIndex = Math.Max(0, CrownFillBox.Items.Cast<Choice<CrownFillMode>>().ToList().FindIndex(c => c.Value == colors.CrownFill));
+        CrownTintBox.Text = Num.Format(colors.CrownTint * 100, "0");
+        MassingTintBox.Text = Num.Format(colors.MassingBackgroundTint * 100, "0");
+        ShowFlowersBox.IsChecked = colors.ShowFlowers;
+        ColoredMassingsBox.IsChecked = colors.ColoredMassings;
+        _categoryColors = Labels.Categories
+            .Select(c => new CategoryColorRow(c, colors.CategoryColors.TryGetValue(c, out string? hex) ? hex : VegetationPalette.DefaultCategoryColors()[c]))
+            .ToList();
+        foreach (CategoryColorRow row in _categoryColors)
+        {
+            row.PropertyChanged += (_, _) => UpdateColorPreview();
+        }
+
+        CategoryColorList.ItemsSource = _categoryColors;
+    }
+
+    /// <summary>Cores como estão na tela (valores inválidos são substituídos pelos padrões).</summary>
+    private ColorSettings ColorsFromForm()
+    {
+        var colors = new ColorSettings
+        {
+            CrownFill = (CrownFillBox.SelectedItem as Choice<CrownFillMode>)?.Value ?? CrownFillMode.Solido,
+            CrownTint = Num.TryParse(CrownTintBox.Text, out double crown) ? crown / 100 : 0.28,
+            MassingBackgroundTint = Num.TryParse(MassingTintBox.Text, out double massing) ? massing / 100 : 0.55,
+            ShowFlowers = ShowFlowersBox.IsChecked == true,
+            ColoredMassings = ColoredMassingsBox.IsChecked == true,
+            CategoryColors = _categoryColors.ToDictionary(r => r.Category, r => r.Color.Trim()),
+        };
+        colors.Normalize();
+        return colors;
+    }
+
+    /// <summary>Um exemplo de cada categoria, com floração nas que costumam florir.</summary>
+    private void BuildColorPreviews()
+    {
+        (PlantCategory Category, double Diameter, string Flower)[] samples =
+        {
+            (PlantCategory.Arvore, 8, "#F2C230"),
+            (PlantCategory.Palmeira, 6, string.Empty),
+            (PlantCategory.Arbusto, 2, "#E5609A"),
+            (PlantCategory.Herbacea, 0.8, "#E8743B"),
+            (PlantCategory.Forracao, 0.5, "#9B6BD3"),
+            (PlantCategory.Gramado, 0.5, string.Empty),
+            (PlantCategory.Trepadeira, 1.5, "#C9446F"),
+            (PlantCategory.Aquatica, 1.0, "#F4F1E6"),
+        };
+
+        foreach ((PlantCategory category, double diameter, string flower) in samples)
+        {
+            var sample = new Species
+            {
+                Id = "amostra-" + category,
+                ScientificName = "Amostra " + category,
+                Category = category,
+                CrownDiameterM = diameter,
+                SymbolStyle = SymbolStyles.Suggest(category, CrownForm.Arredondada),
+                FlowerColor = flower,
+            };
+            var view = new SymbolPreview { Width = 92, Height = 92 };
+            var panel = new StackPanel { Margin = new Thickness(0, 0, 10, 8) };
+            panel.Children.Add(new Border { BorderBrush = Brushes.Silver, BorderThickness = new Thickness(1), Child = view });
+            panel.Children.Add(new TextBlock { Text = Labels.Of(category), HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 2, 0, 0) });
+            ColorPreviewPanel.Children.Add(panel);
+            _colorPreviews.Add((view, sample));
+        }
+    }
+
+    private void UpdateColorPreview()
+    {
+        if (_loading || _colorPreviews.Count == 0)
+        {
+            return;
+        }
+
+        var preview = new ViridianSettings { Colors = ColorsFromForm() };
+        preview.TierStyles = _tiers
+            .Select(t => new TierStyle { Tier = t.Tier, LineWeight = t.LineWeight, Color = t.IsValid ? ColorHex.Normalize(t.Color) : "#000000" })
+            .ToList();
+        foreach ((SymbolPreview view, Species sample) in _colorPreviews)
+        {
+            view.Show(
+                SymbolGenerator.Generate(sample.SymbolStyle, sample.CrownDiameterM, sample.EffectiveSymbolSeed),
+                DetailProfile.Detalhado,
+                SymbolPaint.For(sample, preview.Colors),
+                preview);
+        }
+    }
+
+    private void ColorSelection_Changed(object sender, SelectionChangedEventArgs e) => UpdateColorPreview();
+
+    private void ColorCheck_Changed(object sender, RoutedEventArgs e) => UpdateColorPreview();
+
+    private void ColorText_Changed(object sender, TextChangedEventArgs e) => UpdateColorPreview();
+
+    private void ColorDefaults_Click(object sender, RoutedEventArgs e)
+    {
+        _loading = true;
+        LoadColors(new ColorSettings());
+        _loading = false;
+        UpdateColorPreview();
     }
 
     private static int RangeOf(ViridianSettings s, DetailProfile profile, int fallback) =>
@@ -344,6 +498,7 @@ public partial class SettingsWindow : ViridianWindow
         _loading = false;
         UpdateScaleText();
         UpdateCodeExample();
+        UpdateColorPreview();
     }
 
     private void Ok_Click(object sender, RoutedEventArgs e)
@@ -392,6 +547,14 @@ public partial class SettingsWindow : ViridianWindow
         {
             problems.Add("As faixas de escala precisam crescer: Detalhado < Intermediário < Simplificado.");
         }
+
+        foreach (CategoryColorRow row in _categoryColors.Where(r => !r.IsValid))
+        {
+            problems.Add($"Cor inválida para {row.Name} (use o formato #RRGGBB).");
+        }
+
+        double crownTint = Number(CrownTintBox, "Clareamento da copa", 0, 85);
+        double massingTint = Number(MassingTintBox, "Clareamento do fundo dos maciços", 0, 95);
 
         foreach (TierRow tier in _tiers.Where(t => !t.IsValid))
         {
@@ -442,6 +605,9 @@ public partial class SettingsWindow : ViridianWindow
         s.AutoApplyScaleProfiles = AutoScaleBox.IsChecked == true;
         s.TierStyles = _tiers.Select(t => new TierStyle { Tier = t.Tier, LineWeight = t.LineWeight, Color = ColorHex.Normalize(t.Color) }).ToList();
         s.SyncMarks = SyncMarksBox.IsChecked == true;
+        s.Colors = ColorsFromForm();
+        s.Colors.CrownTint = crownTint / 100;
+        s.Colors.MassingBackgroundTint = massingTint / 100;
         s.Density = new Core.Massing.DensityRules { LowMax = low, MediumMax = medium, HighMax = high };
         s.MassingPrefix = PrefixBox.Text;
         s.Quantities.MassingReservePercent = massingReserve;

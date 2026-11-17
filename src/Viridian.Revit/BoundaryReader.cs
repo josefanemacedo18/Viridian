@@ -206,20 +206,24 @@ public static class RegionPicker
     /// </summary>
     public static Polygon2? PickPolygon(UIDocument uiDocument, string prompt)
     {
-        IReadOnlyList<Point2> points = PickPoints(uiDocument, prompt, closePreview: true);
+        IReadOnlyList<Point2> points = PickPoints(uiDocument, prompt, 3, int.MaxValue);
         return points.Count >= 3 ? new Polygon2(points) : null;
     }
 
     /// <summary>Solicita uma sequência de pontos (polilinha aberta). ESC conclui.</summary>
     public static IReadOnlyList<Point2> PickPath(UIDocument uiDocument, string prompt) =>
-        PickPoints(uiDocument, prompt, closePreview: false);
+        PickPoints(uiDocument, prompt, 2, int.MaxValue);
 
-    private static IReadOnlyList<Point2> PickPoints(UIDocument uiDocument, string prompt, bool closePreview)
+    /// <summary>
+    /// Solicita pontos na vista ativa, desenhando linhas de apoio provisórias. Conclui com ESC ou ao atingir
+    /// <paramref name="maximum"/> pontos (por exemplo, 2 para uma linha reta).
+    /// </summary>
+    /// <param name="needed">Quantidade mínima de pontos (só altera a mensagem da barra de status).</param>
+    public static IReadOnlyList<Point2> PickPoints(UIDocument uiDocument, string prompt, int needed, int maximum)
     {
         Document document = uiDocument.Document;
         View view = uiDocument.ActiveView;
         var picked = new List<XYZ>();
-        int needed = closePreview ? 3 : 2;
 
         // As linhas de apoio ficam em um grupo de transações que é desfeito ao final.
         var group = new TransactionGroup(document, "Viridian: delimitar");
@@ -264,6 +268,11 @@ public static class RegionPicker
                 }
 
                 picked.Add(point);
+                if (picked.Count >= maximum)
+                {
+                    break;
+                }
+
                 if (preview && picked.Count > 1)
                 {
                     DrawPreview(document, view, picked[^2], picked[^1]);

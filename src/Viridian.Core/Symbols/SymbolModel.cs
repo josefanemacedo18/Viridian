@@ -48,6 +48,12 @@ public enum SymbolTier
 
     /// <summary>Ramificações secundárias e detalhes internos (somente no perfil Detalhado).</summary>
     Detail = 5,
+
+    /// <summary>Preenchimento colorido da copa (todos os perfis, exceto o Mínimo).</summary>
+    Fill = 6,
+
+    /// <summary>Manchas de floração (perfis Detalhado e Intermediário).</summary>
+    Flowers = 7,
 }
 
 /// <summary>Elemento gráfico de um símbolo: segmento de reta ou arco por três pontos.</summary>
@@ -100,7 +106,11 @@ public sealed class PlantSymbol
 /// <summary>Regras de visibilidade das camadas em cada perfil de representação.</summary>
 public static class TierVisibility
 {
+    /// <summary>Todas as camadas, inclusive as de cor.</summary>
     public static readonly IReadOnlyList<SymbolTier> AllTiers = Enum.GetValues<SymbolTier>();
+
+    /// <summary>Camadas de linha (as que têm espessura e cor de linha configuráveis).</summary>
+    public static readonly IReadOnlyList<SymbolTier> LineTiers = AllTiers.Where(t => t < SymbolTier.Fill).ToList();
 
     public static bool IsVisible(SymbolTier tier, DetailProfile profile) => tier switch
     {
@@ -110,6 +120,8 @@ public static class TierVisibility
         SymbolTier.Essential => profile != DetailProfile.Minimo,
         SymbolTier.Principal => profile is DetailProfile.Intermediario or DetailProfile.Detalhado,
         SymbolTier.Detail => profile == DetailProfile.Detalhado,
+        SymbolTier.Fill => profile != DetailProfile.Minimo,
+        SymbolTier.Flowers => profile is DetailProfile.Intermediario or DetailProfile.Detalhado,
         _ => true,
     };
 
@@ -122,6 +134,8 @@ public static class TierVisibility
         SymbolTier.Essential => "VIR Estrutura essencial",
         SymbolTier.Principal => "VIR Ramificação principal",
         SymbolTier.Detail => "VIR Detalhe",
+        SymbolTier.Fill => "VIR Preenchimento",
+        SymbolTier.Flowers => "VIR Floração",
         _ => "VIR Detalhe",
     };
 
@@ -133,6 +147,8 @@ public static class TierVisibility
         SymbolTier.Essential => "Estrutura essencial",
         SymbolTier.Principal => "Ramificação principal",
         SymbolTier.Detail => "Detalhe interno",
+        SymbolTier.Fill => "Preenchimento da copa",
+        SymbolTier.Flowers => "Floração",
         _ => tier.ToString(),
     };
 }

@@ -204,6 +204,11 @@ public sealed class ScaleProfileService
         var pending = new List<(Category Category, TierStyle Style)>();
         foreach ((SymbolTier tier, ElementId id) in tiers)
         {
+            if (tier >= SymbolTier.Fill)
+            {
+                continue; // camadas de cor não têm padrão de linha
+            }
+
             Category? category = Category.GetCategory(document, id);
             TierStyle style = _settings.StyleOf(tier);
             if (category is not null && !Matches(category, style))

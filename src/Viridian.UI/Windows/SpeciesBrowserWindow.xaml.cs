@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using Viridian.Core.Config;
 using Viridian.Core.Hatch;
+using Viridian.Core.Colors;
 using Viridian.Core.Model;
 using Viridian.Core.Scale;
 using Viridian.Core.Symbols;
@@ -25,9 +26,27 @@ public enum BrowserAction
 /// <summary>Linha da lista de espécies.</summary>
 public sealed class SpeciesRow
 {
-    public SpeciesRow(Species species)
+    public SpeciesRow(Species species, ColorSettings colors)
     {
         Species = species;
+        Rgb foliage = VegetationPalette.Foliage(species, colors);
+        FoliageBrush = Brush(foliage);
+        Rgb? flower = Rgb.TryParse(species.FlowerColor, out Rgb f) ? f : null;
+        FlowerBrush = flower is Rgb fl ? Brush(fl) : System.Windows.Media.Brushes.Transparent;
+        ColorTip = "Folhagem " + foliage.Hex + (flower is Rgb x ? " · flor " + x.Hex : string.Empty);
+    }
+
+    public System.Windows.Media.Brush FoliageBrush { get; }
+
+    public System.Windows.Media.Brush FlowerBrush { get; }
+
+    public string ColorTip { get; }
+
+    private static System.Windows.Media.Brush Brush(Rgb color)
+    {
+        var brush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(color.R, color.G, color.B));
+        brush.Freeze();
+        return brush;
     }
 
     public Species Species { get; }
@@ -73,6 +92,8 @@ public partial class SpeciesBrowserWindow : ViridianWindow
         FillChoices(WaterBox, "Todas", Enum.GetValues<WaterNeed>().Where(w => w != WaterNeed.NaoInformada), Labels.Of);
         FillChoices(LightBox, "Todas", Enum.GetValues<LightNeed>().Where(l => l != LightNeed.NaoInformada), Labels.Of);
         FillChoices(GrowthBox, "Todos", Enum.GetValues<GrowthRate>().Where(g => g != GrowthRate.NaoInformado), Labels.Of);
+        FillChoices(BiomeBox, "Todos", Labels.Biomes, Labels.Of);
+        FillChoices(MonthBox, "Qualquer", Enumerable.Range(1, 12), m => System.Globalization.CultureInfo.GetCultureInfo("pt-BR").DateTimeFormat.GetMonthName(m));
 
         foreach (DetailProfile profile in Enum.GetValues<DetailProfile>())
         {
@@ -136,6 +157,9 @@ public partial class SpeciesBrowserWindow : ViridianWindow
         MinCrownM = Num.TryParse(MinCrownBox.Text, out double minCrown) ? minCrown : null,
         MaxCrownM = Num.TryParse(MaxCrownBox.Text, out double maxCrown) ? maxCrown : null,
         OnlyUserDefined = UserOnlyBox.IsChecked == true,
+        Biome = Selected<Biome>(BiomeBox),
+        FloweringMonth = Selected<int>(MonthBox),
+        OnlyShowyFlowers = ShowyBox.IsChecked == true,
     };
 
     private void Refresh(string? selectId)
@@ -146,7 +170,7 @@ public partial class SpeciesBrowserWindow : ViridianWindow
         }
 
         selectId ??= SelectedSpecies?.Id;
-        List<SpeciesRow> rows = _catalog.Search(BuildFilter()).Select(s => new SpeciesRow(s)).ToList();
+        List<SpeciesRow> rows = _catalog.Search(BuildFilter()).Select(s => new SpeciesRow(s, _settings.Colors)).ToList();
         SpeciesGrid.ItemsSource = rows;
         CountText.Text = rows.Count == 1 ? "1 espécie encontrada" : rows.Count + " espécies encontradas";
 
@@ -205,6 +229,8 @@ public partial class SpeciesBrowserWindow : ViridianWindow
             new("Água", Labels.Of(species.Water)),
             new("Luminosidade", Labels.Of(species.Light)),
             new("Floração", string.IsNullOrWhiteSpace(species.Flowering) ? "—" : species.Flowering),
+            new("Biomas", species.Biomes == Biome.Nenhum ? (species.Origin == PlantOrigin.Nativa ? "—" : "não nativa do Brasil") : Labels.Of(species.Biomes)),
+            new("Cores", ColorText(species)),
             new("Símbolo", species.HasCustomPlantingFamily ? "Família personalizada: " + Path.GetFileName(species.CustomPlantingFamilyFile) : SymbolStyles.DisplayName(species.SymbolStyle)),
             new("Hachura", HatchLibrary.Find(species.HatchPatternKey, _settings.CustomHatches)?.Name ?? "—"),
         };
@@ -222,16 +248,24 @@ public partial class SpeciesBrowserWindow : ViridianWindow
         DetailRows.ItemsSource = rows;
     }
 
+    private string ColorText(Species species)
+    {
+        string foliage = "folhagem " + VegetationPalette.Foliage(species, _settings.Colors).Hex
+                         + (string.IsNullOrWhiteSpace(species.FoliageColor) ? " (da categoria)" : string.Empty);
+        return Rgb.TryParse(species.FlowerColor, out Rgb flower) ? foliage + "; flor " + flower.Hex : foliage;
+    }
+
     private void DrawSymbol(Species species)
     {
         DetailProfile profile = (ProfileBox.SelectedItem as Choice<DetailProfile>)?.Value ?? DetailProfile.Detalhado;
-        SymbolView.Show(SymbolGenerator.Generate(species.SymbolStyle, species.CrownDiameterM, species.EffectiveSymbolSeed), profile);
+        SymbolView.Show(SymbolGenerator.Generate(species.SymbolStyle, species.CrownDiameterM, species.EffectiveSymbolSeed), profile, SymbolPaint.For(species, _settings.Colors), _settings);
     }
 
     private void LoadPhoto(Species species)
     {
         PhotoImage.Source = null;
         NoPhotoText.Visibility = Visibility.Visible;
+        PhotoCreditText.Text = string.Empty;
         if (string.IsNullOrWhiteSpace(species.PhotoFile))
         {
             return;
@@ -239,10 +273,18 @@ public partial class SpeciesBrowserWindow : ViridianWindow
 
         try
         {
-            string file = _paths.Resolve(species.PhotoFile, _paths.PhotosFolder);
-            if (!File.Exists(file))
+            string file = _paths.ResolvePhoto(species.PhotoFile);
+            if (file.Length == 0)
             {
                 return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(species.PhotoCredit))
+            {
+                PhotoCreditText.Text = "Foto: " + species.PhotoCredit
+                                       + (string.IsNullOrWhiteSpace(species.PhotoLicense) ? string.Empty : " · " + species.PhotoLicense)
+                                       + (species.PhotoSource.Contains("inaturalist", StringComparison.OrdinalIgnoreCase) ? " · iNaturalist" : string.Empty);
+                PhotoCreditText.ToolTip = species.PhotoSource;
             }
 
             var image = new BitmapImage();
@@ -272,7 +314,8 @@ public partial class SpeciesBrowserWindow : ViridianWindow
         MinCrownBox.Text = string.Empty;
         MaxCrownBox.Text = string.Empty;
         UserOnlyBox.IsChecked = false;
-        foreach (ComboBox box in new[] { CategoryBox, OriginBox, FormBox, WaterBox, LightBox, GrowthBox })
+        ShowyBox.IsChecked = false;
+        foreach (ComboBox box in new[] { CategoryBox, OriginBox, FormBox, WaterBox, LightBox, GrowthBox, BiomeBox, MonthBox })
         {
             box.SelectedIndex = 0;
         }

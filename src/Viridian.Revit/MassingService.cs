@@ -1,4 +1,5 @@
 using Autodesk.Revit.DB;
+using Viridian.Core.Colors;
 using Viridian.Core.Config;
 using Viridian.Core.Distribution;
 using Viridian.Core.Geometry;
@@ -80,7 +81,7 @@ public sealed class MassingService
 
         return Tx.Run(document, "Viridian: maciço", () =>
         {
-            FilledRegionType type = HatchService.EnsureRegionType(document, RegionHatch(execution));
+            FilledRegionType type = HatchService.EnsureRegionType(document, RegionHatch(execution), VegetationPalette.Massing(execution.Species, _settings.Colors));
             FilledRegion region;
             if (existingRegion is not null)
             {
@@ -131,7 +132,7 @@ public sealed class MassingService
 
         return Tx.Run(document, "Viridian: recalcular maciço", () =>
         {
-            FilledRegionType type = HatchService.EnsureRegionType(document, RegionHatch(execution));
+            FilledRegionType type = HatchService.EnsureRegionType(document, RegionHatch(execution), VegetationPalette.Massing(execution.Species, _settings.Colors));
             if (region.GetTypeId() != type.Id)
             {
                 region.ChangeTypeId(type.Id);

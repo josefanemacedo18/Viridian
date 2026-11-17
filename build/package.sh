@@ -19,6 +19,8 @@ for f in Viridian.Addin Viridian.Core Viridian.Library Viridian.Revit Viridian.U
   cp "${BIN}/${f}.pdb" "${OUT}/Viridian/"
 done
 cp "${BIN}/Viridian.Addin.deps.json" "${OUT}/Viridian/"
+mkdir -p "${OUT}/Viridian/Fotos"
+cp "${BIN}"/Fotos/* "${OUT}/Viridian/Fotos/"
 cp "${BIN}/Viridian.addin" "${OUT}/"
 cp deploy/Instalar.ps1 deploy/Instalar.cmd deploy/Desinstalar.ps1 deploy/Desinstalar.cmd "${OUT}/"
 cp deploy/LEIA-ME.txt "${OUT}/"

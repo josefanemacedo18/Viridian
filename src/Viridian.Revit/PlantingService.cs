@@ -93,6 +93,7 @@ public sealed class PlantingService
             double offset = RevitUnits.ToFeet(_settings.Planting.ElevationOffsetM);
             double z = level.ProjectElevation + offset;
             var created = new List<ElementId>(points.Count);
+            var targets = new List<(FamilyInstance Instance, XYZ Target)>(points.Count);
 
             for (int i = 0; i < points.Count; i++)
             {
@@ -108,14 +109,35 @@ public sealed class PlantingService
 
                 if (rotations is not null && i < rotations.Count && Math.Abs(rotations[i]) > 1e-9)
                 {
-                    XYZ origin = (instance.Location as LocationPoint)?.Point ?? location;
-                    using Line axis = Line.CreateBound(origin, origin + XYZ.BasisZ);
+                    // Gira em torno do ponto calculado (e não da posição informada pelo exemplar, que só é
+                    // atualizada na regeneração): a planta gira no lugar, sem sair do eixo ou do canteiro.
+                    using Line axis = Line.CreateBound(location, location + XYZ.BasisZ);
                     ElementTransformUtils.RotateElement(document, instance.Id, axis, rotations[i]);
                 }
 
                 string code = allocator.Next(species.Category, projectSpeciesCode);
                 WriteInstanceData(instance, code, options, variant);
                 created.Add(instance.Id);
+                targets.Add((instance, location));
+            }
+
+            // Conferência final: cada exemplar precisa estar exatamente no ponto calculado.
+            document.Regenerate();
+            int corrected = 0;
+            double tolerance = RevitUnits.ToFeet(0.001);
+            foreach ((FamilyInstance instance, XYZ target) in targets)
+            {
+                if (instance.Location is LocationPoint lp
+                    && (Math.Abs(lp.Point.X - target.X) > tolerance || Math.Abs(lp.Point.Y - target.Y) > tolerance))
+                {
+                    lp.Point = new XYZ(target.X, target.Y, lp.Point.Z);
+                    corrected++;
+                }
+            }
+
+            if (corrected > 0)
+            {
+                ViridianLog.Warn($"{corrected} exemplar(es) foram reposicionados no ponto calculado após a inserção.");
             }
 
             return (IReadOnlyList<ElementId>)created;

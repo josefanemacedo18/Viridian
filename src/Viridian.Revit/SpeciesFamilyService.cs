@@ -2,6 +2,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using Autodesk.Revit.DB;
+using Viridian.Core.Colors;
 using Viridian.Core.Config;
 using Viridian.Core.Model;
 using Viridian.Core.Symbols;
@@ -57,7 +58,7 @@ public sealed class SpeciesFamilyService
 
         variant = Math.Clamp(variant, 0, species.EffectiveVariants - 1);
         bool custom = species.HasCustomPlantingFamily;
-        string hash = custom ? string.Empty : GeometryHash(species, variant);
+        string hash = custom ? string.Empty : GeometryHash(species, variant, _settings.Colors);
         FamilySymbol symbol = custom ? EnsureCustom(document, species) : EnsureGenerated(document, species, variant, hash);
 
         Tx.Run(document, "Viridian: dados da espécie", () =>
@@ -146,7 +147,7 @@ public sealed class SpeciesFamilyService
                 reasons.Add("dimensões");
             }
 
-            if (!link.IsCustom && !species.HasCustomPlantingFamily && link.GeometryHash != GeometryHash(species, link.Variant))
+            if (!link.IsCustom && !species.HasCustomPlantingFamily && link.GeometryHash != GeometryHash(species, link.Variant, _settings.Colors))
             {
                 reasons.Add("símbolo");
             }
@@ -180,7 +181,7 @@ public sealed class SpeciesFamilyService
             {
                 bool regenerate = !link.IsCustom
                     && !species.HasCustomPlantingFamily
-                    && link.GeometryHash != GeometryHash(species, link.Variant);
+                    && link.GeometryHash != GeometryHash(species, link.Variant, _settings.Colors);
                 if (regenerate)
                 {
                     EnsureSymbol(document, species, link.Variant, project);
@@ -212,14 +213,16 @@ public sealed class SpeciesFamilyService
     }
 
     /// <summary>Assinatura da geometria do símbolo: muda quando o desenho precisa ser regerado.</summary>
-    public static string GeometryHash(Species species, int variant)
+    public static string GeometryHash(Species species, int variant, ColorSettings colors)
     {
         string text = string.Join("|",
             SymbolGenerator.Version.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            SymbolFamilyBuilder.Version.ToString(System.Globalization.CultureInfo.InvariantCulture),
             species.SymbolStyle.ToString(),
             species.CrownDiameterM.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
             species.EffectiveSymbolSeed.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            variant.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            variant.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            SymbolPaint.For(species, colors).Signature);
         byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(text));
         return Convert.ToHexString(hash, 0, 8);
     }
@@ -255,7 +258,7 @@ public sealed class SpeciesFamilyService
         string standardName = FamilyNameOf(species, variant);
         string familyName = linked.HasValue ? linked.Value.Symbol.Family.Name : UniqueFamilyName(document, standardName, species.Id);
         string typeName = TypeNameOf(species);
-        string file = EnsureFamilyFile(document.Application, species, variant, familyName, standardName, hash, typeName);
+        string file = EnsureFamilyFile(document, document.Application, species, variant, familyName, standardName, hash, typeName);
         Family family = LoadFamilyFile(document, file);
 
         // Ao regerar, o tipo já usado pelos exemplares continua sendo o tipo da espécie.
@@ -329,7 +332,7 @@ public sealed class SpeciesFamilyService
         return standardName + "_" + suffix;
     }
 
-    private string EnsureFamilyFile(RevitApplication app, Species species, int variant, string familyName, string standardName, string hash, string typeName)
+    private string EnsureFamilyFile(Document source, RevitApplication app, Species species, int variant, string familyName, string standardName, string hash, string typeName)
     {
         bool cacheable = string.Equals(familyName, standardName, StringComparison.OrdinalIgnoreCase);
         string cacheFile = Path.Combine(_paths.GeneratedFolder(species.Category), familyName + ".rfa");
@@ -341,17 +344,18 @@ public sealed class SpeciesFamilyService
         }
 
         PlantSymbol symbol = SymbolGenerator.Generate(species.SymbolStyle, species.CrownDiameterM, species.EffectiveSymbolSeed, variant);
+        SymbolPaint paint = SymbolPaint.For(species, _settings.Colors);
         string target = cacheable ? cacheFile : Path.Combine(Path.GetTempPath(), "Viridian", "Familias", familyName + ".rfa");
         try
         {
-            BuildWithAnyTemplate(app, symbol, target, typeName);
+            BuildWithAnyTemplate(app, symbol, paint, target, typeName, source);
         }
         catch (Exception ex) when (cacheable && ex is IOException or UnauthorizedAccessException or Autodesk.Revit.Exceptions.FileAccessException)
         {
             // Biblioteca somente leitura ou arquivo em uso: gera em pasta temporária.
             ViridianLog.Warn("Não foi possível gravar a família na biblioteca; usando pasta temporária.", ex);
             target = Path.Combine(Path.GetTempPath(), "Viridian", "Familias", familyName + ".rfa");
-            BuildWithAnyTemplate(app, symbol, target, typeName);
+            BuildWithAnyTemplate(app, symbol, paint, target, typeName, source);
             return target;
         }
 
@@ -364,7 +368,7 @@ public sealed class SpeciesFamilyService
         return target;
     }
 
-    private void BuildWithAnyTemplate(RevitApplication app, PlantSymbol symbol, string target, string typeName)
+    private void BuildWithAnyTemplate(RevitApplication app, PlantSymbol symbol, SymbolPaint paint, string target, string typeName, Document? source)
     {
         IReadOnlyList<string> candidates = FamilyTemplateLocator.Candidates(app, _settings.FamilyTemplateFile);
         var rejections = new List<string>();
@@ -372,7 +376,7 @@ public sealed class SpeciesFamilyService
         {
             try
             {
-                int skipped = SymbolFamilyBuilder.Build(app, template, symbol, target, _settings, typeName);
+                int skipped = SymbolFamilyBuilder.Build(app, template, symbol, paint, target, _settings, typeName, source);
                 if (skipped > 0)
                 {
                     ViridianLog.Warn($"{skipped} linha(s) do símbolo foram recusadas pelo Revit em {Path.GetFileName(target)}.");

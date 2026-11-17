@@ -21,5 +21,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Viridian.addin" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Fotografias do catálogo padrão (licenças abertas; créditos em Fotos/CREDITOS.txt). -->
+    <None Include="Fotos\*.jpg;Fotos\CREDITOS.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

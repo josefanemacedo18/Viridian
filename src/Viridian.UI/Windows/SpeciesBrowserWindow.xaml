@@ -22,11 +22,11 @@
         <!-- Filtros projetuais -->
         <ScrollViewer Grid.Row="1" Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,10,0">
             <StackPanel>
-                <TextBlock Style="{StaticResource VirSection}" Margin="0,0,0,4" Text="Pesquisar" />
-                <TextBox x:Name="SearchBox" TextChanged="Filter_Changed" ToolTip="Código, nome popular, nome científico ou família" />
+                <Label Content="_Pesquisar" Target="{Binding ElementName=SearchBox}" Style="{StaticResource VirSectionLabel}" Margin="0,0,0,4" />
+                <TextBox x:Name="SearchBox" TextChanged="Filter_Changed" ToolTip="Código, nome popular, nome científico, família ou bioma" AutomationProperties.Name="Pesquisar" />
 
-                <TextBlock Style="{StaticResource VirSection}" Text="Categoria" />
-                <ComboBox x:Name="CategoryBox" SelectionChanged="Filter_Changed" />
+                <Label Content="_Categoria" Target="{Binding ElementName=CategoryBox}" Style="{StaticResource VirSectionLabel}" />
+                <ComboBox x:Name="CategoryBox" SelectionChanged="Filter_Changed" AutomationProperties.Name="Categoria" />
 
                 <TextBlock Style="{StaticResource VirSection}" Text="Origem" />
                 <ComboBox x:Name="OriginBox" SelectionChanged="Filter_Changed" />
@@ -67,6 +67,14 @@
                 <TextBlock Style="{StaticResource VirSection}" Text="Crescimento" />
                 <ComboBox x:Name="GrowthBox" SelectionChanged="Filter_Changed" />
 
+                <TextBlock Style="{StaticResource VirSection}" Text="Bioma (nativas)" />
+                <ComboBox x:Name="BiomeBox" SelectionChanged="Filter_Changed" AutomationProperties.Name="Bioma" />
+
+                <TextBlock Style="{StaticResource VirSection}" Text="Floração no mês" />
+                <ComboBox x:Name="MonthBox" SelectionChanged="Filter_Changed" AutomationProperties.Name="Floração no mês" />
+                <CheckBox x:Name="ShowyBox" Content="Somente com floração vistosa" Margin="0,6,0,0"
+                          Checked="Filter_Changed" Unchecked="Filter_Changed" />
+
                 <CheckBox x:Name="UserOnlyBox" Content="Somente cadastros do escritório" Margin="0,10,0,0"
                           Checked="Filter_Changed" Unchecked="Filter_Changed" />
                 <Button Content="Limpar filtros" Click="ClearFilters_Click" Margin="0,10,0,0" HorizontalAlignment="Left" />
@@ -81,6 +89,16 @@
             </Grid.RowDefinitions>
             <DataGrid x:Name="SpeciesGrid" SelectionChanged="SpeciesGrid_SelectionChanged" MouseDoubleClick="SpeciesGrid_DoubleClick">
                 <DataGrid.Columns>
+                    <DataGridTemplateColumn Header="" Width="22" IsReadOnly="True">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Grid Width="14" Height="14" ToolTip="{Binding ColorTip}">
+                                    <Ellipse Fill="{Binding FoliageBrush}" Stroke="#55000000" StrokeThickness="0.6" />
+                                    <Ellipse Width="6" Height="6" Fill="{Binding FlowerBrush}" />
+                                </Grid>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                     <DataGridTextColumn Header="Código" Binding="{Binding Code}" Width="70" />
                     <DataGridTextColumn Header="Nome popular" Binding="{Binding PopularName}" Width="*" />
                     <DataGridTextColumn Header="Nome científico" Binding="{Binding ScientificName}" Width="*" FontStyle="Italic" />
@@ -110,10 +128,11 @@
                         <Border Grid.Column="1" BorderBrush="{StaticResource VirBorder}" BorderThickness="1" Margin="4,0,0,0" Background="#FAFAFA">
                             <Grid>
                                 <TextBlock x:Name="NoPhotoText" Text="Sem fotografia" Style="{StaticResource VirHint}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                <Image x:Name="PhotoImage" Stretch="UniformToFill" />
+                                <Image x:Name="PhotoImage" Stretch="UniformToFill" AutomationProperties.Name="Fotografia da espécie" />
                             </Grid>
                         </Border>
                     </Grid>
+                    <TextBlock x:Name="PhotoCreditText" Style="{StaticResource VirHint}" TextWrapping="Wrap" FontSize="10" Margin="0,3,0,0" HorizontalAlignment="Right" />
                     <ComboBox x:Name="ProfileBox" Margin="0,6,0,0" SelectionChanged="ProfileBox_SelectionChanged" ToolTip="Perfil de representação da pré-visualização" />
                     <ItemsControl x:Name="DetailRows" Margin="0,8,0,0">
                         <ItemsControl.ItemTemplate>

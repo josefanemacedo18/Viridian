@@ -63,6 +63,36 @@ public sealed class LibraryPaths
     }
 
     /// <summary>Converte um caminho gravado no catálogo (relativo à biblioteca) em caminho completo.</summary>
+    /// <summary>Pasta das fotografias que acompanham o plugin (ao lado das bibliotecas do Viridian).</summary>
+    public static string BundledPhotosFolder =>
+        Path.Combine(Path.GetDirectoryName(typeof(LibraryPaths).Assembly.Location) is { Length: > 0 } dir ? dir : AppContext.BaseDirectory, "Fotos");
+
+    /// <summary>
+    /// Caminho de uma fotografia: primeiro a pasta de fotos da biblioteca do escritório (fotos próprias
+    /// substituem as do plugin), depois a pasta que acompanha o plugin. Retorna vazio quando não há foto.
+    /// </summary>
+    public string ResolvePhoto(string storedPath)
+    {
+        if (string.IsNullOrWhiteSpace(storedPath))
+        {
+            return string.Empty;
+        }
+
+        if (Path.IsPathRooted(storedPath))
+        {
+            return File.Exists(storedPath) ? storedPath : string.Empty;
+        }
+
+        string library = Path.Combine(PhotosFolder, storedPath);
+        if (File.Exists(library))
+        {
+            return library;
+        }
+
+        string bundled = Path.Combine(BundledPhotosFolder, storedPath);
+        return File.Exists(bundled) ? bundled : string.Empty;
+    }
+
     public string Resolve(string storedPath, string baseFolder)
     {
         if (string.IsNullOrWhiteSpace(storedPath))

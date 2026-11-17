@@ -22,6 +22,7 @@ foreach ($f in 'Viridian.Addin', 'Viridian.Core', 'Viridian.Library', 'Viridian.
     Copy-Item "$bin/$f.pdb" (Join-Path $out 'Viridian')
 }
 Copy-Item "$bin/Viridian.Addin.deps.json" (Join-Path $out 'Viridian')
+Copy-Item -Recurse "$bin/Fotos" (Join-Path $out 'Viridian/Fotos')
 Copy-Item "$bin/Viridian.addin" $out
 Copy-Item 'deploy/Instalar.ps1', 'deploy/Instalar.cmd', 'deploy/Desinstalar.ps1', 'deploy/Desinstalar.cmd', 'deploy/LEIA-ME.txt' $out
 

@@ -2,6 +2,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Viridian.Core.Coding;
+using Viridian.Core.Colors;
 using Viridian.Core.Hatch;
 using Viridian.Core.Integrity;
 using Viridian.Core.Massing;
@@ -95,18 +96,22 @@ public sealed class ViridianSettings
 
     public List<HatchPattern> CustomHatches { get; set; } = new();
 
+    /// <summary>Linhas em tons de verde-escuro e marrom, que leem bem sobre as copas coloridas e também em preto e branco.</summary>
     public static List<TierStyle> DefaultTierStyles() => new()
     {
-        new TierStyle { Tier = SymbolTier.MinimalOutline, LineWeight = 3 },
-        new TierStyle { Tier = SymbolTier.Center, LineWeight = 2 },
-        new TierStyle { Tier = SymbolTier.Outline, LineWeight = 3 },
-        new TierStyle { Tier = SymbolTier.Essential, LineWeight = 2 },
-        new TierStyle { Tier = SymbolTier.Principal, LineWeight = 1 },
-        new TierStyle { Tier = SymbolTier.Detail, LineWeight = 1 },
+        new TierStyle { Tier = SymbolTier.MinimalOutline, LineWeight = 3, Color = "#2E4A36" },
+        new TierStyle { Tier = SymbolTier.Center, LineWeight = 2, Color = "#5A4030" },
+        new TierStyle { Tier = SymbolTier.Outline, LineWeight = 3, Color = "#2E4A36" },
+        new TierStyle { Tier = SymbolTier.Essential, LineWeight = 2, Color = "#5E4A36" },
+        new TierStyle { Tier = SymbolTier.Principal, LineWeight = 1, Color = "#6E5A44" },
+        new TierStyle { Tier = SymbolTier.Detail, LineWeight = 1, Color = "#4F6B55" },
     };
 
+    /// <summary>Cores da vegetação: preenchimento das copas, floração e maciços.</summary>
+    public ColorSettings Colors { get; set; } = new();
+
     public TierStyle StyleOf(SymbolTier tier) =>
-        TierStyles.FirstOrDefault(s => s.Tier == tier) ?? DefaultTierStyles().First(s => s.Tier == tier);
+        TierStyles.FirstOrDefault(s => s.Tier == tier) ?? DefaultTierStyles().FirstOrDefault(s => s.Tier == tier) ?? new TierStyle { Tier = tier };
 
     /// <summary>Garante valores válidos depois de ler um arquivo editado manualmente ou de versão anterior.</summary>
     public void Normalize()
@@ -115,6 +120,8 @@ public sealed class ViridianSettings
         FamilyTemplateFile ??= string.Empty;
         Scales ??= new ScaleProfileSet();
         Scales.Normalize();
+        Colors ??= new ColorSettings();
+        Colors.Normalize();
         Density ??= new DensityRules();
         Density.Normalize();
         InstanceCode ??= new InstanceCodeFormat();
@@ -143,7 +150,7 @@ public sealed class ViridianSettings
 
         TierStyles ??= new List<TierStyle>();
         List<TierStyle> defaults = DefaultTierStyles();
-        TierStyles = TierVisibility.AllTiers
+        TierStyles = TierVisibility.LineTiers
             .Select(tier => TierStyles.FirstOrDefault(s => s is not null && s.Tier == tier) ?? defaults.First(d => d.Tier == tier))
             .ToList();
         foreach (TierStyle style in TierStyles)

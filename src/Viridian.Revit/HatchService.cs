@@ -1,4 +1,5 @@
 using Autodesk.Revit.DB;
+using Viridian.Core.Colors;
 using Viridian.Core.Config;
 using Viridian.Core.Hatch;
 
@@ -58,9 +59,16 @@ public static class HatchService
     /// Garante o tipo de região preenchida correspondente à hachura (ou sem hachura, quando nula).
     /// Precisa de transação aberta.
     /// </summary>
-    public static FilledRegionType EnsureRegionType(Document document, HatchPattern? pattern)
+    /// <param name="paint">Cores da hachura e do fundo; nulo para hachura preta sem fundo.</param>
+    public static FilledRegionType EnsureRegionType(Document document, HatchPattern? pattern, RegionPaint? paint = null)
     {
         string name = pattern?.Name ?? EmptyRegionTypeName;
+        if (paint is not null)
+        {
+            // Um tipo por combinação de hachura e cores: maciços de espécies diferentes não se repintam.
+            name += " · " + paint.Key;
+        }
+
         using var collector = new FilteredElementCollector(document);
         List<FilledRegionType> types = collector.OfClass(typeof(FilledRegionType)).Cast<FilledRegionType>().ToList();
         FilledRegionType? existing = types.FirstOrDefault(t => string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase));
@@ -79,10 +87,109 @@ public static class HatchService
         created.IsMasking = false;
         created.BackgroundPatternId = ElementId.InvalidElementId;
         created.ForegroundPatternId = pattern is null ? ElementId.InvalidElementId : EnsureFillPattern(document, pattern);
-        created.ForegroundPatternColor = new Color(0, 0, 0);
+        created.ForegroundPatternColor = paint is null ? new Color(0, 0, 0) : ToColor(paint.Pattern);
+        created.LineWeight = 1;
+        if (paint is not null)
+        {
+            ElementId solid = SolidDraftingPattern(document);
+            if (solid != ElementId.InvalidElementId && created.IsValidBackgroundPatternId(solid))
+            {
+                created.BackgroundPatternId = solid;
+                created.BackgroundPatternColor = ToColor(paint.Background);
+            }
+        }
+
+        return created;
+    }
+
+    /// <summary>Tipo de região sólida em uma cor (amostras de cor da legenda). Precisa de transação aberta.</summary>
+    public static FilledRegionType? EnsureSolidRegionType(Document document, Rgb color)
+    {
+        string name = "VIR Cor " + color.Hex.TrimStart('#');
+        using var collector = new FilteredElementCollector(document);
+        List<FilledRegionType> types = collector.OfClass(typeof(FilledRegionType)).Cast<FilledRegionType>().ToList();
+        FilledRegionType? existing = types.FirstOrDefault(t => string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        ElementId solid = SolidDraftingPattern(document);
+        FilledRegionType? template = types.FirstOrDefault();
+        if (solid == ElementId.InvalidElementId || template?.Duplicate(name) is not FilledRegionType created)
+        {
+            return null;
+        }
+
+        created.IsMasking = false;
+        created.BackgroundPatternId = ElementId.InvalidElementId;
+        created.ForegroundPatternId = solid;
+        created.ForegroundPatternColor = ToColor(color);
         created.LineWeight = 1;
         return created;
     }
+
+    /// <summary>Tipo de região com o reticulado da copa (linhas cruzadas finas) na cor informada.</summary>
+    public static FilledRegionType? EnsureCrownHatchType(Document document, Rgb color)
+    {
+        const string patternName = "VIR Reticulado da copa";
+        string name = "VIR Copa reticulada " + color.Hex.TrimStart('#');
+        using var collector = new FilteredElementCollector(document);
+        List<FilledRegionType> types = collector.OfClass(typeof(FilledRegionType)).Cast<FilledRegionType>().ToList();
+        FilledRegionType? existing = types.FirstOrDefault(t => string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        FillPatternElement? pattern = FillPatternElement.GetFillPatternElementByName(document, FillPatternTarget.Drafting, patternName);
+        if (pattern is null)
+        {
+            double spacing = 1.2 / 304.8;
+            pattern = FillPatternElement.Create(document, new FillPattern(patternName, FillPatternTarget.Drafting, FillPatternHostOrientation.ToView, Math.PI / 4, spacing, spacing));
+        }
+
+        FilledRegionType? template = types.FirstOrDefault();
+        if (template?.Duplicate(name) is not FilledRegionType created)
+        {
+            return null;
+        }
+
+        created.IsMasking = false;
+        created.BackgroundPatternId = ElementId.InvalidElementId;
+        created.ForegroundPatternId = pattern.Id;
+        created.ForegroundPatternColor = ToColor(color);
+        created.LineWeight = 1;
+        return created;
+    }
+
+    /// <summary>Estilo de linha invisível para o contorno de regiões, se o documento oferecer.</summary>
+    public static ElementId? InvisibleLineStyle(Document document)
+    {
+        var invisible = new ElementId(BuiltInCategory.OST_InvisibleLines);
+        foreach (ElementId id in FilledRegion.GetValidLineStyleIdsForFilledRegion(document))
+        {
+            if (document.GetElement(id) is GraphicsStyle style && style.GraphicsStyleCategory?.Id == invisible)
+            {
+                return id;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Padrão de preenchimento sólido (de desenho) do projeto.</summary>
+    public static ElementId SolidDraftingPattern(Document document)
+    {
+        using var collector = new FilteredElementCollector(document);
+        FillPatternElement? solid = collector.OfClass(typeof(FillPatternElement)).Cast<FillPatternElement>()
+            .FirstOrDefault(p => p.GetFillPattern() is { IsSolidFill: true, Target: FillPatternTarget.Drafting })
+            ?? new FilteredElementCollector(document).OfClass(typeof(FillPatternElement)).Cast<FillPatternElement>()
+                .FirstOrDefault(p => p.GetFillPattern() is { IsSolidFill: true });
+        return solid?.Id ?? ElementId.InvalidElementId;
+    }
+
+    public static Color ToColor(Rgb rgb) => new(rgb.R, rgb.G, rgb.B);
 
     /// <summary>Todas as hachuras disponíveis: as do Viridian e as customizadas do escritório.</summary>
     public static IReadOnlyList<HatchPattern> Available(ViridianSettings settings) =>

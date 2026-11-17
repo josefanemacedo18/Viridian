@@ -9,6 +9,8 @@ using Viridian.Core.Reports;
 using Viridian.Core.Scale;
 using Viridian.Core.Symbols;
 using Viridian.Library;
+using Viridian.Core.Colors;
+using System.Windows.Media;
 
 namespace Viridian.UI.Windows;
 
@@ -53,6 +55,11 @@ public partial class SpeciesEditorWindow : ViridianWindow
         for (int i = 1; i <= Species.MaxVariants; i++)
         {
             VariantsBox.Items.Add(i);
+        }
+
+        foreach (Biome biome in Labels.Biomes)
+        {
+            BiomePanel.Children.Add(new CheckBox { Content = Labels.Of(biome), Tag = biome, Margin = new Thickness(0, 3, 14, 3) });
         }
 
         foreach (HatchPattern hatch in HatchLibrary.BuiltIn.Concat(settings.CustomHatches))
@@ -119,6 +126,15 @@ public partial class SpeciesEditorWindow : ViridianWindow
         Select(LightBox, s.Light);
         FloweringBox.Text = s.Flowering;
         NotesBox.Text = s.Notes;
+        foreach (CheckBox box in BiomePanel.Children.OfType<CheckBox>())
+        {
+            box.IsChecked = box.Tag is Biome biome && (s.Biomes & biome) != 0;
+        }
+
+        FoliageColorBox.Text = s.FoliageColor;
+        FlowerColorBox.Text = s.FlowerColor;
+        PriceCodeBox.Text = s.PriceItemCode;
+        ServiceCodeBox.Text = s.ServiceItemCode;
         VariantsBox.SelectedItem = s.EffectiveVariants;
         ProfileBox.SelectedIndex = 0;
         Select(HatchBox, string.IsNullOrWhiteSpace(s.HatchPatternKey) ? HatchLibrary.DefaultKeyFor(s.Category) : s.HatchPatternKey);
@@ -185,7 +201,16 @@ public partial class SpeciesEditorWindow : ViridianWindow
         int seed = _seed != 0
             ? _seed
             : Core.Geometry.DeterministicRandom.StableHash(string.IsNullOrWhiteSpace(ScientificBox.Text) ? Species.Id : ScientificBox.Text.Trim());
-        SymbolView.Show(SymbolGenerator.Generate(style, diameter, seed, Math.Max(0, VariantViewBox.SelectedIndex)), profile);
+        ShowSwatch(FoliageSwatch, FoliageColorBox.Text);
+        ShowSwatch(FlowerSwatch, FlowerColorBox.Text);
+        var draft = new Species
+        {
+            Category = Value(CategoryBox, Species.Category),
+            SymbolSeed = seed,
+            FoliageColor = Rgb.TryParse(FoliageColorBox.Text, out Rgb foliage) ? foliage.Hex : string.Empty,
+            FlowerColor = Rgb.TryParse(FlowerColorBox.Text, out Rgb flower) ? flower.Hex : string.Empty,
+        };
+        SymbolView.Show(SymbolGenerator.Generate(style, diameter, seed, Math.Max(0, VariantViewBox.SelectedIndex)), profile, SymbolPaint.For(draft, _settings.Colors), _settings);
     }
 
     private void UpdateHatch()
@@ -253,6 +278,11 @@ public partial class SpeciesEditorWindow : ViridianWindow
             string name = Species.Id + Path.GetExtension(dialog.FileName).ToLowerInvariant();
             File.Copy(dialog.FileName, Path.Combine(_paths.PhotosFolder, name), overwrite: true);
             Species.PhotoFile = name;
+
+            // Foto própria do escritório: os créditos da foto do catálogo deixam de valer.
+            Species.PhotoCredit = string.Empty;
+            Species.PhotoLicense = string.Empty;
+            Species.PhotoSource = string.Empty;
             ShowFiles();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -265,6 +295,9 @@ public partial class SpeciesEditorWindow : ViridianWindow
     private void PhotoRemove_Click(object sender, RoutedEventArgs e)
     {
         Species.PhotoFile = string.Empty;
+        Species.PhotoCredit = string.Empty;
+        Species.PhotoLicense = string.Empty;
+        Species.PhotoSource = string.Empty;
         ShowFiles();
     }
 
@@ -280,6 +313,36 @@ public partial class SpeciesEditorWindow : ViridianWindow
         Species.CustomDetailFamilyFile = string.Empty;
         Species.CustomDetailTypeName = string.Empty;
         ShowFiles();
+    }
+
+    private static string NormalizeColor(string text, string label, List<string> problems)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return string.Empty;
+        }
+
+        if (Rgb.TryParse(text, out Rgb color))
+        {
+            return color.Hex;
+        }
+
+        problems.Add($"A {label} deve estar no formato #RRGGBB (ou ficar vazia).");
+        return text.Trim();
+    }
+
+    private static void ShowSwatch(Border swatch, string text)
+    {
+        if (Rgb.TryParse(text, out Rgb color))
+        {
+            var brush = new SolidColorBrush(Color.FromRgb(color.R, color.G, color.B));
+            brush.Freeze();
+            swatch.Background = brush;
+        }
+        else
+        {
+            swatch.Background = Brushes.Transparent;
+        }
     }
 
     private void Ok_Click(object sender, RoutedEventArgs e)
@@ -338,6 +401,13 @@ public partial class SpeciesEditorWindow : ViridianWindow
         s.Light = Value(LightBox, s.Light);
         s.Flowering = FloweringBox.Text.Trim();
         s.Notes = NotesBox.Text.Trim();
+        s.Biomes = BiomePanel.Children.OfType<CheckBox>()
+            .Where(b => b.IsChecked == true && b.Tag is Biome)
+            .Aggregate(Biome.Nenhum, (all, b) => all | (Biome)b.Tag);
+        s.FoliageColor = NormalizeColor(FoliageColorBox.Text, "cor da folhagem", problems);
+        s.FlowerColor = NormalizeColor(FlowerColorBox.Text, "cor da flor", problems);
+        s.PriceItemCode = PriceCodeBox.Text.Trim();
+        s.ServiceItemCode = ServiceCodeBox.Text.Trim();
         s.SymbolStyle = Value(StyleBox, s.SymbolStyle);
         s.SymbolVariants = VariantsBox.SelectedItem is int variants ? variants : 1;
         s.SymbolSeed = _seed;

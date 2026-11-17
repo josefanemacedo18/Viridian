@@ -1,5 +1,6 @@
 using System.Globalization;
 using Autodesk.Revit.DB;
+using Viridian.Core.Colors;
 using Viridian.Core.Config;
 using Viridian.Core.Geometry;
 using Viridian.Core.Hatch;
@@ -94,7 +95,7 @@ public sealed class DocumentationService
                 PopularName = first.PopularName,
                 ScientificName = first.ScientificName,
                 Quantity = amount,
-                Species = hatch is null ? lookup(first.SpeciesId) : null,
+                Species = lookup(first.SpeciesId),
                 Hatch = hatch,
             });
         }
@@ -151,11 +152,12 @@ public sealed class DocumentationService
 
                 if (entry.Hatch is not null)
                 {
-                    DrawHatchSample(document, view, entry.Hatch, Unit(columns[0] + 3), Unit(rowBottom + 2.5), Unit(columns[1] - 3), Unit(rowTop - 2.5));
+                    RegionPaint? paint = entry.Species is null ? null : VegetationPalette.Massing(entry.Species, _settings.Colors);
+                    DrawHatchSample(document, view, entry.Hatch, paint, Unit(columns[0] + 3), Unit(rowBottom + 2.5), Unit(columns[1] - 3), Unit(rowTop - 2.5));
                 }
                 else if (entry.Species is not null)
                 {
-                    DrawSymbol(document, view, entry.Species, Unit(centerX), Unit(centerY), Unit(rowHeight - 3));
+                    DrawSymbol(document, view, entry.Species, SymbolPaint.For(entry.Species, _settings.Colors), Unit(centerX), Unit(centerY), Unit(rowHeight - 3));
                 }
 
                 AddText(document, view, textType, entry.Code, Unit(columns[1] + 1.5), Unit(centerY + 1.3));
@@ -349,13 +351,16 @@ public sealed class DocumentationService
     }
 
     /// <summary>Desenha o símbolo da espécie reduzido para caber na célula da legenda.</summary>
-    private static void DrawSymbol(Document document, View view, Species species, double centerX, double centerY, double sizeFeet)
+    private static void DrawSymbol(Document document, View view, Species species, SymbolPaint paint, double centerX, double centerY, double sizeFeet)
     {
         PlantSymbol symbol = SymbolGenerator.Generate(species.SymbolStyle, species.CrownDiameterM, species.EffectiveSymbolSeed);
         double factor = sizeFeet / RevitUnits.ToFeet(symbol.Diameter);
         double tolerance = document.Application.ShortCurveTolerance * 1.5;
 
         XYZ Map(Point2 p) => new(centerX + RevitUnits.ToFeet(p.X) * factor, centerY + RevitUnits.ToFeet(p.Y) * factor, 0);
+
+        // Cores primeiro (ficam por baixo dos traços), como na planta.
+        DrawSymbolColors(document, view, symbol, paint, Map, factor, tolerance);
 
         foreach (SymbolPrimitive primitive in symbol.ForProfile(DetailProfile.Intermediario))
         {
@@ -402,11 +407,95 @@ public sealed class DocumentationService
         }
     }
 
-    private static void DrawHatchSample(Document document, View view, HatchPattern hatch, double x1, double y1, double x2, double y2)
+    private static void DrawSymbolColors(Document document, View view, PlantSymbol symbol, SymbolPaint paint, Func<Point2, XYZ> map, double factor, double tolerance)
     {
         try
         {
-            FilledRegionType type = HatchService.EnsureRegionType(document, hatch);
+            if (paint.Mode != CrownFillMode.Nenhum && symbol.FillOutline.Count >= 3)
+            {
+                FilledRegionType? crownType = paint.Mode == CrownFillMode.Solido
+                    ? HatchService.EnsureSolidRegionType(document, paint.Crown)
+                    : HatchService.EnsureCrownHatchType(document, paint.Crown);
+                CurveLoop? loop = PolygonLoop(symbol.FillOutline.Select(map).ToList(), tolerance);
+                if (crownType is not null && loop is not null)
+                {
+                    CreateBorderless(document, view, crownType, new List<CurveLoop> { loop });
+                }
+            }
+
+            if (paint.Flower is Rgb flower && symbol.FlowerSpots.Count > 0)
+            {
+                FilledRegionType? flowerType = HatchService.EnsureSolidRegionType(document, flower);
+                if (flowerType is not null)
+                {
+                    foreach (FlowerSpot spot in symbol.FlowerSpots)
+                    {
+                        double radius = RevitUnits.ToFeet(spot.Radius) * factor;
+                        if (radius * Math.PI < tolerance * 2)
+                        {
+                            continue;
+                        }
+
+                        XYZ center = map(spot.Center);
+                        var loop = new CurveLoop();
+                        loop.Append(Arc.Create(center, radius, 0, Math.PI, XYZ.BasisX, XYZ.BasisY));
+                        loop.Append(Arc.Create(center, radius, Math.PI, 2 * Math.PI, XYZ.BasisX, XYZ.BasisY));
+                        CreateBorderless(document, view, flowerType, new List<CurveLoop> { loop });
+                    }
+                }
+            }
+        }
+        catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+        {
+            ViridianLog.Warn("Não foi possível colorir o símbolo da legenda.", ex);
+        }
+    }
+
+    private static void CreateBorderless(Document document, View view, FilledRegionType type, IList<CurveLoop> loops)
+    {
+        FilledRegion region = FilledRegion.Create(document, type.Id, view.Id, loops);
+        ElementId? invisible = HatchService.InvisibleLineStyle(document);
+        if (invisible is not null)
+        {
+            region.SetLineStyleId(invisible);
+        }
+    }
+
+    private static CurveLoop? PolygonLoop(IReadOnlyList<XYZ> raw, double tolerance)
+    {
+        var points = new List<XYZ>();
+        foreach (XYZ p in raw)
+        {
+            if (points.Count == 0 || points[^1].DistanceTo(p) >= tolerance)
+            {
+                points.Add(p);
+            }
+        }
+
+        while (points.Count > 2 && points[^1].DistanceTo(points[0]) < tolerance)
+        {
+            points.RemoveAt(points.Count - 1);
+        }
+
+        if (points.Count < 3)
+        {
+            return null;
+        }
+
+        var curves = new List<Curve>(points.Count);
+        for (int i = 0; i < points.Count; i++)
+        {
+            curves.Add(Line.CreateBound(points[i], points[(i + 1) % points.Count]));
+        }
+
+        return CurveLoop.Create(curves);
+    }
+
+    private static void DrawHatchSample(Document document, View view, HatchPattern hatch, RegionPaint? paint, double x1, double y1, double x2, double y2)
+    {
+        try
+        {
+            FilledRegionType type = HatchService.EnsureRegionType(document, hatch, paint);
             var corners = new[] { new XYZ(x1, y1, 0), new XYZ(x2, y1, 0), new XYZ(x2, y2, 0), new XYZ(x1, y2, 0) };
             var curves = new List<Curve>();
             for (int i = 0; i < corners.Length; i++)

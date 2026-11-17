@@ -147,6 +147,9 @@ public sealed class ColorSettings
     /// <summary>Representa a floração das espécies que têm cor de flor cadastrada.</summary>
     public bool ShowFlowers { get; set; } = true;
 
+    /// <summary>Pinta os maciços com a cor da espécie (fundo claro e hachura mais escura).</summary>
+    public bool ColoredMassings { get; set; } = true;
+
     /// <summary>Cor-base de cada categoria (#RRGGBB).</summary>
     public Dictionary<PlantCategory, string> CategoryColors { get; set; } = VegetationPalette.DefaultCategoryColors();
 
@@ -235,4 +238,38 @@ public static class VegetationPalette
     /// <summary>Cor do fundo dos maciços (clara).</summary>
     public static Rgb MassingBackground(Species species, ColorSettings settings) =>
         Foliage(species, settings).Tint(settings.MassingBackgroundTint);
+
+    /// <summary>Pintura de uma região de maciço, ou nula quando os maciços não são coloridos.</summary>
+    public static RegionPaint? Massing(Species species, ColorSettings settings) =>
+        settings.ColoredMassings
+            ? new RegionPaint(MassingPattern(species, settings), MassingBackground(species, settings))
+            : null;
+}
+
+/// <summary>Cores de uma região preenchida: linhas da hachura e fundo sólido.</summary>
+public sealed record RegionPaint(Rgb Pattern, Rgb Background)
+{
+    /// <summary>Sufixo estável para o nome do tipo de região.</summary>
+    public string Key => Pattern.Hex.TrimStart('#') + "-" + Background.Hex.TrimStart('#');
+}
+
+/// <summary>Cores com que o símbolo de uma espécie é pintado dentro da família gerada.</summary>
+/// <param name="Mode">Tipo de preenchimento da copa.</param>
+/// <param name="Crown">Cor do preenchimento (clara no modo sólido; a própria folhagem no reticulado).</param>
+/// <param name="Flower">Cor das manchas de floração, ou nulo quando não há floração a desenhar.</param>
+public sealed record SymbolPaint(CrownFillMode Mode, Rgb Crown, Rgb? Flower)
+{
+    public static SymbolPaint For(Species species, ColorSettings settings)
+    {
+        Rgb crown = settings.CrownFill == CrownFillMode.Reticulado
+            ? VegetationPalette.Foliage(species, settings)
+            : VegetationPalette.CrownFill(species, settings);
+        return new SymbolPaint(settings.CrownFill, crown, VegetationPalette.Flower(species, settings));
+    }
+
+    /// <summary>Indica se há alguma região colorida a desenhar.</summary>
+    public bool HasFill => Mode != CrownFillMode.Nenhum || Flower is not null;
+
+    /// <summary>Texto estável usado na assinatura da família: muda quando a pintura muda.</summary>
+    public string Signature => $"{Mode}:{Crown.Hex}:{Flower?.Hex ?? "-"}";
 }

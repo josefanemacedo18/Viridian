@@ -112,6 +112,59 @@
                 </StackPanel>
             </TabItem>
 
+            <!-- Cores -->
+            <TabItem Header="Cores">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="12">
+                        <TextBlock Style="{StaticResource VirSection}" Margin="0,0,0,4" Text="Copas e floração" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="230" />
+                                <ColumnDefinition Width="150" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Label Content="_Preenchimento da copa" Target="{Binding ElementName=CrownFillBox}" Padding="0" VerticalAlignment="Center" />
+                            <ComboBox x:Name="CrownFillBox" Grid.Column="1" SelectionChanged="ColorSelection_Changed" AutomationProperties.Name="Preenchimento da copa" />
+                            <Label Grid.Row="1" Content="C_lareamento da copa (%)" Target="{Binding ElementName=CrownTintBox}" Padding="0" VerticalAlignment="Center" />
+                            <TextBox x:Name="CrownTintBox" Grid.Row="1" Grid.Column="1" TextChanged="ColorText_Changed" AutomationProperties.Name="Clareamento da copa em porcentagem" />
+                            <TextBlock Grid.Row="1" Grid.Column="2" Style="{StaticResource VirHint}" Margin="8,0,0,0" VerticalAlignment="Center" Text="0 = cor da folhagem; 85 = quase branco" />
+                            <Label Grid.Row="2" Content="Clareamento do _fundo dos maciços (%)" Target="{Binding ElementName=MassingTintBox}" Padding="0" VerticalAlignment="Center" />
+                            <TextBox x:Name="MassingTintBox" Grid.Row="2" Grid.Column="1" AutomationProperties.Name="Clareamento do fundo dos maciços em porcentagem" />
+                        </Grid>
+                        <CheckBox x:Name="ShowFlowersBox" Content="Representar a floração das espécies com cor de flor cadastrada" Margin="0,8,0,0" Checked="ColorCheck_Changed" Unchecked="ColorCheck_Changed" />
+                        <CheckBox x:Name="ColoredMassingsBox" Content="Pintar os maciços com a cor da espécie (fundo claro e hachura mais escura)" Margin="0,4,0,0" />
+
+                        <TextBlock Style="{StaticResource VirSection}" Text="Cor-base de cada categoria" />
+                        <TextBlock Style="{StaticResource VirHint}" Text="Cada espécie recebe uma variação suave da cor da sua categoria, salvo quando tem cor de folhagem própria no cadastro." />
+                        <ItemsControl x:Name="CategoryColorList" Margin="0,4,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="170" />
+                                            <ColumnDefinition Width="100" />
+                                            <ColumnDefinition Width="28" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                        <TextBox Grid.Column="1" Text="{Binding Color, UpdateSourceTrigger=PropertyChanged}" ToolTip="Cor em hexadecimal, por exemplo #4E8A3E" AutomationProperties.Name="{Binding Name}" />
+                                        <Border Grid.Column="2" Margin="6,4,0,4" BorderBrush="#999" BorderThickness="1" Background="{Binding Swatch}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button Content="Restaurar cores padrão" HorizontalAlignment="Left" Margin="0,8,0,0" Click="ColorDefaults_Click" />
+
+                        <TextBlock Style="{StaticResource VirSection}" Text="Pré-visualização" />
+                        <WrapPanel x:Name="ColorPreviewPanel" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
             <!-- Maciços -->
             <TabItem Header="Maciços">
                 <StackPanel Margin="12">

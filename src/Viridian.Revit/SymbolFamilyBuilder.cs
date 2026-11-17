@@ -1,5 +1,6 @@
 using System.IO;
 using Autodesk.Revit.DB;
+using Viridian.Core.Colors;
 using Viridian.Core.Config;
 using Viridian.Core.Geometry;
 using Viridian.Core.Symbols;
@@ -18,16 +19,22 @@ public sealed class TemplateRejectedException : Exception
 }
 
 /// <summary>
-/// Cria famílias da categoria Vegetação contendo somente linhas simbólicas 2D.
+/// Cria famílias da categoria Vegetação contendo somente elementos 2D de planta: linhas simbólicas
+/// e regiões preenchidas (copa colorida e manchas de floração).
 /// Cada camada do símbolo vai para uma subcategoria, o que permite ao gerenciador de escalas
 /// ligar e desligar o detalhamento por vista sem alterar a família nem o exemplar.
 /// </summary>
 public static class SymbolFamilyBuilder
 {
+    /// <summary>Versão da montagem da família. Ao aumentá-la, as famílias geradas são refeitas.</summary>
+    public const int Version = 2;
+
     /// <summary>Gera o arquivo .rfa de um símbolo. Não pode haver transação aberta em nenhum documento.</summary>
+    /// <param name="paint">Cores da copa e da floração.</param>
     /// <param name="typeName">Nome do tipo gravado na família (mantém o mesmo tipo quando a família é recarregada).</param>
+    /// <param name="source">Projeto de onde copiar um tipo de região preenchida, se o modelo de família não tiver nenhum.</param>
     /// <returns>Quantidade de linhas que o Revit recusou (zero em condições normais).</returns>
-    public static int Build(RevitApplication app, string templateFile, PlantSymbol symbol, string outputFile, ViridianSettings settings, string typeName)
+    public static int Build(RevitApplication app, string templateFile, PlantSymbol symbol, SymbolPaint paint, string outputFile, ViridianSettings settings, string typeName, Document? source)
     {
         Document familyDocument;
         try
@@ -49,7 +56,7 @@ public static class SymbolFamilyBuilder
             int skipped;
             try
             {
-                skipped = Draw(app, familyDocument, symbol, settings, typeName);
+                skipped = Draw(app, familyDocument, symbol, paint, settings, typeName, source);
             }
             catch (Autodesk.Revit.Exceptions.ApplicationException ex)
             {
@@ -80,7 +87,7 @@ public static class SymbolFamilyBuilder
         }
     }
 
-    private static int Draw(RevitApplication app, Document familyDocument, PlantSymbol symbol, ViridianSettings settings, string typeName)
+    private static int Draw(RevitApplication app, Document familyDocument, PlantSymbol symbol, SymbolPaint paint, ViridianSettings settings, string typeName, Document? source)
     {
         if (!familyDocument.IsFamilyDocument || familyDocument.OwnerFamily is null)
         {
@@ -114,11 +121,17 @@ public static class SymbolFamilyBuilder
                 ?? throw new TemplateRejectedException("A categoria Vegetação não está disponível no modelo.");
 
             var styles = new Dictionary<SymbolTier, GraphicsStyle>();
+            var subcategories = new Dictionary<SymbolTier, Category>();
             foreach (SymbolTier tier in TierVisibility.AllTiers)
             {
                 Category subcategory = GetOrCreateSubcategory(familyDocument, planting, TierVisibility.SubcategoryName(tier));
-                ApplyStyle(subcategory, settings.StyleOf(tier));
+                if (tier < SymbolTier.Fill)
+                {
+                    ApplyStyle(subcategory, settings.StyleOf(tier));
+                }
+
                 styles[tier] = subcategory.GetGraphicsStyle(GraphicsStyleType.Projection);
+                subcategories[tier] = subcategory;
             }
 
             double elevation = ReferenceLevelElevation(familyDocument);
@@ -127,6 +140,12 @@ public static class SymbolFamilyBuilder
                 Plane.CreateByNormalAndOrigin(XYZ.BasisZ, new XYZ(0, 0, elevation)));
 
             double tolerance = app.ShortCurveTolerance * 1.05;
+
+            // As regiões coloridas vêm antes das linhas, para ficarem por baixo delas.
+            if (paint.HasFill)
+            {
+                FamilyFills.Draw(familyDocument, symbol, paint, sketchPlane, elevation, tolerance, subcategories, source);
+            }
             foreach (SymbolPrimitive primitive in symbol.Primitives)
             {
                 Curve? curve = ToCurve(primitive, elevation, tolerance);

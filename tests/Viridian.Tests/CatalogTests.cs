@@ -28,6 +28,26 @@ public sealed class CatalogTests : IDisposable
     private string CatalogFile => Path.Combine(_folder, "Dados", "catalogo.json");
 
     [Fact]
+    public void SeedCatalog_PhotosCoverAlmostEverySpeciesAndFilesExist()
+    {
+        List<Species> species = SeedCatalog.CreateSpecies();
+        List<Species> withPhoto = species.Where(s => !string.IsNullOrEmpty(s.PhotoFile)).ToList();
+        Assert.True(withPhoto.Count >= species.Count - 5, $"{withPhoto.Count} de {species.Count} espécies com foto");
+
+        // As fotos acompanham o plugin: precisam existir na pasta Fotos do projeto do add-in.
+        string? root = AppContext.BaseDirectory;
+        while (root is not null && !File.Exists(Path.Combine(root, "Viridian.slnx")))
+        {
+            root = Path.GetDirectoryName(root);
+        }
+
+        Assert.NotNull(root);
+        string folder = Path.Combine(root!, "src", "Viridian.Addin", "Fotos");
+        Assert.All(withPhoto, s => Assert.True(File.Exists(Path.Combine(folder, s.PhotoFile)), s.PhotoFile));
+        Assert.True(File.Exists(Path.Combine(folder, "CREDITOS.txt")));
+    }
+
+    [Fact]
     public void SeedCatalogIsConsistent()
     {
         List<Species> species = SeedCatalog.CreateSpecies();

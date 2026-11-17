@@ -20,7 +20,7 @@ internal static class PlantingFlows
     {
         ViewPlan view = ctx.RequirePlanView();
         Level level = view.GenLevel;
-        var options = new InsertOptionsWindow(species, PlantingService.DefaultStage(species));
+        var options = new InsertOptionsWindow(species, PlantingService.DefaultStage(species), 0, null, ctx.Settings);
         if (!ctx.ShowDialog(options))
         {
             return Result.Cancelled;
@@ -64,7 +64,7 @@ internal static class PlantingFlows
     {
         ViewPlan view = ctx.RequirePlanView();
         RegionBoundary region = ctx.PickRegion("distribuir " + species.PopularName);
-        var window = new DistributeWindow(species, region.Polygon, null, ExistingPositions(ctx, view.GenLevel), ctx.Settings, PlantingService.DefaultStage(species));
+        var window = new DistributeWindow(species, region.Polygon, null, ExistingPositions(ctx, view.GenLevel), ctx.Settings, PlantingService.DefaultStage(species), region.Source);
         if (!ctx.ShowDialog(window))
         {
             return Result.Cancelled;
@@ -73,23 +73,65 @@ internal static class PlantingFlows
         return Place(ctx, view.GenLevel, species, window.Outcome, "Viridian: distribuir " + species.PopularName);
     }
 
-    /// <summary>Plantio linear ao longo de um eixo desenhado pelo usuário.</summary>
+    /// <summary>
+    /// Plantio linear: o eixo pode ser uma linha reta (dois cliques), uma polilinha, um círculo ou linhas,
+    /// arcos, paredes e redes existentes. Elementos de eixo já selecionados são usados diretamente.
+    /// </summary>
     public static Result Linear(ViridianContext ctx, Species species)
     {
         ViewPlan view = ctx.RequirePlanView();
-        IReadOnlyList<Point2> path = RegionPicker.PickPath(ctx.UiDocument, "Clique nos pontos do eixo de plantio");
-        if (path.Count < 2)
+        AxisSelection axis;
+        List<Element> preselected = ctx.SelectedElements().Where(AxisPicker.IsAxisElement).ToList();
+        if (preselected.Count > 0)
+        {
+            axis = AxisPicker.FromElements(preselected);
+        }
+        else
+        {
+            AxisSource? source = AskAxisSource();
+            if (source is null)
+            {
+                return Result.Cancelled;
+            }
+
+            axis = AxisPicker.Pick(ctx.UiDocument, source.Value);
+        }
+
+        if (axis.Paths.Count == 0)
         {
             return Result.Cancelled;
         }
 
-        var window = new DistributeWindow(species, null, path, ExistingPositions(ctx, view.GenLevel), ctx.Settings, PlantingService.DefaultStage(species));
+        var window = new DistributeWindow(species, null, axis.Paths, ExistingPositions(ctx, view.GenLevel), ctx.Settings, PlantingService.DefaultStage(species), axis.Description);
         if (!ctx.ShowDialog(window))
         {
             return Result.Cancelled;
         }
 
         return Place(ctx, view.GenLevel, species, window.Outcome, "Viridian: plantio linear " + species.PopularName);
+    }
+
+    private static AxisSource? AskAxisSource()
+    {
+        var dialog = new TaskDialog("Viridian — Plantio linear")
+        {
+            MainInstruction = "Como definir o eixo do plantio?",
+            MainContent = "As plantas ficam sobre o eixo (ou em fileiras paralelas a ele). Dica: selecione linhas ou paredes antes de iniciar o comando para usá-las diretamente.",
+            CommonButtons = TaskDialogCommonButtons.Cancel,
+            AllowCancellation = true,
+        };
+        dialog.AddCommandLink(TaskDialogCommandLinkId.CommandLink1, "Linha reta", "Clique no início e no fim. Conclui sozinho no segundo clique.");
+        dialog.AddCommandLink(TaskDialogCommandLinkId.CommandLink2, "Polilinha", "Clique em cada vértice; ESC conclui. Clicar de novo no primeiro ponto fecha o eixo.");
+        dialog.AddCommandLink(TaskDialogCommandLinkId.CommandLink3, "Círculo", "Clique no centro e depois em um ponto do contorno.");
+        dialog.AddCommandLink(TaskDialogCommandLinkId.CommandLink4, "Linhas ou paredes existentes", "Linhas de detalhe ou de modelo, arcos, splines, paredes, tubos, eletrodutos... Clique em Concluir na barra de opções.");
+        return dialog.Show() switch
+        {
+            TaskDialogResult.CommandLink1 => AxisSource.LinhaReta,
+            TaskDialogResult.CommandLink2 => AxisSource.Polilinha,
+            TaskDialogResult.CommandLink3 => AxisSource.Circulo,
+            TaskDialogResult.CommandLink4 => AxisSource.Existentes,
+            _ => null,
+        };
     }
 
     private static Result Place(ViridianContext ctx, Level level, Species species, DistributeOutcome outcome, string name)
@@ -270,7 +312,7 @@ public sealed class EditPlantsCommand : CommandBase
             Stage = Common(plants, VirParams.Stage),
             Notes = Common(plants, VirParams.Notes),
         };
-        var window = new InsertOptionsWindow(display, string.Empty, plants.Count, current);
+        var window = new InsertOptionsWindow(display, string.Empty, plants.Count, current, ctx.Settings);
         if (!ctx.ShowDialog(window))
         {
             return Result.Cancelled;

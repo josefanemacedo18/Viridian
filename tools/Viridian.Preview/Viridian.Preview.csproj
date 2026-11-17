@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Viridian.Core\Viridian.Core.csproj" />
+    <ProjectReference Include="..\..\src\Viridian.Library\Viridian.Library.csproj" />
   </ItemGroup>
 </Project>

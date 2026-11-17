@@ -5,6 +5,7 @@ using Viridian.Core.Distribution;
 using Viridian.Core.Geometry;
 using Viridian.Core.Hatch;
 using Viridian.Core.Massing;
+using Viridian.Core.Colors;
 using Viridian.Core.Model;
 using Viridian.Core.Reports;
 
@@ -257,7 +258,7 @@ public partial class MassingWindow : ViridianWindow
             quantity = MassingCalculator.Quantity(area, density);
         }
 
-        Preview.Show(_region, symbols ? _distribution.Points : null, _species.CrownDiameterM, _effectiveMode != MassingMode.Simbolos);
+        Preview.Show(_region, symbols ? _distribution.Points : null, _species.CrownDiameterM, _effectiveMode != MassingMode.Simbolos, null, VegetationPalette.Foliage(_species, _settings.Colors));
 
         string unit = _areaBased ? "m²" : _species.SupplyUnit;
         double reserve = Math.Clamp(Num.ParseOr(ReserveBox.Text, 0), 0, 100);
