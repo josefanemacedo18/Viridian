@@ -1,8 +1,13 @@
+using System.IO;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using Viridian.Core.Config;
 using Viridian.Core.Integrity;
+using Viridian.Core.Maintenance;
+using Viridian.Core.Model;
 using Viridian.Core.Reports;
+using Viridian.Library;
 using Viridian.Revit;
 using Viridian.UI.Windows;
 
@@ -29,6 +34,69 @@ internal static class DocumentationFlows
         ctx.UiDocument.ActiveView = species;
     }
 
+    /// <summary>Espécies do projeto com as quantidades que interessam ao cronograma de manutenção.</summary>
+    public static IReadOnlyList<MaintenanceItem> MaintenanceItems(
+        ViridianContext ctx, IReadOnlyList<SpeciesReportRow> species, IReadOnlyList<AcquisitionRow> acquisition)
+    {
+        var reserves = acquisition
+            .Where(a => a.SpeciesId.Length > 0)
+            .GroupBy(a => a.SpeciesId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Sum(a => a.Reserve), StringComparer.OrdinalIgnoreCase);
+        var items = new List<MaintenanceItem>();
+        foreach (SpeciesReportRow row in species)
+        {
+            Species? s = string.IsNullOrWhiteSpace(row.SpeciesId) ? null : ctx.Lookup(row.SpeciesId);
+            if (s is null)
+            {
+                continue; // famílias não cadastradas não têm dados para o cronograma
+            }
+
+            items.Add(new MaintenanceItem
+            {
+                Species = s,
+                SpeciesCode = row.Code,
+                NewCount = row.New,
+                KeptCount = row.Existing + row.Transplanted,
+                AreaM2 = row.MassingAreaM2,
+                Reserve = reserves.GetValueOrDefault(row.SpeciesId),
+            });
+        }
+
+        return items;
+    }
+
+    /// <summary>Grava no cadastro da espécie o código de insumo ou de serviço da tabela de preços.</summary>
+    public static bool LinkPriceCode(ViridianContext ctx, string speciesId, string code, bool service)
+    {
+        Species? current = ctx.Catalog.Find(speciesId);
+        if (current is null)
+        {
+            return false;
+        }
+
+        Species copy = ViridianJson.Deserialize<Species>(ViridianJson.Serialize(current)) ?? current;
+        if (service)
+        {
+            copy.ServiceItemCode = code.Trim();
+        }
+        else
+        {
+            copy.PriceItemCode = code.Trim();
+        }
+
+        try
+        {
+            ctx.Catalog.Save(copy);
+            return true;
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            ViridianLog.Error("Falha ao gravar o código de preço da espécie.", ex);
+            TaskDialog.Show("Viridian", "Não foi possível gravar o código no cadastro:\n" + ex.Message);
+            return false;
+        }
+    }
+
     public static IReadOnlyList<AcquisitionRow> Acquisition(ViridianContext ctx, ProjectSnapshot snapshot) =>
         ReportBuilder.BuildAcquisition(
             snapshot.Plants,
@@ -47,13 +115,30 @@ public class ReportsCommand : CommandBase
     internal override Result Run(ViridianContext ctx)
     {
         ProjectSnapshot snapshot = ProjectReader.Read(ctx.Doc, ctx.Lookup);
+        IReadOnlyList<SpeciesReportRow> species = ReportBuilder.BuildSpecies(snapshot.Plants, snapshot.Massings);
+        IReadOnlyList<AcquisitionRow> acquisition = DocumentationFlows.Acquisition(ctx, snapshot);
+        var extras = new ReportExtras
+        {
+            Lookup = ctx.Lookup,
+            Paths = ctx.Paths,
+            Settings = ctx.Settings,
+            MaintenanceItems = DocumentationFlows.MaintenanceItems(ctx, species, acquisition),
+            LinkCode = (id, code, service) => DocumentationFlows.LinkPriceCode(ctx, id, code, service),
+        };
         var window = new ReportsWindow(
             ProjectReader.ProjectTitle(ctx.Doc),
-            ReportBuilder.BuildSpecies(snapshot.Plants, snapshot.Massings),
+            species,
             ReportBuilder.BuildMassings(snapshot.Massings),
-            DocumentationFlows.Acquisition(ctx, snapshot),
+            acquisition,
+            extras,
             InitialTab);
-        if (!ctx.ShowDialog(window))
+        bool accepted = ctx.ShowDialog(window);
+        if (window.SettingsChanged)
+        {
+            ctx.SaveSettings();
+        }
+
+        if (!accepted)
         {
             return Result.Succeeded;
         }
@@ -78,6 +163,22 @@ public class ReportsCommand : CommandBase
 public sealed class AcquisitionCommand : ReportsCommand
 {
     protected override int InitialTab => 2;
+}
+
+/// <summary>Abre os relatórios no orçamento (tabela de preços, BDI e totais).</summary>
+[Transaction(TransactionMode.Manual)]
+[Regeneration(RegenerationOption.Manual)]
+public sealed class BudgetCommand : ReportsCommand
+{
+    protected override int InitialTab => 3;
+}
+
+/// <summary>Abre os relatórios no cronograma de manutenção.</summary>
+[Transaction(TransactionMode.Manual)]
+[Regeneration(RegenerationOption.Manual)]
+public sealed class MaintenanceCommand : ReportsCommand
+{
+    protected override int InitialTab => 4;
 }
 
 [Transaction(TransactionMode.Manual)]

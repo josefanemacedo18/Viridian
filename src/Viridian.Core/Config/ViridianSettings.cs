@@ -8,6 +8,8 @@ using Viridian.Core.Integrity;
 using Viridian.Core.Massing;
 using Viridian.Core.Scale;
 using Viridian.Core.Symbols;
+using Viridian.Core.Costs;
+using Viridian.Core.Maintenance;
 
 namespace Viridian.Core.Config;
 
@@ -110,6 +112,12 @@ public sealed class ViridianSettings
     /// <summary>Cores da vegetação: preenchimento das copas, floração e maciços.</summary>
     public ColorSettings Colors { get; set; } = new();
 
+    /// <summary>Orçamento: BDI e referência da tabela de preços.</summary>
+    public CostSettings Costs { get; set; } = new();
+
+    /// <summary>Cronograma de manutenção: mês de plantio e estação seca da região.</summary>
+    public MaintenanceSettings Maintenance { get; set; } = new();
+
     public TierStyle StyleOf(SymbolTier tier) =>
         TierStyles.FirstOrDefault(s => s.Tier == tier) ?? DefaultTierStyles().FirstOrDefault(s => s.Tier == tier) ?? new TierStyle { Tier = tier };
 
@@ -122,6 +130,10 @@ public sealed class ViridianSettings
         Scales.Normalize();
         Colors ??= new ColorSettings();
         Colors.Normalize();
+        Costs ??= new CostSettings();
+        Costs.Normalize();
+        Maintenance ??= new MaintenanceSettings();
+        Maintenance.Normalize();
         Density ??= new DensityRules();
         Density.Normalize();
         InstanceCode ??= new InstanceCodeFormat();

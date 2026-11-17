@@ -72,6 +72,9 @@ public sealed class MassingInfo
 
 public sealed class SpeciesReportRow
 {
+    /// <summary>Identificador da espécie no catálogo (vazio para famílias não cadastradas).</summary>
+    public string SpeciesId { get; set; } = string.Empty;
+
     public string Code { get; set; } = string.Empty;
 
     public string PopularName { get; set; } = string.Empty;
@@ -89,6 +92,9 @@ public sealed class SpeciesReportRow
     public int Removed { get; set; }
 
     public int InMassings { get; set; }
+
+    /// <summary>Área dos maciços da espécie, em m².</summary>
+    public double MassingAreaM2 { get; set; }
 
     /// <summary>Total no projeto: novos + existentes + transplantados + maciços (removidos não contam).</summary>
     public int Total => New + Existing + Transplanted + InMassings;
@@ -125,6 +131,9 @@ public sealed class MassingReportRow
 
 public sealed class AcquisitionRow
 {
+    /// <summary>Identificador da espécie no catálogo (vazio para famílias não cadastradas).</summary>
+    public string SpeciesId { get; set; } = string.Empty;
+
     public string Code { get; set; } = string.Empty;
 
     public string PopularName { get; set; } = string.Empty;
@@ -189,6 +198,7 @@ public static class ReportBuilder
             {
                 row = new SpeciesReportRow
                 {
+                    SpeciesId = plant.SpeciesId,
                     Code = plant.IsRegistered ? plant.SpeciesCode : "—",
                     PopularName = plant.IsRegistered ? plant.PopularName : $"{plant.FamilyName} : {plant.TypeName}",
                     ScientificName = plant.IsRegistered ? plant.ScientificName : "(família não cadastrada)",
@@ -223,6 +233,7 @@ public static class ReportBuilder
             {
                 row = new SpeciesReportRow
                 {
+                    SpeciesId = record.SpeciesId,
                     Code = record.SpeciesCode,
                     PopularName = record.PopularName,
                     ScientificName = record.ScientificName,
@@ -232,6 +243,7 @@ public static class ReportBuilder
             }
 
             row.InMassings += Math.Max(0, record.Quantity);
+            row.MassingAreaM2 += Math.Max(0, record.AreaM2);
         }
 
         return rows.Values
@@ -283,6 +295,7 @@ public static class ReportBuilder
             {
                 row = new AcquisitionRow
                 {
+                    SpeciesId = speciesId,
                     Code = code,
                     PopularName = popular,
                     ScientificName = scientific,

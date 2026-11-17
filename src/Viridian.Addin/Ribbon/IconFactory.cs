@@ -276,6 +276,53 @@ internal static class IconFactory
                 Arrow(dc, new Point(18, 17), new Point(30, 17), accent);
                 break;
 
+            case "budget":
+                dc.DrawRoundedRectangle(Fill(Colors.White), main, new Rect(4, 4, 20, 24), 2, 2);
+                dc.DrawLine(thin, new Point(8, 10), new Point(20, 10));
+                dc.DrawLine(thin, new Point(8, 15), new Point(16, 15));
+                dc.DrawEllipse(Fill(Accent), null, new Point(22, 22), 8, 8);
+                Text(dc, "$", new Point(22, 22.5), 12, Colors.White, size);
+                break;
+
+            case "maintenance":
+                dc.DrawRoundedRectangle(Fill(Colors.White), main, new Rect(3, 6, 22, 22), 2, 2);
+                dc.DrawRectangle(green, null, new Rect(3, 6, 22, 5));
+                dc.DrawLine(main, new Point(8, 3), new Point(8, 8));
+                dc.DrawLine(main, new Point(20, 3), new Point(20, 8));
+                for (int r = 0; r < 2; r++)
+                {
+                    for (int c = 0; c < 3; c++)
+                    {
+                        dc.DrawEllipse(light, null, new Point(8 + c * 6, 16 + r * 6), 1.6, 1.6);
+                    }
+                }
+
+                Crown(dc, new Point(24, 23), 6, 6, main, light);
+                break;
+
+            case "sheet":
+                dc.DrawRectangle(Fill(Colors.White), main, new Rect(2, 6, 28, 20));
+                dc.DrawRectangle(null, thin, new Rect(4, 8, 16, 16));
+                Crown(dc, new Point(12, 16), 5, 6, thin, light);
+                dc.DrawLine(thin, new Point(22, 8), new Point(22, 24));
+                dc.DrawLine(thin, new Point(22, 20), new Point(28, 20));
+                dc.DrawLine(thin, new Point(23.5, 11), new Point(27, 11));
+                dc.DrawLine(thin, new Point(23.5, 14), new Point(27, 14));
+                break;
+
+            case "cad":
+                dc.DrawRoundedRectangle(light, main, new Rect(3, 4, 20, 24), 2, 2);
+                Text(dc, "DWG", new Point(13, 16.5), 7.5, DarkGreen, size);
+                Arrow(dc, new Point(18, 22), new Point(30, 22), accent);
+                break;
+
+            case "interference":
+                Crown(dc, new Point(13, 14), 10, 8, main, light);
+                dc.DrawLine(Stroke(Accent, 3, size), new Point(2, 26), new Point(30, 18));
+                dc.DrawEllipse(Fill(Accent), null, new Point(24, 8), 5, 5);
+                Text(dc, "!", new Point(24, 8.5), 8, Colors.White, size);
+                break;
+
             case "check":
                 dc.DrawEllipse(light, main, new Point(16, 16), 12, 12);
                 dc.DrawGeometry(null, Stroke(DarkGreen, 3, size), Geometry.Parse("M 10,16 L 14.5,21 L 23,11"));

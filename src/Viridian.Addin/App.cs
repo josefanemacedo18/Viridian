@@ -121,8 +121,10 @@ public sealed class App : IExternalApplication
         Stack(quantities,
             Small<AcquisitionCommand, ProjectAvailability>(assembly, "Aquisição", "excel",
                 "Lista de compra com reserva de reposição, unidade comercial e preço cadastrado."),
-            Small<SchedulesCommand, ProjectAvailability>(assembly, "Tabelas Nativas", "schedule",
-                "Cria as tabelas de vegetação do Revit (por espécie e por exemplar)."));
+            Small<BudgetCommand, ProjectAvailability>(assembly, "Orçamento", "budget",
+                "Orçamento de fornecimento e plantio com tabela de preços importada (SINAPI ou própria) e BDI."),
+            Small<MaintenanceCommand, ProjectAvailability>(assembly, "Manutenção", "maintenance",
+                "Cronograma de manutenção por espécie e época: rega, adubação, podas, cortes e reposição de falhas."));
 
         RibbonPanel check = app.CreateRibbonPanel(TabName, "Verificação");
         Large<CheckCommand, ProjectAvailability>(check, assembly, "Verificar\nProjeto", "check",

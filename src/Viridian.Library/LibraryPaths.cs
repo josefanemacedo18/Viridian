@@ -31,6 +31,9 @@ public sealed class LibraryPaths
 
     public string CatalogFile => Path.Combine(DataFolder, "catalogo.json");
 
+    /// <summary>Tabela de preços importada pelo escritório (convertida para JSON).</summary>
+    public string PriceTableFile => Path.Combine(DataFolder, "tabela-precos.json");
+
     /// <summary>Famílias 2D geradas pelo plugin, organizadas por categoria.</summary>
     public string GeneratedFolder(PlantCategory category) => Path.Combine(Root, "Familias", Labels.Folder(category));
 

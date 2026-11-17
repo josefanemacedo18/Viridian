@@ -2,8 +2,8 @@
                    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                    xmlns:ui="clr-namespace:Viridian.UI"
-                   Title="Viridian — Quantitativos"
-                   Width="1040" Height="620" MinWidth="820" MinHeight="460">
+                   Title="Viridian — Quantitativos, orçamento e manutenção"
+                   Width="1180" Height="680" MinWidth="900" MinHeight="500">
     <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -11,7 +11,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <StackPanel>
-            <TextBlock Style="{StaticResource VirHeader}" Text="Quantitativos de vegetação" Margin="0" />
+            <TextBlock Style="{StaticResource VirHeader}" Text="Quantitativos, orçamento e manutenção" Margin="0" />
             <TextBlock x:Name="ProjectText" Style="{StaticResource VirHint}" Margin="0,2,0,8" />
         </StackPanel>
 
@@ -69,6 +69,103 @@
                         </DataGrid.Columns>
                     </DataGrid>
                     <TextBlock x:Name="AcquisitionTotal" Grid.Row="1" Style="{StaticResource VirValue}" HorizontalAlignment="Right" Margin="0,6,0,0" />
+                </Grid>
+            </TabItem>
+            <TabItem x:Name="BudgetTab" Header="Orçamento">
+                <Grid Margin="4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="TableText" Style="{StaticResource VirValue}" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button Content="_Importar tabela de preços..." Click="ImportTable_Click"
+                                        ToolTip="Planilha .xlsx ou .csv com colunas de código, descrição, unidade e preço (SINAPI, tabela municipal ou própria)" />
+                                <Button x:Name="RemoveTableButton" Content="Remover tabela" Click="RemoveTable_Click" />
+                            </StackPanel>
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,6">
+                            <Label Content="_BDI (%)" Target="{Binding ElementName=BdiBox}" Padding="0" VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <TextBox x:Name="BdiBox" Width="60" TextChanged="Budget_Changed" AutomationProperties.Name="BDI em porcentagem" />
+                            <Label Content="_Referência" Target="{Binding ElementName=ReferenceBox}" Padding="0" VerticalAlignment="Center" Margin="16,0,6,0" />
+                            <TextBox x:Name="ReferenceBox" Width="260" TextChanged="Budget_Changed" AutomationProperties.Name="Referência da tabela de preços"
+                                     ToolTip="Base, local e data da tabela (por exemplo, SINAPI SP 03/2026 não desonerado)" />
+                        </StackPanel>
+                    </StackPanel>
+                    <DataGrid x:Name="BudgetGrid" Grid.Row="1" SelectionChanged="BudgetGrid_SelectionChanged">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Item" Binding="{Binding Item}" Width="44" />
+                            <DataGridTextColumn Header="Código" Binding="{Binding DisplayCode}" Width="84" />
+                            <DataGridTextColumn Header="Fonte" Binding="{Binding SourceName}" Width="70" />
+                            <DataGridTextColumn Header="Descrição" Binding="{Binding Description}" Width="*" />
+                            <DataGridTextColumn Header="Unid." Binding="{Binding Unit}" Width="50" />
+                            <DataGridTextColumn Header="Qtde" Binding="{Binding Quantity, StringFormat=N2}" Width="70" ElementStyle="{StaticResource VirRightCell}" />
+                            <DataGridTextColumn Header="Custo unit." Binding="{Binding UnitCost, StringFormat=C2}" Width="90" ElementStyle="{StaticResource VirRightCell}" />
+                            <DataGridTextColumn Header="Preço c/ BDI" Binding="{Binding UnitPrice, StringFormat=C2}" Width="94" ElementStyle="{StaticResource VirRightCell}" />
+                            <DataGridTextColumn Header="Total" Binding="{Binding Total, StringFormat=C2}" Width="104" FontWeight="SemiBold" ElementStyle="{StaticResource VirRightCell}" />
+                            <DataGridTextColumn Header="Observação" Binding="{Binding Note}" Width="200" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <Grid Grid.Row="2" Margin="0,6,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="LinkSupplyButton" Content="Vincular _insumo..." Click="LinkSupply_Click" Margin="0"
+                                    ToolTip="Procura na tabela o item de fornecimento da muda e grava o código no cadastro da espécie" />
+                            <Button x:Name="LinkServiceButton" Content="Vincular _serviço..." Click="LinkService_Click"
+                                    ToolTip="Procura na tabela a composição de plantio e grava o código no cadastro da espécie" />
+                        </StackPanel>
+                        <TextBlock x:Name="BudgetTotal" Grid.Column="1" Style="{StaticResource VirValue}" HorizontalAlignment="Right" VerticalAlignment="Center" TextAlignment="Right" />
+                    </Grid>
+                </Grid>
+            </TabItem>
+            <TabItem x:Name="MaintenanceTab" Header="Manutenção">
+                <Grid Margin="4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <Label Content="_Mês do plantio" Target="{Binding ElementName=PlantingMonthBox}" Padding="0" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <ComboBox x:Name="PlantingMonthBox" Width="120" SelectionChanged="Maintenance_Changed" AutomationProperties.Name="Mês previsto para o plantio" />
+                        <Label Content="_Estação seca" Target="{Binding ElementName=DrySeasonBox}" Padding="0" VerticalAlignment="Center" Margin="16,0,6,0" />
+                        <TextBox x:Name="DrySeasonBox" Width="110" TextChanged="Maintenance_Changed" AutomationProperties.Name="Estação seca da região"
+                                 ToolTip="Meses de estiagem da região, por exemplo mai–set (Sudeste e Centro-Oeste) ou set–fev (parte do Nordeste)" />
+                    </StackPanel>
+                    <DataGrid x:Name="MaintenanceGrid" Grid.Row="1" FrozenColumnCount="3">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Fase" Binding="{Binding PhaseName}" Width="120" />
+                            <DataGridTextColumn Header="Espécie" Binding="{Binding SpeciesCode}" Width="64" />
+                            <DataGridTextColumn Header="Nome popular" Binding="{Binding PopularName}" Width="130" />
+                            <DataGridTextColumn Header="Serviço" Binding="{Binding Title}" Width="210" />
+                            <DataGridTextColumn Header="Frequência" Binding="{Binding Frequency}" Width="150" />
+                            <DataGridTextColumn Header="jan" Binding="{Binding M1}" Width="30" ElementStyle="{StaticResource VirCenterCell}" />
+                            <DataGridTextColumn Header="fev" Binding="{Binding M2}" Width="30" ElementStyle="{StaticResource VirCenterCell}" />
+                            <DataGridTextColumn Header="mar" Binding="{Binding M3}" Width="30" ElementStyle="{StaticResource VirCenterCell}" />
+                            <DataGridTextColumn Header="abr" Binding="{Binding M4}" Width="30" ElementStyle="{StaticResource VirCenterCell}" />
+                            <DataGridTextColumn Header="mai" Binding="{Binding M5}" Width="30" ElementStyle="{StaticResource VirCenterCell}" />
+                            <DataGridTextColumn Header="jun" Binding="{Binding M6}" Width="30" ElementStyle="{StaticResource VirCenterCell}" />
+                            <DataGridTextColumn Header="jul" Binding="{Binding M7}" Width="30" ElementStyle="{StaticResource VirCenterCell}" />
+                            <DataGridTextColumn Header="ago" Binding="{Binding M8}" Width="30" ElementStyle="{StaticResource VirCenterCell}" />
+                            <DataGridTextColumn Header="set" Binding="{Binding M9}" Width="30" ElementStyle="{StaticResource VirCenterCell}" />
+                            <DataGridTextColumn Header="out" Binding="{Binding M10}" Width="30" ElementStyle="{StaticResource VirCenterCell}" />
+                            <DataGridTextColumn Header="nov" Binding="{Binding M11}" Width="30" ElementStyle="{StaticResource VirCenterCell}" />
+                            <DataGridTextColumn Header="dez" Binding="{Binding M12}" Width="30" ElementStyle="{StaticResource VirCenterCell}" />
+                            <DataGridTextColumn Header="Observações" Binding="{Binding Notes}" Width="320" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock Grid.Row="2" Style="{StaticResource VirHint}" Margin="0,6,0,0"
+                               Text="Recomendações gerais de boas práticas. Ajuste ao clima local, ao porte das mudas e às exigências do contratante." />
                 </Grid>
             </TabItem>
         </TabControl>

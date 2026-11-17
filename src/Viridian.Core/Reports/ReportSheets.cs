@@ -1,5 +1,8 @@
 using System.Globalization;
 using Viridian.Core.Export;
+using Viridian.Core.Costs;
+using Viridian.Core.Maintenance;
+using Viridian.Core.Model;
 
 namespace Viridian.Core.Reports;
 
@@ -11,7 +14,10 @@ public static class ReportSheets
         IReadOnlyList<SpeciesReportRow> species,
         IReadOnlyList<MassingReportRow> massings,
         IReadOnlyList<AcquisitionRow> acquisition,
-        DateTime generatedAt)
+        DateTime generatedAt,
+        Budget? budget = null,
+        IReadOnlyList<MaintenanceTask>? maintenance = null,
+        string priceReference = "")
     {
         string subtitle = (string.IsNullOrWhiteSpace(projectTitle) ? string.Empty : projectTitle + " · ")
                           + "Gerado pelo Viridian em " + generatedAt.ToString("dd/MM/yyyy HH:mm", CultureInfo.GetCultureInfo("pt-BR"));
@@ -70,6 +76,78 @@ public static class ReportSheets
         purchase.Rows.Add(new XlsxRow("Total", null, null, acquisition.Sum(r => r.Quantity), acquisition.Sum(r => r.Reserve),
             acquisition.Sum(r => r.PurchaseQuantity), null, null, acquisition.Sum(r => r.Total)) { Bold = true });
 
-        return new[] { bySpecies, byMassing, purchase };
+        var sheets = new List<XlsxSheet> { bySpecies, byMassing, purchase };
+        if (budget is not null && budget.Rows.Count > 0)
+        {
+            sheets.Add(BudgetSheet(budget, subtitle, priceReference));
+        }
+
+        if (maintenance is not null && maintenance.Count > 0)
+        {
+            sheets.Add(MaintenanceSheet(maintenance, subtitle));
+        }
+
+        return sheets;
+    }
+
+    private static XlsxSheet BudgetSheet(Budget budget, string subtitle, string reference)
+    {
+        var sheet = new XlsxSheet("Orçamento");
+        sheet.TitleLines.Add("Orçamento de paisagismo — fornecimento e plantio");
+        sheet.TitleLines.Add(subtitle);
+        sheet.TitleLines.Add(
+            (string.IsNullOrWhiteSpace(budget.TableName) ? "Preços do cadastro de espécies" : "Tabela de preços: " + budget.TableName)
+            + (string.IsNullOrWhiteSpace(reference) ? string.Empty : " (" + reference + ")")
+            + $" · BDI {budget.BdiPercent.ToString("0.##", CultureInfo.GetCultureInfo("pt-BR"))}%");
+        sheet.Columns.AddRange(new[]
+        {
+            new XlsxColumn("Item", 7), new XlsxColumn("Código", 12), new XlsxColumn("Fonte", 10), new XlsxColumn("Descrição", 52),
+            new XlsxColumn("Unidade", 9), new XlsxColumn("Quantidade", 11, XlsxFormat.Decimal), new XlsxColumn("Custo unitário", 14, XlsxFormat.Currency),
+            new XlsxColumn("Preço unitário com BDI", 16, XlsxFormat.Currency), new XlsxColumn("Total", 16, XlsxFormat.Currency), new XlsxColumn("Observação", 40),
+        });
+
+        foreach (IGrouping<string, BudgetRow> group in budget.Rows.GroupBy(r => r.Group))
+        {
+            sheet.Rows.Add(new XlsxRow(group.First().Item.Split('.')[0], null, null, group.Key.ToUpperInvariant(), null, null, null, null, group.Sum(r => r.Total), null) { Bold = true });
+            foreach (BudgetRow r in group)
+            {
+                sheet.Rows.Add(new XlsxRow(r.Item, r.PriceCode.Length > 0 ? r.PriceCode : r.SpeciesCode, r.SourceName, r.Description, r.Unit, r.Quantity,
+                    r.UnitCost, r.UnitPrice, r.Total, r.Note));
+            }
+        }
+
+        sheet.Rows.Add(new XlsxRow(null, null, null, "TOTAL GERAL", null, null, null, null, budget.Total, budget.MissingPrices > 0 ? $"{budget.MissingPrices} item(ns) sem preço" : null) { Bold = true });
+        return sheet;
+    }
+
+    private static XlsxSheet MaintenanceSheet(IReadOnlyList<MaintenanceTask> tasks, string subtitle)
+    {
+        var sheet = new XlsxSheet("Manutenção");
+        sheet.TitleLines.Add("Cronograma de manutenção da vegetação");
+        sheet.TitleLines.Add(subtitle);
+        sheet.Columns.AddRange(new[]
+        {
+            new XlsxColumn("Fase", 18), new XlsxColumn("Atividade", 12), new XlsxColumn("Espécie", 9), new XlsxColumn("Nome popular", 22),
+            new XlsxColumn("Serviço", 36), new XlsxColumn("Frequência", 24),
+        });
+        foreach (string month in MonthSet.Abbreviations)
+        {
+            sheet.Columns.Add(new XlsxColumn(month, 5));
+        }
+
+        sheet.Columns.Add(new XlsxColumn("Observações", 60));
+        foreach (MaintenanceTask t in tasks)
+        {
+            var cells = new List<object?> { t.PhaseName, t.ActivityName, t.SpeciesCode, t.PopularName, t.Title, t.Frequency };
+            for (int m = 1; m <= 12; m++)
+            {
+                cells.Add(t.Months.Contains(m) ? "●" : null);
+            }
+
+            cells.Add(t.Notes);
+            sheet.Rows.Add(new XlsxRow(cells.ToArray()));
+        }
+
+        return sheet;
     }
 }

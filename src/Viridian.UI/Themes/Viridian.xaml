@@ -138,6 +138,11 @@
         <Setter Property="RowHeaderWidth" Value="0" />
     </Style>
 
+    <Style x:Key="VirCenterCell" TargetType="TextBlock">
+        <Setter Property="TextAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{StaticResource VirGreenDark}" />
+    </Style>
+
     <Style x:Key="VirRightCell" TargetType="TextBlock">
         <Setter Property="TextAlignment" Value="Right" />
         <Setter Property="Padding" Value="4,0" />
