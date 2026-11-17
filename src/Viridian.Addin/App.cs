@@ -126,6 +126,16 @@ public sealed class App : IExternalApplication
             Small<MaintenanceCommand, ProjectAvailability>(assembly, "Manutenção", "maintenance",
                 "Cronograma de manutenção por espécie e época: rega, adubação, podas, cortes e reposição de falhas."));
 
+        RibbonPanel documentation = app.CreateRibbonPanel(TabName, "Documentação");
+        Large<SheetCommand, ProjectAvailability>(documentation, assembly, "Prancha\nAutomática", "sheet",
+            "Cria a prancha de paisagismo com a planta ativa, a legenda e a tabela de quantitativos diagramadas sobre o carimbo.",
+            "A planta fica à esquerda; legenda e tabela na coluna da direita, acima do carimbo. A escala é reduzida automaticamente se a planta não couber.");
+        Stack(documentation,
+            Small<CadExportCommand, ProjectAvailability>(assembly, "Exportar CAD", "cad",
+                "Exporta vistas e pranchas para DWG (com cores e preenchimentos) e gera a biblioteca de blocos DXF dos símbolos."),
+            Small<SchedulesCommand, ProjectAvailability>(assembly, "Tabelas Nativas", "schedule",
+                "Cria as tabelas de vegetação do Revit (por espécie e por exemplar)."));
+
         RibbonPanel check = app.CreateRibbonPanel(TabName, "Verificação");
         Large<CheckCommand, ProjectAvailability>(check, assembly, "Verificar\nProjeto", "check",
             "Encontra exemplares sem código, códigos repetidos, famílias não cadastradas, maciços inválidos, registros órfãos, conflitos de copa e de espaçamento.",

@@ -1,0 +1,78 @@
+<ui:ViridianWindow x:Class="Viridian.UI.Windows.CadExportWindow"
+                   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:ui="clr-namespace:Viridian.UI"
+                   Title="Viridian — Exportar para CAD"
+                   Width="720" Height="640" MinWidth="620" MinHeight="520">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock Style="{StaticResource VirHeader}" Text="Exportar implantação e símbolos para CAD" />
+        <GroupBox Grid.Row="1" Header="Vistas e pranchas (um arquivo DWG para cada)">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <ListBox x:Name="ViewList" AutomationProperties.Name="Vistas e pranchas para exportar">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox Content="{Binding Label}" IsChecked="{Binding Selected}" Margin="0,1" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,6,0,0">
+                    <Button Content="Marcar pranchas" Click="SelectSheets_Click" Margin="0" />
+                    <Button Content="Desmarcar todas" Click="SelectNone_Click" />
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+        <GroupBox Grid.Row="2" Header="Opções do DWG">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="150" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Label Content="_Pasta" Target="{Binding ElementName=FolderBox}" Padding="0" VerticalAlignment="Center" />
+                <TextBox x:Name="FolderBox" Grid.Column="1" AutomationProperties.Name="Pasta de destino" />
+                <Button Grid.Column="2" Content="Procurar..." Click="Browse_Click" />
+                <Label Grid.Row="1" Content="_Versão" Target="{Binding ElementName=VersionBox}" Padding="0" VerticalAlignment="Center" />
+                <ComboBox x:Name="VersionBox" Grid.Row="1" Grid.Column="1" AutomationProperties.Name="Versão do DWG" />
+                <Label Grid.Row="2" Content="_Unidade do desenho" Target="{Binding ElementName=UnitBox}" Padding="0" VerticalAlignment="Center" />
+                <ComboBox x:Name="UnitBox" Grid.Row="2" Grid.Column="1" AutomationProperties.Name="Unidade do desenho" />
+                <StackPanel Grid.Row="3" Grid.ColumnSpan="3" Margin="0,4,0,0">
+                    <CheckBox x:Name="MergedBox" Content="Juntar as vistas da prancha em um único arquivo (sem referências externas)" IsChecked="True" />
+                    <CheckBox x:Name="SharedBox" Content="Usar as coordenadas compartilhadas do projeto (georreferenciamento)" />
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+        <GroupBox Grid.Row="3" Header="Biblioteca de blocos (DXF)">
+            <StackPanel>
+                <CheckBox x:Name="LibraryBox" Content="Gerar também a biblioteca de blocos com os símbolos das espécies" IsChecked="True" />
+                <StackPanel Orientation="Horizontal" Margin="20,0,0,0">
+                    <RadioButton x:Name="ProjectSpeciesRadio" Content="Espécies do projeto" IsChecked="True" Margin="0,3,16,3" />
+                    <RadioButton x:Name="CatalogRadio" Content="Catálogo inteiro" />
+                </StackPanel>
+                <CheckBox x:Name="FillBox" Content="Incluir o preenchimento colorido das copas e da floração" IsChecked="True" Margin="20,0,0,0" />
+                <TextBlock Style="{StaticResource VirHint}" Margin="20,2,0,0"
+                           Text="Blocos em metros, tamanho real, com camadas VIR-CONTORNO, VIR-ESTRUTURA, VIR-DETALHE, VIR-PREENCHIMENTO e VIR-FLORACAO." />
+            </StackPanel>
+        </GroupBox>
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="_Exportar" Click="Ok_Click" IsDefault="True" Style="{StaticResource VirPrimaryButton}" />
+            <Button Content="Cancelar" IsCancel="True" />
+        </StackPanel>
+    </Grid>
+</ui:ViridianWindow>
