@@ -38,6 +38,9 @@ public sealed class App : IExternalApplication
             _scaleUpdater = null;
         }
 
+        // Quadro de fotos: texto e linha acompanham a foto arrastada (e a planta movida).
+        Services.PhotoBoardUpdater.Register(application.ActiveAddInId);
+
         ViridianLog.Info("Viridian carregado.");
         return Result.Succeeded;
     }
@@ -47,6 +50,7 @@ public sealed class App : IExternalApplication
         try
         {
             _scaleUpdater?.Detach();
+            Services.PhotoBoardUpdater.Unregister(application.ActiveAddInId);
         }
         catch (Exception ex)
         {
@@ -77,7 +81,9 @@ public sealed class App : IExternalApplication
             Small<ImportFamilyCommand, AlwaysAvailable>(assembly, "Importar Família", "import",
                 "Registra uma família personalizada (Vegetação ou componente de detalhe) e a associa a uma espécie."),
             Small<SyncCommand, ProjectAvailability>(assembly, "Atualizar Dados", "sync",
-                "Atualiza tipos, símbolos, maciços e etiquetas do projeto a partir do catálogo."));
+                "Atualiza tipos, símbolos, maciços e etiquetas do projeto a partir do catálogo."),
+            Small<NewSpeciesCommand, AlwaysAvailable>(assembly, "Nova Vegetação", "new-species",
+                "Cadastre uma vegetação própria: nomes, categoria, porte, símbolo 2D, cores da folhagem e da flor, foto, floração e dados de plantio. Ela passa a valer em todas as ferramentas."));
 
         RibbonPanel planting = app.CreateRibbonPanel(TabName, "Plantio");
         Large<InsertCommand, ProjectAvailability>(planting, assembly, "Inserir", "insert",

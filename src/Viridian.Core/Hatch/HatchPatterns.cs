@@ -121,11 +121,117 @@ public static class HatchLibrary
 
     public static readonly IReadOnlyList<HatchPattern> BuiltIn = Build();
 
+    /// <summary>Prefixo das variações automáticas: "var:&lt;hachura base&gt;:&lt;n&gt;".</summary>
+    public const string VariantPrefix = "var:";
+
+    public const int VariantCount = 8;
+
+    /// <summary>
+    /// Hachura própria da espécie: a escolhida no cadastro ou, se nenhuma, uma variação da hachura da categoria
+    /// (rotação e espaçamento derivados da espécie). Assim maciços vizinhos de espécies diferentes nunca têm o mesmo
+    /// traçado, e o mesmo maciço sempre tem o mesmo traçado.
+    /// </summary>
+    public static string KeyFor(Model.Species species)
+    {
+        ArgumentNullException.ThrowIfNull(species);
+        // Hachura escolhida no cadastro (a padrão da categoria conta como "não escolhida": recebe a variação).
+        if (!string.IsNullOrWhiteSpace(species.HatchPatternKey)
+            && !string.Equals(species.HatchPatternKey, DefaultKeyFor(species.Category), StringComparison.OrdinalIgnoreCase))
+        {
+            return species.HatchPatternKey;
+        }
+
+        return VariantKey(DefaultKeyFor(species.Category), species.EffectiveSymbolSeed % VariantCount);
+    }
+
+    /// <summary>
+    /// Traçado de um maciço novo no projeto: o mesmo de outro maciço da mesma espécie, se houver; senão o traçado
+    /// próprio da espécie, trocado pela próxima variação livre quando outra espécie do projeto já o usa.
+    /// </summary>
+    public static string ProjectKey(Model.Species species, IEnumerable<(string SpeciesId, string Key)> existing)
+    {
+        var list = existing.Where(e => !string.IsNullOrWhiteSpace(e.Key)).ToList();
+        string? same = list.FirstOrDefault(e => string.Equals(e.SpeciesId, species.Id, StringComparison.OrdinalIgnoreCase)).Key;
+        if (!string.IsNullOrWhiteSpace(same))
+        {
+            return same;
+        }
+
+        string own = KeyFor(species);
+        if (!own.StartsWith(VariantPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return own; // hachura escolhida no cadastro: respeitada
+        }
+
+        var taken = new HashSet<string>(list.Where(e => !string.Equals(e.SpeciesId, species.Id, StringComparison.OrdinalIgnoreCase)).Select(e => e.Key), StringComparer.OrdinalIgnoreCase);
+        string rest = own[VariantPrefix.Length..];
+        int colon = rest.LastIndexOf(':');
+        string baseKey = rest[..colon];
+        int start = int.Parse(rest[(colon + 1)..], System.Globalization.CultureInfo.InvariantCulture);
+        for (int i = 0; i < VariantCount; i++)
+        {
+            string candidate = VariantKey(baseKey, start + i);
+            if (!taken.Contains(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return own;
+    }
+
+    public static string VariantKey(string baseKey, int index) => $"{VariantPrefix}{baseKey}:{((index % VariantCount) + VariantCount) % VariantCount}";
+
+    /// <summary>Variação da hachura base: girada e com espaçamento ajustado. Índice 0 é a própria base.</summary>
+    public static HatchPattern? Variant(string baseKey, int index, IEnumerable<HatchPattern>? custom = null)
+    {
+        HatchPattern? source = Find(baseKey, custom);
+        if (source is null)
+        {
+            return null;
+        }
+
+        index = ((index % VariantCount) + VariantCount) % VariantCount;
+        double[] angles = { 0, 30, 60, 90, 120, 150, 15, 105 };
+        double[] scales = { 1.0, 1.25, 0.85, 1.15, 0.95, 1.35, 1.1, 0.9 };
+        double angle = angles[index];
+        double k = scales[index];
+        var pattern = new HatchPattern
+        {
+            Key = VariantKey(baseKey, index),
+            Name = index == 0 ? source.Name : $"{source.Name} {index + 1}",
+            Application = source.Application,
+            Target = source.Target,
+            IsBuiltIn = source.IsBuiltIn,
+        };
+        foreach (HatchGrid g in source.Grids)
+        {
+            double r = angle * Math.PI / 180;
+            HatchGrid copy = g.Clone();
+            copy.AngleDeg = g.AngleDeg + angle;
+            copy.OriginX = (g.OriginX * Math.Cos(r) - g.OriginY * Math.Sin(r)) * k;
+            copy.OriginY = (g.OriginX * Math.Sin(r) + g.OriginY * Math.Cos(r)) * k;
+            copy.Shift = g.Shift * k;
+            copy.Offset = Math.Max(MinOffsetMm, g.Offset * k);
+            copy.Segments = g.Segments.Select(v => Math.Max(DotMm, v * k)).ToList();
+            pattern.Grids.Add(copy);
+        }
+
+        return pattern;
+    }
+
     public static HatchPattern? Find(string? key, IEnumerable<HatchPattern>? custom = null)
     {
         if (string.IsNullOrWhiteSpace(key))
         {
             return null;
+        }
+
+        if (key.StartsWith(VariantPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            string rest = key[VariantPrefix.Length..];
+            int colon = rest.LastIndexOf(':');
+            return colon > 0 && int.TryParse(rest[(colon + 1)..], out int index) ? Variant(rest[..colon], index, custom) : null;
         }
 
         return BuiltIn.FirstOrDefault(p => string.Equals(p.Key, key, StringComparison.OrdinalIgnoreCase))

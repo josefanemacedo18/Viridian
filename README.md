@@ -29,6 +29,7 @@ A aba **Viridian** tem doze painéis. **Buscar Espécie** é a biblioteca comple
 | Ferramenta | O que faz |
 |---|---|
 | **Buscar Espécie** | Catálogo botânico com pesquisa sem acentos e filtros projetuais: categoria, origem, forma da copa, altura e copa adultas (faixa), água, luz, crescimento, **bioma**, **mês de floração** e **floração vistosa**. A ficha mostra o símbolo colorido em cada perfil de escala, a **fotografia com autor e licença**, as cores e os dados técnicos. A foto pode ser trocada ali mesmo: **Trocar foto** (arquivo), **Colar imagem** (copiada do navegador) ou arrastando o arquivo para cima da foto; **Foto do catálogo** volta à original. A foto escolhida fica na pasta de fotos da biblioteca do escritório e não é substituída em atualizações do plugin. Dela saem as ações Inserir, Distribuir e Criar maciço. |
+| **Nova Vegetação** | Cria uma vegetação própria do zero, com ou sem projeto aberto: nomes, categoria, porte, espaçamento, cores da folhagem e da flor, floração, símbolo e fotografia. Ela entra na biblioteca do escritório como as do catálogo e, com um projeto aberto, já pode ser inserida, distribuída ou virar maciço. |
 | **Cadastro de espécies** | Nova, editar, duplicar e excluir. Além dos dados botânicos e de plantio: biomas de ocorrência, **cor da folhagem**, **cor da flor**, fotografia própria e **códigos da tabela de preços** (insumo e serviço de plantio). |
 | **Importar Família** | Assistente "Importar símbolo personalizado": verifica categoria, linhas 2D, ponto de inserção e tipos; registra a família na biblioteca e a associa a uma espécie. |
 | **Atualizar Dados** | Sincroniza o projeto com o catálogo: dados dos tipos, símbolos regerados quando o desenho ou as cores mudaram, maciços e etiquetas. |
@@ -53,9 +54,11 @@ O catálogo padrão traz **382 espécies** usadas no paisagismo brasileiro: 196 
 
 | Ferramenta | O que faz |
 |---|---|
-| **Criar Maciço** | Região de plantio com três modos: **hachura**, **símbolos** ou **combinado**, sugeridos pela densidade. A região é pintada com a cor da espécie (fundo claro e hachura mais escura). A quantidade é calculada pela área, com reserva de reposição; espécies vendidas por área são quantificadas em m². |
+| **Criar Maciço** | Região de plantio com três modos: **hachura** (padrão para arbustos, herbáceas, forrações, gramados, trepadeiras e aquáticas), **símbolos** ou **combinado** (sugeridos pela densidade para árvores e palmeiras). Cada espécie tem **traçado próprio** (a hachura da categoria girada e com espaçamento ajustado), e o Viridian evita repetir no projeto um traçado já usado por outra espécie. A região é pintada com a cor da espécie, como na biblioteca: fundo na cor da folhagem e traços na cor da flor (ou da folhagem mais escura). A quantidade é calculada pela área, com reserva de reposição; espécies vendidas por área são quantificadas em m². |
 | **Editar Maciço** | Altera código, representação, hachura, densidade, distribuição e reserva. |
 | **Recalcular** | Depois de alterar o limite de uma região, refaz área, quantidade e símbolos (a mesma semente mantém o mesmo padrão). |
+
+![Maciços com traçado e cores próprios](docs/img/macicos.png)
 
 ### Identificação
 
@@ -65,7 +68,7 @@ O catálogo padrão traz **382 espécies** usadas no paisagismo brasileiro: 196 
 | **Codificar** | Códigos dos exemplares com formato configurável e renumeração dos códigos de espécie **por projeto**. |
 | **Atualizar Etiquetas** | Refaz o texto das etiquetas a partir dos dados atuais. |
 | **Legenda** | Vista de legenda com o símbolo colorido (ou a amostra da hachura na cor da espécie), **fotografia**, código, nomes e quantidade. |
-| **Quadro de Fotos** | Coloca ao redor da planta a **fotografia de cada espécie**, com código e nome, ligada por linha a um exemplar, como nas pranchas de paisagismo ilustradas. As posições evitam linhas cruzadas; com região de corte ativa, o recorte é ampliado. |
+| **Quadro de Fotos** | Coloca ao redor da planta a **fotografia de cada espécie**, com código e nome, ligada por linha a um exemplar, como nas pranchas de paisagismo ilustradas. As posições evitam linhas cruzadas; com região de corte ativa, o recorte é ampliado. Depois, cada foto pode ser **arrastada** livremente: o texto e a linha de ligação acompanham, e a linha também segue a planta se ela for movida. |
 
 ![Quadro de fotos ao redor da planta](docs/img/quadro-fotos.jpg)
 
@@ -184,6 +187,8 @@ Os símbolos 2D são gerados proceduralmente, em **dimensão real**, centrados n
 ### Cores
 
 Cada espécie recebe a cor da sua folhagem (ou uma variação suave e estável da cor-base da categoria) e, quando floresce de forma vistosa, manchas na cor da flor. As linhas usam tons de verde-escuro e marrom, que leem bem sobre as copas e também em impressão em preto e branco. O preenchimento pode ser **sólido**, **reticulado** ou desligado.
+
+No Revit, as cores ficam num **componente de detalhe** aninhado na família de vegetação (gerado a partir do modelo "Item de detalhe" da instalação do Revit), o que garante a cor da biblioteca em planta. Se esse modelo não for encontrado, o Viridian tenta o método antigo e avisa quando não conseguir colorir. Em projetos criados com versões anteriores, rode **Atualizar Dados** para regerar os símbolos coloridos.
 
 ![Símbolos coloridos do catálogo](docs/img/cores.png)
 

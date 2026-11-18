@@ -24,7 +24,7 @@ internal static class MassingCommands
 
         string key = hatchKey ?? record.HatchPatternKey;
         HatchPattern? hatch = HatchLibrary.Find(key, ctx.Settings.CustomHatches)
-                              ?? HatchLibrary.Find(species.HatchPatternKey, ctx.Settings.CustomHatches)
+                              ?? HatchLibrary.Find(HatchLibrary.KeyFor(species), ctx.Settings.CustomHatches)
                               ?? HatchLibrary.Find(HatchLibrary.DefaultKeyFor(species.Category));
 
         var execution = new MassingExecution
@@ -79,6 +79,7 @@ internal static class MassingCommands
         {
             Id = MassingCalculator.NextId(used, ctx.Settings.MassingPrefix),
             Seed = Random.Shared.NextInt64(1, long.MaxValue),
+            HatchPatternKey = HatchLibrary.ProjectKey(species, ReportBuilder.DistinctMassings(all).Select(m => (m.Record.SpeciesId, m.Record.HatchPatternKey))),
         };
 
         var window = new MassingWindow(species, boundary.Polygon, draft, true, used, ctx.Settings, species.HasCustomDetailFamily, view is ViewPlan);

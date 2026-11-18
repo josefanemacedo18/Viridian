@@ -13,10 +13,34 @@ public sealed class PhotoBoardLink
     public long ViewId { get; set; }
 
     public string SpeciesId { get; set; } = string.Empty;
+
+    /// <summary>Cartão a que o elemento pertence (foto, texto, linha e ponto do mesmo cartão).</summary>
+    public string CardId { get; set; } = string.Empty;
+
+    /// <summary>Papel do elemento: foto, texto, linha, ponto ou moldura.</summary>
+    public string Role { get; set; } = string.Empty;
+
+    /// <summary>Exemplar ligado ao cartão (a ponta da linha acompanha a planta).</summary>
+    public string TargetUniqueId { get; set; } = string.Empty;
+
+    /// <summary>Posição do texto em relação ao canto superior esquerdo da foto (pés).</summary>
+    public double TextDx { get; set; }
+
+    public double TextDy { get; set; }
+
+    public const string RoleImage = "foto";
+    public const string RoleText = "texto";
+    public const string RoleLeader = "linha";
+    public const string RoleDot = "ponto";
+    public const string RoleFrame = "moldura";
 }
 
 /// <summary>Espécie a ilustrar no quadro: a espécie, o código no projeto e onde ela aparece na vista.</summary>
-public sealed record PhotoBoardSpecies(Species Species, string Code, string PhotoFile, IReadOnlyList<Point2> Targets);
+public sealed record PhotoBoardSpecies(Species Species, string Code, string PhotoFile, IReadOnlyList<Point2> Targets)
+{
+    /// <summary>Exemplares correspondentes a <see cref="Targets"/> (mesma ordem), para a linha acompanhar a planta.</summary>
+    public IReadOnlyList<string> TargetIds { get; init; } = Array.Empty<string>();
+}
 
 /// <summary>Fotografias das espécies em vistas do Revit: legenda ilustrada e quadro de fotos ao redor da planta.</summary>
 public sealed class PhotoService
@@ -120,27 +144,37 @@ public sealed class PhotoService
         foreach (PhotoCard card in cards)
         {
             PhotoBoardSpecies item = bySpecies[card.Key];
-            var link = new PhotoBoardLink { ViewId = view.Id.Value, SpeciesId = item.Species.Id };
-            var created = new List<Element>();
+            string cardId = Guid.NewGuid().ToString("N");
+            int targetIndex = item.Targets.ToList().FindIndex(t => t.DistanceTo(card.Target) < 1e-6);
+            string targetId = targetIndex >= 0 && targetIndex < item.TargetIds.Count ? item.TargetIds[targetIndex] : string.Empty;
+            PhotoBoardLink Link(string role, double dx = 0, double dy = 0) => new()
+            {
+                ViewId = view.Id.Value, SpeciesId = item.Species.Id, CardId = cardId, Role = role, TargetUniqueId = targetId, TextDx = dx, TextDy = dy,
+            };
 
             XYZ topLeft = RevitUnits.ToXyz(new Point2(card.Box.MinX, card.Box.MaxY), z);
             if (EnsureImageType(document, item.PhotoFile) is ImageType type
                 && PlaceImage(document, view, type, topLeft, RevitUnits.ToFeet(M(CardWidthMm)), RevitUnits.ToFeet(M(PhotoHeightMm))) is ImageInstance image)
             {
-                created.Add(image);
+                ElementData.Write(image, ElementData.KindPhotoBoard, Link(PhotoBoardLink.RoleImage));
+                topLeft = image.GetLocation(BoxPlacement.TopLeft);
             }
             else
             {
                 // Sem foto: moldura vazia, para manter o quadro organizado.
-                created.AddRange(Rectangle(document, view, new Bounds2(card.Box.MinX, card.Box.MaxY - M(PhotoHeightMm), card.Box.MaxX, card.Box.MaxY), z));
+                foreach (Element line in Rectangle(document, view, new Bounds2(card.Box.MinX, card.Box.MaxY - M(PhotoHeightMm), card.Box.MaxX, card.Box.MaxY), z))
+                {
+                    ElementData.Write(line, ElementData.KindPhotoBoard, Link(PhotoBoardLink.RoleFrame));
+                }
             }
 
             string text = (item.Code + " " + item.Species.PopularName).Trim().ToUpperInvariant() + "\n" + item.Species.ScientificName;
             using (var options = new TextNoteOptions(textType) { HorizontalAlignment = HorizontalTextAlignment.Center })
             {
                 var at = new Point2(card.Box.Center.X, card.Box.MaxY - M(PhotoHeightMm + 1.5));
-                TextNote note = TextNote.Create(document, view.Id, RevitUnits.ToXyz(at, z), RevitUnits.MmToFeet(CardWidthMm), LabelService.ToRevitText(text), options); // largura no papel
-                created.Add(note);
+                XYZ position = RevitUnits.ToXyz(at, z);
+                TextNote note = TextNote.Create(document, view.Id, position, RevitUnits.MmToFeet(CardWidthMm), LabelService.ToRevitText(text), options); // largura no papel
+                ElementData.Write(note, ElementData.KindPhotoBoard, Link(PhotoBoardLink.RoleText, position.X - topLeft.X, position.Y - topLeft.Y));
             }
 
             // Linha indicadora até o exemplar, com um ponto marcando a planta.
@@ -148,23 +182,123 @@ public sealed class PhotoService
             XYZ b = RevitUnits.ToXyz(card.Target, z);
             if (a.DistanceTo(b) > document.Application.ShortCurveTolerance * 2)
             {
-                created.Add(document.Create.NewDetailCurve(view, Line.CreateBound(a, b)));
+                ElementData.Write(document.Create.NewDetailCurve(view, Line.CreateBound(a, b)), ElementData.KindPhotoBoard, Link(PhotoBoardLink.RoleLeader));
             }
 
             double dot = RevitUnits.ToFeet(M(0.8));
             if (dot * Math.PI > document.Application.ShortCurveTolerance * 2)
             {
-                created.Add(document.Create.NewDetailCurve(view, Arc.Create(b, dot, 0, 2 * Math.PI * 0.999, XYZ.BasisX, XYZ.BasisY)));
-            }
-
-            foreach (Element element in created)
-            {
-                ElementData.Write(element, ElementData.KindPhotoBoard, link);
+                ElementData.Write(document.Create.NewDetailCurve(view, Arc.Create(b, dot, 0, 2 * Math.PI * 0.999, XYZ.BasisX, XYZ.BasisY)),
+                    ElementData.KindPhotoBoard, Link(PhotoBoardLink.RoleDot));
             }
         }
 
         ExpandCrop(view, cards, drawing, M(GapMm));
         return cards.Count;
+    }
+
+    /// <summary>
+    /// Refaz um cartão depois que a foto (ou o exemplar) foi movida: o texto acompanha a foto e a linha sai do lado do
+    /// cartão voltado para a planta até a posição atual da planta. Chamado pelo atualizador; já está em transação.
+    /// </summary>
+    public static void FollowCard(Document document, string cardId)
+    {
+        var parts = new List<(Element Element, PhotoBoardLink Link)>();
+        foreach (Element element in ElementData.ElementsOfKind(document, ElementData.KindPhotoBoard))
+        {
+            if (ElementData.TryRead(element, ElementData.KindPhotoBoard, out PhotoBoardLink link) && link.CardId == cardId)
+            {
+                parts.Add((element, link));
+            }
+        }
+
+        if (parts.FirstOrDefault(p => p.Element is ImageInstance).Element is not ImageInstance image)
+        {
+            return;
+        }
+
+        XYZ topLeft = image.GetLocation(BoxPlacement.TopLeft);
+        XYZ bottomRight = image.GetLocation(BoxPlacement.BottomRight);
+        double z = topLeft.Z;
+        Bounds2 box = Bounds2.FromPoints(new[] { RevitUnits.ToPoint2(topLeft), RevitUnits.ToPoint2(bottomRight) });
+
+        // Texto logo abaixo da foto, na mesma posição relativa de quando o quadro foi criado.
+        foreach ((Element element, PhotoBoardLink link) in parts.Where(p => p.Link.Role == PhotoBoardLink.RoleText))
+        {
+            if (element is TextNote note)
+            {
+                XYZ wanted = new(topLeft.X + link.TextDx, topLeft.Y + link.TextDy, note.Coord.Z);
+                XYZ delta = wanted - note.Coord;
+                if (delta.GetLength() > 1e-6)
+                {
+                    ElementTransformUtils.MoveElement(document, note.Id, delta);
+                }
+
+                Bounds2 textBox = TextBounds(note) ?? box;
+                box = Bounds2.FromPoints(new[] { new Point2(box.MinX, box.MaxY), new Point2(box.MaxX, Math.Min(box.MinY, textBox.MinY)) });
+            }
+        }
+
+        // Ponta da linha: o exemplar ligado (se ainda existe) ou a ponta atual.
+        PhotoBoardLink any = parts[0].Link;
+        Element? leader = parts.FirstOrDefault(p => p.Link.Role == PhotoBoardLink.RoleLeader).Element;
+        Element? dot = parts.FirstOrDefault(p => p.Link.Role == PhotoBoardLink.RoleDot).Element;
+        XYZ? target = null;
+        if (any.TargetUniqueId.Length > 0 && document.GetElement(any.TargetUniqueId) is FamilyInstance { Location: LocationPoint lp })
+        {
+            target = new XYZ(lp.Point.X, lp.Point.Y, z);
+        }
+        else if (leader is CurveElement { GeometryCurve: Curve current })
+        {
+            target = current.GetEndPoint(1);
+        }
+
+        if (target is null)
+        {
+            return;
+        }
+
+        Point2 anchor = PhotoCardGeometry.Anchor(box, RevitUnits.ToPoint2(target));
+        XYZ a = RevitUnits.ToXyz(anchor, z);
+        if (leader is CurveElement curve && a.DistanceTo(target) > document.Application.ShortCurveTolerance * 2)
+        {
+            curve.SetGeometryCurve(Line.CreateBound(a, new XYZ(target.X, target.Y, z)), true);
+        }
+
+        if (dot is CurveElement circle && circle.GeometryCurve is Arc arc && arc.Center.DistanceTo(new XYZ(target.X, target.Y, arc.Center.Z)) > 1e-6)
+        {
+            ElementTransformUtils.MoveElement(document, circle.Id, new XYZ(target.X - arc.Center.X, target.Y - arc.Center.Y, 0));
+        }
+    }
+
+    private static Bounds2? TextBounds(TextNote note)
+    {
+        try
+        {
+            View? view = note.Document.GetElement(note.OwnerViewId) as View;
+            BoundingBoxXYZ? bb = note.get_BoundingBox(view);
+            return bb is null ? null : Bounds2.FromPoints(new[] { RevitUnits.ToPoint2(bb.Min), RevitUnits.ToPoint2(bb.Max) });
+        }
+        catch (Autodesk.Revit.Exceptions.ApplicationException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Cartões ligados a um exemplar (para a linha acompanhar a planta movida).</summary>
+    public static IEnumerable<string> CardsOfTarget(Document document, ICollection<string> targetUniqueIds)
+    {
+        var cards = new HashSet<string>();
+        foreach (Element element in ElementData.ElementsOfKind(document, ElementData.KindPhotoBoard))
+        {
+            if (ElementData.TryRead(element, ElementData.KindPhotoBoard, out PhotoBoardLink link)
+                && link.CardId.Length > 0 && targetUniqueIds.Contains(link.TargetUniqueId))
+            {
+                cards.Add(link.CardId);
+            }
+        }
+
+        return cards;
     }
 
     /// <summary>Com região de corte ativa, amplia o recorte para que os cartões fiquem visíveis na vista e na prancha.</summary>

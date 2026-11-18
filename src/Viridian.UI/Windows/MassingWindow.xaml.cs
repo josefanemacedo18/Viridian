@@ -52,7 +52,17 @@ public partial class MassingWindow : ViridianWindow
         _usedIds = usedIds;
         _planView = isPlanView;
         _areaBased = SupplyUnits.IsAreaBased(species.SupplyUnit);
-        _hatches = HatchLibrary.BuiltIn.Concat(settings.CustomHatches).ToList();
+        var hatches = HatchLibrary.BuiltIn.Concat(settings.CustomHatches).ToList();
+        foreach (string key in new[] { record.HatchPatternKey, HatchLibrary.KeyFor(species) }.Distinct())
+        {
+            if (HatchLibrary.Find(key, settings.CustomHatches) is HatchPattern own && hatches.All(h => h.Key != own.Key))
+            {
+                // Traçado próprio da espécie (ou o escolhido para este maciço) no topo da lista.
+                hatches.Insert(0, new HatchPattern { Key = own.Key, Name = own.Name, Application = "traçado próprio desta espécie", Grids = own.Grids, Target = own.Target });
+            }
+        }
+
+        _hatches = hatches;
         _seed = record.Seed == 0 ? 1 : record.Seed;
         Record = record;
         InitializeComponent();
@@ -120,13 +130,9 @@ public partial class MassingWindow : ViridianWindow
         IdBox.Text = record.Id;
         NotesBox.Text = record.Notes;
         Select<MassingMode?>(ModeBox, isNew ? null : record.Mode);
-        string hatchKey = string.IsNullOrWhiteSpace(record.HatchPatternKey)
-            ? (string.IsNullOrWhiteSpace(_species.HatchPatternKey) ? HatchLibrary.DefaultKeyFor(_species.Category) : _species.HatchPatternKey)
+        string hatchKey = string.IsNullOrWhiteSpace(record.HatchPatternKey) || record.HatchPatternKey == HatchLibrary.Simplified
+            ? HatchLibrary.KeyFor(_species)
             : record.HatchPatternKey;
-        if (hatchKey == HatchLibrary.Simplified && !string.IsNullOrWhiteSpace(_species.HatchPatternKey))
-        {
-            hatchKey = _species.HatchPatternKey;
-        }
 
         Select(HatchBox, hatchKey);
         Select(PatternBox, record.Pattern is DistributionPattern.Retangular or DistributionPattern.Natural ? record.Pattern : DistributionPattern.Triangular);
@@ -199,11 +205,10 @@ public partial class MassingWindow : ViridianWindow
         string message = string.Empty;
 
         MassingMode? chosen = (ModeBox.SelectedItem as Choice<MassingMode?>)?.Value;
-        _effectiveMode = _areaBased ? MassingMode.Hachura : chosen ?? _settings.Density.SuggestMode(density);
+        _effectiveMode = _areaBased ? MassingMode.Hachura : chosen ?? _settings.Density.DefaultMode(_species, density);
 
-        string selectedHatch = (HatchBox.SelectedItem as Choice<string>)?.Value ?? HatchLibrary.DefaultKeyFor(_species.Category);
-        bool simplified = !_areaBased && chosen is null && _effectiveMode == MassingMode.Hachura && _settings.Density.UseSimplifiedHatch(density);
-        _effectiveHatchKey = _effectiveMode == MassingMode.Simbolos ? string.Empty : simplified ? HatchLibrary.Simplified : selectedHatch;
+        string selectedHatch = (HatchBox.SelectedItem as Choice<string>)?.Value ?? HatchLibrary.KeyFor(_species);
+        _effectiveHatchKey = _effectiveMode == MassingMode.Simbolos ? string.Empty : selectedHatch;
 
         MassingSymbolKind kind = (SymbolKindBox.SelectedItem as Choice<MassingSymbolKind>)?.Value ?? MassingSymbolKind.Planting;
         bool symbols = _effectiveMode != MassingMode.Hachura;
@@ -214,7 +219,7 @@ public partial class MassingWindow : ViridianWindow
         string classText = _areaBased
             ? "Espécie fornecida por área: quantificada em m²."
             : $"Densidade {DensityRules.DisplayName(_settings.Density.Classify(density)).ToLowerInvariant()}: {DensityRules.DisplayName(_effectiveMode).ToLowerInvariant()}"
-              + (simplified ? " simplificada" : string.Empty) + (chosen is null ? " (sugerido)." : ".");
+              + (chosen is null ? " (sugerido)." : ".");
         ModeHint.Text = classText;
 
         _distribution = new DistributionResult();

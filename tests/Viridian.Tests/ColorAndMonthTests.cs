@@ -72,7 +72,7 @@ public class ColorTests
         var settings = new ColorSettings { CrownTint = 5, MassingBackgroundTint = double.NaN, CategoryColors = new() { [PlantCategory.Arvore] = "xx" } };
         settings.Normalize();
         Assert.Equal(0.85, settings.CrownTint);
-        Assert.Equal(0.55, settings.MassingBackgroundTint);
+        Assert.Equal(0.3, settings.MassingBackgroundTint);
         Assert.Equal(Labels.Categories.Count, settings.CategoryColors.Count);
         Assert.Equal(VegetationPalette.DefaultCategoryColors()[PlantCategory.Arvore], settings.CategoryColors[PlantCategory.Arvore]);
     }

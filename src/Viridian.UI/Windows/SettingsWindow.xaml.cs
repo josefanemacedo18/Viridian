@@ -260,7 +260,7 @@ public partial class SettingsWindow : ViridianWindow
         {
             CrownFill = (CrownFillBox.SelectedItem as Choice<CrownFillMode>)?.Value ?? CrownFillMode.Solido,
             CrownTint = Num.TryParse(CrownTintBox.Text, out double crown) ? crown / 100 : 0.28,
-            MassingBackgroundTint = Num.TryParse(MassingTintBox.Text, out double massing) ? massing / 100 : 0.55,
+            MassingBackgroundTint = Num.TryParse(MassingTintBox.Text, out double massing) ? massing / 100 : 0.3,
             ShowFlowers = ShowFlowersBox.IsChecked == true,
             ColoredMassings = ColoredMassingsBox.IsChecked == true,
             CategoryColors = _categoryColors.ToDictionary(r => r.Category, r => r.Color.Trim()),

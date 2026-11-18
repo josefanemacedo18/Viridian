@@ -38,7 +38,8 @@ internal static class DocumentationFlows
     public static IReadOnlyList<PhotoBoardSpecies> BoardSpecies(ViridianContext ctx, View view)
     {
         var targets = new Dictionary<string, List<Core.Geometry.Point2>>(StringComparer.OrdinalIgnoreCase);
-        void Add(string speciesId, Core.Geometry.Point2 point)
+        var targetIds = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        void Add(string speciesId, Core.Geometry.Point2 point, string uniqueId = "")
         {
             if (string.IsNullOrWhiteSpace(speciesId))
             {
@@ -52,6 +53,13 @@ internal static class DocumentationFlows
             }
 
             list.Add(point);
+            if (!targetIds.TryGetValue(speciesId, out List<string>? ids))
+            {
+                ids = new List<string>();
+                targetIds[speciesId] = ids;
+            }
+
+            ids.Add(uniqueId);
         }
 
         using (var collector = new FilteredElementCollector(ctx.Doc, view.Id))
@@ -60,7 +68,7 @@ internal static class DocumentationFlows
             {
                 if (ElementData.TryRead(instance.Symbol, ElementData.KindSpecies, out SpeciesLink link))
                 {
-                    Add(link.SpeciesId, PlantingService.LocationOf(instance));
+                    Add(link.SpeciesId, PlantingService.LocationOf(instance), instance.UniqueId);
                 }
             }
         }
@@ -78,7 +86,10 @@ internal static class DocumentationFlows
         {
             if (ctx.Lookup(id) is Species species)
             {
-                result.Add(new PhotoBoardSpecies(species, ctx.ProjectCode(species), ctx.Paths.ResolvePhoto(species.PhotoFile), points));
+                result.Add(new PhotoBoardSpecies(species, ctx.ProjectCode(species), ctx.Paths.ResolvePhoto(species.PhotoFile), points)
+                {
+                    TargetIds = targetIds.TryGetValue(id, out List<string>? ids) ? ids : new List<string>(),
+                });
             }
         }
 

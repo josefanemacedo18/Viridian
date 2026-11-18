@@ -27,7 +27,10 @@ public sealed class TemplateRejectedException : Exception
 public static class SymbolFamilyBuilder
 {
     /// <summary>Versão da montagem da família. Ao aumentá-la, as famílias geradas são refeitas.</summary>
-    public const int Version = 4;
+    public const int Version = 5;
+
+    /// <summary>Espécies cujas cores o Revit recusou nesta sessão (para avisar o usuário uma única vez).</summary>
+    public static List<string> ColorFailures { get; } = new();
 
     /// <summary>Gera o arquivo .rfa de um símbolo. Não pode haver transação aberta em nenhum documento.</summary>
     /// <param name="paint">Cores da copa e da floração.</param>
@@ -142,18 +145,29 @@ public static class SymbolFamilyBuilder
         double tolerance = app.ShortCurveTolerance * 1.05;
         Plane plane = Plane.CreateByNormalAndOrigin(XYZ.BasisZ, new XYZ(0, 0, elevation));
 
-        // Etapa 2: cores (copa e floração). São opcionais: se o modelo ou o Revit recusar algo,
-        // a etapa é desfeita sem mensagem e o símbolo segue só com as linhas.
+        // Etapa 2: cores (copa e floração). Primeiro como componente de detalhe aninhado (regiões de vista comuns,
+        // sempre exibidas nas plantas); se não houver modelo de detalhe, como regiões no plano do nível. São opcionais:
+        // se o Revit recusar, a etapa é desfeita e o símbolo segue só com as linhas (e o usuário é avisado).
         if (paint.HasFill)
         {
-            bool colored = RunSilently(familyDocument, "Viridian: cores do símbolo", required: false, () =>
-            {
-                SketchPlane fillPlane = SketchPlane.Create(familyDocument, plane);
-                FamilyFills.Draw(familyDocument, symbol, paint, fillPlane, elevation, tolerance, subcategories);
-            });
+            bool colored = NestedColorComponent.TryDraw(app, familyDocument, symbol, paint, elevation, tolerance);
             if (!colored)
             {
-                ViridianLog.Warn("O símbolo foi gerado sem as cores: o modelo de família recusou as regiões preenchidas.");
+                int before = FamilyFills.CountRegions(familyDocument);
+                colored = RunSilently(familyDocument, "Viridian: cores do símbolo", required: false, () =>
+                {
+                    SketchPlane fillPlane = SketchPlane.Create(familyDocument, plane);
+                    FamilyFills.Draw(familyDocument, symbol, paint, fillPlane, elevation, tolerance, subcategories);
+                }) && FamilyFills.CountRegions(familyDocument) > before;
+            }
+
+            if (!colored)
+            {
+                ViridianLog.Warn($"O símbolo \"{typeName}\" foi gerado sem as cores: o Revit recusou as regiões preenchidas.");
+                lock (ColorFailures)
+                {
+                    ColorFailures.Add(typeName);
+                }
             }
         }
 

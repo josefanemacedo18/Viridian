@@ -1,3 +1,4 @@
+using System.IO;
 using Autodesk.Revit.DB;
 using Viridian.Core.Colors;
 using Viridian.Core.Geometry;
@@ -13,12 +14,25 @@ namespace Viridian.Revit;
 /// </summary>
 internal static class FamilyFills
 {
-    private const string CrownTypeName = "VIR Copa";
-    private const string FlowerTypeName = "VIR Floração";
+    internal const string CrownTypeName = "VIR Copa";
+    internal const string FlowerTypeName = "VIR Floração";
     private const string HatchPatternName = "VIR Reticulado da copa";
 
     /// <summary>Espaçamento do reticulado no papel: 1,2 mm.</summary>
     private const double HatchSpacingFeet = 1.2 / 304.8;
+
+    /// <summary>
+    /// Nome do tipo de região pela cor. No projeto, tipos de mesmo nome vindos de famílias diferentes viram um só (o
+    /// primeiro carregado): com a cor no nome, cada cor fica com o seu tipo e nenhuma espécie herda a cor de outra.
+    /// </summary>
+    public static string ColorTypeName(string prefix, Rgb color) => prefix + " " + color.Hex.TrimStart('#');
+
+    /// <summary>Quantidade de regiões preenchidas no documento (para conferir se as cores foram de fato criadas).</summary>
+    public static int CountRegions(Document document)
+    {
+        using var collector = new FilteredElementCollector(document);
+        return collector.OfClass(typeof(FilledRegion)).GetElementCount();
+    }
 
     public static void Draw(
         Document familyDocument,
@@ -44,7 +58,7 @@ internal static class FamilyFills
             if (paint.Mode != CrownFillMode.Nenhum && symbol.FillOutline.Count >= 3)
             {
                 FilledRegionType? crownType = paint.Mode == CrownFillMode.Solido
-                    ? SolidType(familyDocument, baseType, CrownTypeName, paint.Crown)
+                    ? SolidType(familyDocument, baseType, ColorTypeName(CrownTypeName, paint.Crown), paint.Crown)
                     : HatchType(familyDocument, baseType, paint.Crown);
                 CurveLoop? loop = PolygonLoop(symbol.FillOutline, elevation, tolerance);
                 if (crownType is not null && loop is not null)
@@ -55,7 +69,7 @@ internal static class FamilyFills
 
             if (paint.Flower is Rgb flower && symbol.FlowerSpots.Count > 0)
             {
-                FilledRegionType? flowerType = SolidType(familyDocument, baseType, FlowerTypeName, flower);
+                FilledRegionType? flowerType = SolidType(familyDocument, baseType, ColorTypeName(FlowerTypeName, flower), flower);
                 if (flowerType is not null)
                 {
                     var loops = symbol.FlowerSpots
@@ -132,7 +146,7 @@ internal static class FamilyFills
         return region;
     }
 
-    private static FilledRegionType? FirstRegionType(Document document)
+    internal static FilledRegionType? FirstRegionType(Document document)
     {
         using var collector = new FilteredElementCollector(document);
         return collector.OfClass(typeof(FilledRegionType)).Cast<FilledRegionType>().FirstOrDefault();
@@ -177,7 +191,7 @@ internal static class FamilyFills
     /// (de desenho ou de modelo) e qual máscara são aceitos dentro de famílias; por isso cada combinação é
     /// tentada de verdade, na ordem mais provável, e a primeira aceita é usada.
     /// </summary>
-    private static FilledRegionType? SolidType(Document document, FilledRegionType baseType, string name, Rgb color)
+    internal static FilledRegionType? SolidType(Document document, FilledRegionType baseType, string name, Rgb color)
     {
         List<FillPatternElement> solids = SolidPatterns(document);
         if (solids.Count == 0)
@@ -187,7 +201,7 @@ internal static class FamilyFills
         }
 
         FilledRegionType type = Named(document, baseType, name);
-        foreach (bool masking in new[] { true, false })
+        foreach (bool masking in new[] { false, true })
         {
             foreach (FillPatternElement solid in solids)
             {
@@ -211,7 +225,7 @@ internal static class FamilyFills
         return null;
     }
 
-    private static FilledRegionType? HatchType(Document document, FilledRegionType baseType, Rgb color)
+    internal static FilledRegionType? HatchType(Document document, FilledRegionType baseType, Rgb color)
     {
         FillPatternElement? hatch = HatchPattern(document);
         if (hatch is null)
@@ -219,7 +233,7 @@ internal static class FamilyFills
             return null;
         }
 
-        FilledRegionType type = Named(document, baseType, CrownTypeName);
+        FilledRegionType type = Named(document, baseType, ColorTypeName(CrownTypeName + " reticulado", color));
         foreach (bool masking in new[] { false, true })
         {
             try
@@ -274,7 +288,7 @@ internal static class FamilyFills
         return FillPatternElement.Create(document, pattern);
     }
 
-    private static CurveLoop? PolygonLoop(IReadOnlyList<Point2> outline, double z, double tolerance)
+    internal static CurveLoop? PolygonLoop(IReadOnlyList<Point2> outline, double z, double tolerance)
     {
         var points = new List<XYZ>();
         foreach (Point2 p in outline)
@@ -312,7 +326,7 @@ internal static class FamilyFills
         }
     }
 
-    private static CurveLoop? CircleLoop(FlowerSpot spot, double z, double tolerance)
+    internal static CurveLoop? CircleLoop(FlowerSpot spot, double z, double tolerance)
     {
         double radius = RevitUnits.ToFeet(spot.Radius);
         if (radius * Math.PI < tolerance * 2)
@@ -331,6 +345,304 @@ internal static class FamilyFills
         catch (Autodesk.Revit.Exceptions.ApplicationException)
         {
             return null;
+        }
+    }
+}
+
+/// <summary>
+/// Cores do símbolo como componente de detalhe 2D aninhado na família de vegetação: a técnica consagrada para
+/// símbolos de planta coloridos em famílias de modelo. O componente tem regiões preenchidas comuns (de vista), que o
+/// Revit mostra nas plantas em qualquer versão; ele é colocado na vista em planta da família.
+/// </summary>
+internal static class NestedColorComponent
+{
+    public static bool TryDraw(
+        Autodesk.Revit.ApplicationServices.Application app,
+        Document familyDocument,
+        PlantSymbol symbol,
+        SymbolPaint paint,
+        double elevation,
+        double tolerance)
+    {
+        IReadOnlyList<string> templates = FamilyTemplateLocator.DetailCandidates(app);
+        if (templates.Count == 0)
+        {
+            ViridianLog.Warn("Cores do símbolo: nenhum modelo de componente de detalhe encontrado nas pastas de modelos do Revit.");
+            return false;
+        }
+
+        string folder = Path.Combine(Path.GetTempPath(), "Viridian", "Cores");
+        Directory.CreateDirectory(folder);
+        string name = "VIR Cores " + Signature(symbol, paint);
+        string file = Path.Combine(folder, name + ".rfa");
+        foreach (string template in templates.Take(4))
+        {
+            try
+            {
+                if (!BuildDetailFamily(app, template, symbol, paint, tolerance, file))
+                {
+                    continue;
+                }
+
+                if (Nest(familyDocument, file, elevation))
+                {
+                    ViridianLog.Info($"Cores do símbolo: componente de detalhe aninhado ({Path.GetFileName(template)}).");
+                    return true;
+                }
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
+            {
+                // As cores são opcionais: qualquer recusa aqui leva ao método alternativo, nunca interrompe o símbolo.
+                ViridianLog.Warn("Cores do símbolo: componente de detalhe com o modelo " + template, ex);
+            }
+            finally
+            {
+                TryDelete(file);
+            }
+        }
+
+        return false;
+    }
+
+    private static bool BuildDetailFamily(Autodesk.Revit.ApplicationServices.Application app, string template, PlantSymbol symbol, SymbolPaint paint, double tolerance, string file)
+    {
+        Document detail = app.NewFamilyDocument(template);
+        if (detail is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            View? view = PlanView(detail);
+            if (view is null)
+            {
+                ViridianLog.Warn("Cores do símbolo: o modelo de detalhe não tem vista para desenho: " + template);
+                return false;
+            }
+
+            int created = 0;
+            using (var transaction = new Transaction(detail, "Viridian: cores"))
+            {
+                FailureHandlingOptions options = transaction.GetFailureHandlingOptions();
+                options.SetForcedModalHandling(false);
+                options.SetClearAfterRollback(true);
+                transaction.SetFailureHandlingOptions(options);
+                transaction.Start();
+                FilledRegionType? baseType = FamilyFills.FirstRegionType(detail) ?? Bootstrap(detail, view, symbol, tolerance);
+                if (baseType is null)
+                {
+                    transaction.RollBack();
+                    return false;
+                }
+
+                ElementId? invisible = HatchService.InvisibleLineStyle(detail);
+                if (paint.Mode != CrownFillMode.Nenhum && symbol.FillOutline.Count >= 3)
+                {
+                    FilledRegionType? crown = paint.Mode == CrownFillMode.Solido
+                        ? FamilyFills.SolidType(detail, baseType, FamilyFills.ColorTypeName(FamilyFills.CrownTypeName, paint.Crown), paint.Crown)
+                        : FamilyFills.HatchType(detail, baseType, paint.Crown);
+                    CurveLoop? loop = FamilyFills.PolygonLoop(symbol.FillOutline, 0, tolerance);
+                    if (crown is not null && loop is not null)
+                    {
+                        created += Region(detail, crown, view, new List<CurveLoop> { loop }, invisible) ? 1 : 0;
+                    }
+                }
+
+                if (paint.Flower is Rgb flower && symbol.FlowerSpots.Count > 0)
+                {
+                    FilledRegionType? flowerType = FamilyFills.SolidType(detail, baseType, FamilyFills.ColorTypeName(FamilyFills.FlowerTypeName, flower), flower);
+                    if (flowerType is not null)
+                    {
+                        foreach (FlowerSpot spot in symbol.FlowerSpots)
+                        {
+                            if (FamilyFills.CircleLoop(spot, 0, tolerance) is CurveLoop loop)
+                            {
+                                created += Region(detail, flowerType, view, new List<CurveLoop> { loop }, invisible) ? 1 : 0;
+                            }
+                        }
+                    }
+                }
+
+                if (created == 0 || transaction.Commit() != TransactionStatus.Committed)
+                {
+                    if (transaction.HasStarted() && !transaction.HasEnded())
+                    {
+                        transaction.RollBack();
+                    }
+
+                    return false;
+                }
+            }
+
+            using var save = new SaveAsOptions { OverwriteExistingFile = true, MaximumBackups = 1 };
+            detail.SaveAs(file, save);
+            return File.Exists(file);
+        }
+        finally
+        {
+            try
+            {
+                detail.Close(false);
+            }
+            catch (Exception ex)
+            {
+                ViridianLog.Warn("Falha ao fechar o componente de detalhe temporário.", ex);
+            }
+        }
+    }
+
+    /// <summary>Carrega o componente na família de vegetação e o coloca na vista em planta, no ponto de inserção.</summary>
+    private static bool Nest(Document familyDocument, string file, double elevation)
+    {
+        ViewPlan? plan;
+        using (var collector = new FilteredElementCollector(familyDocument))
+        {
+            plan = collector.OfClass(typeof(ViewPlan)).Cast<ViewPlan>().FirstOrDefault(v => !v.IsTemplate);
+        }
+
+        if (plan is null)
+        {
+            ViridianLog.Warn("Cores do símbolo: a família de vegetação não tem vista em planta.");
+            return false;
+        }
+
+        using var transaction = new Transaction(familyDocument, "Viridian: cores aninhadas");
+        FailureHandlingOptions options = transaction.GetFailureHandlingOptions();
+        options.SetForcedModalHandling(false);
+        options.SetClearAfterRollback(true);
+        transaction.SetFailureHandlingOptions(options);
+        transaction.Start();
+        try
+        {
+            if (!familyDocument.LoadFamily(file, out Family family) || family is null)
+            {
+                transaction.RollBack();
+                return false;
+            }
+
+            ElementId? symbolId = family.GetFamilySymbolIds().FirstOrDefault();
+            if (symbolId is null || familyDocument.GetElement(symbolId) is not FamilySymbol detailSymbol)
+            {
+                transaction.RollBack();
+                return false;
+            }
+
+            if (!detailSymbol.IsActive)
+            {
+                detailSymbol.Activate();
+                familyDocument.Regenerate();
+            }
+
+            FamilyInstance? instance = familyDocument.FamilyCreate.NewFamilyInstance(new XYZ(0, 0, elevation), detailSymbol, plan);
+            if (instance is null)
+            {
+                transaction.RollBack();
+                return false;
+            }
+
+            return transaction.Commit() == TransactionStatus.Committed;
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
+        {
+            if (transaction.HasStarted() && !transaction.HasEnded())
+            {
+                transaction.RollBack();
+            }
+
+            ViridianLog.Warn("Cores do símbolo: o componente de detalhe não pôde ser aninhado.", ex);
+            return false;
+        }
+    }
+
+    private static View? PlanView(Document document)
+    {
+        using var collector = new FilteredElementCollector(document);
+        List<View> views = collector.OfClass(typeof(View)).Cast<View>().Where(v => !v.IsTemplate).ToList();
+        return views.FirstOrDefault(v => v.ViewType is ViewType.FloorPlan or ViewType.DraftingView or ViewType.Detail)
+               ?? views.FirstOrDefault(v => v.ViewType != ViewType.ThreeD && v.ViewType != ViewType.ProjectBrowser && v.ViewType != ViewType.SystemBrowser);
+    }
+
+    private static FilledRegionType? Bootstrap(Document document, View view, PlantSymbol symbol, double tolerance)
+    {
+        CurveLoop? loop = FamilyFills.PolygonLoop(symbol.FillOutline, 0, tolerance);
+        if (loop is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            FilledRegion temporary = FilledRegion.CreateMaskingRegion(document, view.Id, new List<CurveLoop> { loop });
+            var type = document.GetElement(temporary.GetTypeId()) as FilledRegionType;
+            document.Delete(temporary.Id);
+            return type;
+        }
+        catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+        {
+            ViridianLog.Warn("Cores do símbolo: o modelo de detalhe não permite regiões preenchidas.", ex);
+            return null;
+        }
+    }
+
+    private static bool Region(Document document, FilledRegionType type, View view, IList<CurveLoop> loops, ElementId? invisible)
+    {
+        try
+        {
+            FilledRegion region = FilledRegion.Create(document, type.Id, view.Id, loops);
+            if (invisible is not null)
+            {
+                try
+                {
+                    region.SetLineStyleId(invisible);
+                }
+                catch (Autodesk.Revit.Exceptions.ApplicationException)
+                {
+                    // fica a linha fina padrão
+                }
+            }
+
+            return true;
+        }
+        catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+        {
+            ViridianLog.Warn("Cores do símbolo: região recusada no componente de detalhe.", ex);
+            return false;
+        }
+    }
+
+    /// <summary>Nome único por desenho e cores: famílias aninhadas de mesmo nome não se misturam no projeto.</summary>
+    private static string Signature(PlantSymbol symbol, SymbolPaint paint)
+    {
+        var text = new System.Text.StringBuilder(paint.Signature);
+        foreach (Point2 p in symbol.FillOutline)
+        {
+            text.Append(';').Append(p.X.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))
+                .Append(',').Append(p.Y.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        foreach (FlowerSpot f in symbol.FlowerSpots)
+        {
+            text.Append('|').Append(f.Center.X.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))
+                .Append(',').Append(f.Center.Y.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        byte[] hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text.ToString()));
+        return Convert.ToHexString(hash, 0, 6);
+    }
+
+    private static void TryDelete(string file)
+    {
+        try
+        {
+            if (File.Exists(file))
+            {
+                File.Delete(file);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // arquivo temporário: será sobrescrito na próxima vez
         }
     }
 }

@@ -214,3 +214,59 @@ public sealed class SyncCommand : CommandBase
         }
     }
 }
+
+/// <summary>Cadastra uma vegetação própria do escritório: nome, porte, símbolo, cores, foto e dados de plantio.</summary>
+[Transaction(TransactionMode.Manual)]
+[Regeneration(RegenerationOption.Manual)]
+public sealed class NewSpeciesCommand : CommandBase
+{
+    protected override bool RequiresProject => false;
+
+    internal override Result Run(ViridianContext ctx)
+    {
+        var editor = new SpeciesEditorWindow(ctx.Catalog.NewDraft(PlantCategory.Arbusto), ctx.Paths, ctx.Settings, "Nova vegetação");
+        if (!ctx.ShowDialog(editor))
+        {
+            return Result.Cancelled;
+        }
+
+        Species species = editor.Species;
+        try
+        {
+            ctx.Catalog.Save(species);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new ViridianException(ex.Message);
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+            throw new ViridianException("Não foi possível gravar o catálogo em disco:\n" + ex.Message);
+        }
+
+        if (!ctx.HasProject)
+        {
+            TaskDialog.Show("Viridian", $"\"{species.DisplayName}\" foi cadastrada na biblioteca. Ela aparece em Buscar Espécie, Inserir, Distribuir e Criar Maciço.");
+            return Result.Succeeded;
+        }
+
+        var ask = new TaskDialog("Viridian — Nova vegetação")
+        {
+            MainInstruction = $"\"{species.DisplayName}\" foi cadastrada.",
+            MainContent = "Deseja usá-la agora?",
+            CommonButtons = TaskDialogCommonButtons.Close,
+        };
+        ask.AddCommandLink(TaskDialogCommandLinkId.CommandLink1, "Inserir exemplares");
+        ask.AddCommandLink(TaskDialogCommandLinkId.CommandLink2, "Distribuir numa região");
+        ask.AddCommandLink(TaskDialogCommandLinkId.CommandLink3, "Criar maciço");
+        TaskDialogResult choice = ask.Show();
+        ctx.RememberSpecies(species);
+        return choice switch
+        {
+            TaskDialogResult.CommandLink1 => PlantingFlows.Insert(ctx, species),
+            TaskDialogResult.CommandLink2 => PlantingFlows.Distribute(ctx, species),
+            TaskDialogResult.CommandLink3 => MassingCommands.Create(ctx, species),
+            _ => Result.Succeeded,
+        };
+    }
+}

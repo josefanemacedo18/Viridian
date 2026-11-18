@@ -8,7 +8,14 @@ namespace Viridian.Revit;
 public static class FamilyTemplateLocator
 {
     /// <summary>Modelos candidatos, do mais ao menos adequado. O primeiro é o configurado, quando existe.</summary>
-    public static IReadOnlyList<string> Candidates(RevitApplication app, string? configuredFile)
+    public static IReadOnlyList<string> Candidates(RevitApplication app, string? configuredFile) =>
+        Candidates(app, configuredFile, TemplateNames.Score);
+
+    /// <summary>Modelos de componente de detalhe 2D instalados com o Revit, do mais ao menos adequado.</summary>
+    public static IReadOnlyList<string> DetailCandidates(RevitApplication app) =>
+        Candidates(app, null, TemplateNames.DetailScore);
+
+    private static IReadOnlyList<string> Candidates(RevitApplication app, string? configuredFile, Func<string?, int> scorer)
     {
         var result = new List<string>();
         if (!string.IsNullOrWhiteSpace(configuredFile) && File.Exists(configuredFile))
@@ -57,7 +64,7 @@ public static class FamilyTemplateLocator
                     continue;
                 }
 
-                int score = TemplateNames.Score(Path.GetFileNameWithoutExtension(file));
+                int score = scorer(Path.GetFileNameWithoutExtension(file));
                 if (score > 0)
                 {
                     bool preferred = preferredRoot.Length > 0 && file.StartsWith(preferredRoot, StringComparison.OrdinalIgnoreCase);

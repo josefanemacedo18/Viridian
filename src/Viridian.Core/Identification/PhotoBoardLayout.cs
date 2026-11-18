@@ -149,3 +149,30 @@ public static class PhotoBoardLayout
         return card.MinY >= drawing.MaxY ? new Point2(card.Center.X, card.MinY) : new Point2(card.Center.X, card.MaxY);
     }
 }
+
+/// <summary>Geometria de um cartão do quadro de fotos movido à mão: de onde sai a linha até a planta.</summary>
+public static class PhotoCardGeometry
+{
+    /// <summary>
+    /// Ponto da borda do cartão de onde sai a linha: o meio do lado voltado para a planta (a linha nunca atravessa
+    /// o cartão). Com a planta sob o cartão, o meio da borda inferior.
+    /// </summary>
+    public static Point2 Anchor(Bounds2 card, Point2 target)
+    {
+        if (card.Contains(target))
+        {
+            return new Point2(card.Center.X, card.MinY);
+        }
+
+        double dx = target.X < card.MinX ? card.MinX - target.X : target.X > card.MaxX ? target.X - card.MaxX : 0;
+        double dy = target.Y < card.MinY ? card.MinY - target.Y : target.Y > card.MaxY ? target.Y - card.MaxY : 0;
+        double cx = Math.Clamp(target.X, card.MinX, card.MaxX);
+        double cy = Math.Clamp(target.Y, card.MinY, card.MaxY);
+        if (dx >= dy)
+        {
+            return new Point2(target.X < card.MinX ? card.MinX : card.MaxX, Math.Clamp(cy, card.MinY + card.Height * 0.2, card.MaxY - card.Height * 0.2));
+        }
+
+        return new Point2(Math.Clamp(cx, card.MinX + card.Width * 0.2, card.MaxX - card.Width * 0.2), target.Y < card.MinY ? card.MinY : card.MaxY);
+    }
+}

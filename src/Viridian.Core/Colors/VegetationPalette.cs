@@ -142,7 +142,7 @@ public sealed class ColorSettings
     public double CrownTint { get; set; } = 0.28;
 
     /// <summary>Quanto o fundo dos maciços é clareado em relação à cor da espécie.</summary>
-    public double MassingBackgroundTint { get; set; } = 0.55;
+    public double MassingBackgroundTint { get; set; } = 0.3;
 
     /// <summary>Representa a floração das espécies que têm cor de flor cadastrada.</summary>
     public bool ShowFlowers { get; set; } = true;
@@ -161,7 +161,7 @@ public sealed class ColorSettings
         }
 
         CrownTint = double.IsFinite(CrownTint) ? Math.Clamp(CrownTint, 0, 0.85) : 0.28;
-        MassingBackgroundTint = double.IsFinite(MassingBackgroundTint) ? Math.Clamp(MassingBackgroundTint, 0, 0.95) : 0.55;
+        MassingBackgroundTint = double.IsFinite(MassingBackgroundTint) ? Math.Clamp(MassingBackgroundTint, 0, 0.95) : 0.3;
         CategoryColors ??= VegetationPalette.DefaultCategoryColors();
         Dictionary<PlantCategory, string> defaults = VegetationPalette.DefaultCategoryColors();
         foreach (PlantCategory category in Labels.Categories)
@@ -232,8 +232,12 @@ public static class VegetationPalette
     public static Rgb? Flower(Species species, ColorSettings settings) =>
         settings.ShowFlowers && Rgb.TryParse(species.FlowerColor, out Rgb flower) ? flower : null;
 
-    /// <summary>Cor das linhas da hachura de maciço (mais escura que a folhagem).</summary>
-    public static Rgb MassingPattern(Species species, ColorSettings settings) => Foliage(species, settings).Shade(0.18);
+    /// <summary>
+    /// Cor das linhas da hachura de maciço: a cor da flor (como as manchas do símbolo na biblioteca), ou, em espécies
+    /// sem floração vistosa, a folhagem escurecida.
+    /// </summary>
+    public static Rgb MassingPattern(Species species, ColorSettings settings) =>
+        Flower(species, settings) is Rgb flower && flower.Luminance < 0.8 ? flower.Shade(0.1) : Foliage(species, settings).Shade(0.35);
 
     /// <summary>Cor do fundo dos maciços (clara).</summary>
     public static Rgb MassingBackground(Species species, ColorSettings settings) =>

@@ -38,6 +38,8 @@ public sealed class SpeciesFamilyService
         _paths = paths;
     }
 
+    private static bool _colorWarningShown;
+
     /// <summary>Indica que o modelo de família configurado mudou e as configurações devem ser gravadas.</summary>
     public bool TemplateFileChanged { get; private set; }
 
@@ -376,10 +378,20 @@ public sealed class SpeciesFamilyService
         {
             try
             {
+                int failuresBefore = SymbolFamilyBuilder.ColorFailures.Count;
                 int skipped = SymbolFamilyBuilder.Build(app, template, symbol, paint, target, _settings, typeName);
                 if (skipped > 0)
                 {
                     ViridianLog.Warn($"{skipped} linha(s) do símbolo foram recusadas pelo Revit em {Path.GetFileName(target)}.");
+                }
+
+                if (SymbolFamilyBuilder.ColorFailures.Count > failuresBefore && !_colorWarningShown)
+                {
+                    _colorWarningShown = true;
+                    Autodesk.Revit.UI.TaskDialog.Show("Viridian — cores do símbolo",
+                        $"O Revit não aceitou as cores do símbolo de \"{typeName}\"; ele foi inserido só com as linhas.\n\n"
+                        + "Verifique se a pasta de modelos de família do Revit (Arquivo > Opções > Locais de arquivos) contém o modelo "
+                        + "\"Item de detalhe\" (Metric Detail Item). O detalhe técnico ficou no registro de erros (Viridian > Sobre).");
                 }
 
                 if (!string.Equals(_settings.FamilyTemplateFile, template, StringComparison.OrdinalIgnoreCase))

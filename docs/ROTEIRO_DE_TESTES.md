@@ -4,6 +4,17 @@ O código foi compilado contra a API oficial do Revit 2027 e a lógica sem depen
 
 Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Viridian\Logs` (Viridian > Sobre abre a pasta).
 
+## Teste rápido da versão 1.5 (cerca de 20 minutos)
+
+Correções pedidas na 1.4. Faça num projeto de teste; em projetos antigos, rode antes **Atualizar Dados**.
+
+1. **Cores no Revit (prioridade):** Inserir três espécies de cores diferentes (por exemplo, um ipê, uma palmeira e um arbusto florido) numa planta com estilo visual "Linhas ocultas" ou "Sombreado" e nível de detalhe Médio/Fino. Os símbolos aparecem com a copa colorida e as manchas de flor, como na biblioteca. Se aparecer o aviso "não foi possível colorir", confira se o Revit tem o modelo de família "Item de detalhe métrico" (Arquivo > Abrir > Família > pasta de modelos) e envie o registro.
+2. **Cores em projeto antigo:** abra um projeto feito na 1.4 com símbolos em preto e branco e rode **Atualizar Dados**: os símbolos são regerados coloridos, sem mudar posição, código ou etiquetas.
+3. **Maciços:** crie maciços de quatro espécies diferentes (arbustos e forrações). Nenhum deles traz árvores no meio (o modo padrão é Hachura); cada um tem traçado diferente e as cores da espécie (fundo na cor da folhagem, traços na cor da flor). Um segundo maciço da mesma espécie repete o traçado do primeiro. Árvores e palmeiras continuam podendo usar Símbolos ou Combinado.
+4. **Quadro de fotos:** crie o quadro e arraste uma foto para outro lugar: o texto e a linha de ligação acompanham. Mova a planta ligada a ela: a linha segue a planta. Desfazer (Ctrl+Z) volta tudo junto. Quadros criados na 1.4 não acompanham: apague-os e crie de novo.
+5. **Gerador de pisos:** aplique um piso da biblioteca a um piso do Revit; o erro "EndCap condition" não aparece mais e o tipo recebe as camadas. Repita com um piso de outro tipo-base (por exemplo, um piso genérico de 300 mm).
+6. **Nova Vegetação:** Biblioteca > **Nova Vegetação**, sem projeto aberto: preencha nome popular, científico, categoria, porte e cores e salve. Ela aparece em Buscar Espécie. Com um projeto aberto, a janela oferece Inserir, Distribuir ou Criar maciço; insira e confira as cores no Revit.
+
 ## Teste rápido da versão 1.4 (cerca de 30 minutos)
 
 Faça antes de liberar a versão para o escritório, num projeto de teste com vegetação, maciços, pisos e uma edificação.

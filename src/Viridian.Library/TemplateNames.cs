@@ -21,6 +21,30 @@ public static class TemplateNames
 
     private static readonly string[] Generic = { "generic model", "modelo generico", "modele generique", "modello generico", "allgemeines modell" };
 
+    private static readonly string[] DetailExcluded =
+    {
+        "line based", "baseado em linha", "baseada em linha", "linear", "tag", "identificador", "profile", "perfil",
+        "annotation", "anotac", "repeating", "repetiv", "title", "margem", "symbol", "simbolo",
+    };
+
+    /// <summary>Pontuação de modelos de componente de detalhe 2D (usados para as cores dos símbolos).</summary>
+    public static int DetailScore(string? fileNameWithoutExtension)
+    {
+        string name = TextSearch.Normalize(fileNameWithoutExtension).Replace('_', ' ').Replace('-', ' ');
+        if (name.Length == 0 || DetailExcluded.Any(word => name.Contains(word, StringComparison.Ordinal)))
+        {
+            return 0;
+        }
+
+        if (name.Contains("detail item", StringComparison.Ordinal) || name.Contains("item de detalhe", StringComparison.Ordinal)
+            || name.Contains("detail component", StringComparison.Ordinal) || name.Contains("componente de detalhe", StringComparison.Ordinal))
+        {
+            return 100;
+        }
+
+        return name.Contains("detail", StringComparison.Ordinal) || name.Contains("detalhe", StringComparison.Ordinal) ? 50 : 0;
+    }
+
     /// <summary>Pontuação do modelo: zero significa "não usar"; quanto maior, mais adequado.</summary>
     public static int Score(string? fileNameWithoutExtension)
     {

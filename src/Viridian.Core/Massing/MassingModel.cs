@@ -64,6 +64,13 @@ public sealed class DensityRules
         _ => MassingMode.Hachura,
     };
 
+    /// <summary>
+    /// Modo inicial de um maciço: árvores e palmeiras viram exemplares (bosque); as demais espécies, hachura colorida
+    /// com o traçado próprio da espécie, sem símbolos de planta no meio (o usuário pode escolher outro modo).
+    /// </summary>
+    public MassingMode DefaultMode(Model.Species species, double densityPerM2) =>
+        species.Category is Model.PlantCategory.Arvore or Model.PlantCategory.Palmeira ? SuggestMode(densityPerM2) : MassingMode.Hachura;
+
     /// <summary>Densidade muito alta pede hachura simplificada, sem tentar sugerir cada muda.</summary>
     public bool UseSimplifiedHatch(double densityPerM2) => Classify(densityPerM2) == DensityClass.MuitoAlta;
 

@@ -1,4 +1,4 @@
-﻿VIRIDIAN 1.4 — Paisagismo 2D técnico para Autodesk Revit 2027
+﻿VIRIDIAN 1.5 — Paisagismo 2D técnico para Autodesk Revit 2027
 ==============================================================
 
 INSTALAR
@@ -36,6 +36,16 @@ PRIMEIROS PASSOS
 9. Estudo Solar (painel Composição): horas de sol com a sombra das copas e
    das edificações; Quadro de Especificação (painel Documentação); aba
    Compras nos relatórios.
+
+NOVIDADES DA 1.5
+- Símbolos coloridos no Revit como na biblioteca (copa e floração). Em
+  projetos já começados, rode Viridian > Atualizar Dados uma vez para regerar
+  os símbolos. A cor usa o modelo "Item de detalhe" instalado com o Revit.
+- Maciços com traçado próprio por espécie e as cores da biblioteca; arbustos,
+  forrações e herbáceas usam hachura (sem árvores no meio).
+- Quadro de fotos: arraste a foto e a linha de ligação acompanha.
+- Gerador de pisos: corrigido o erro "EndCap condition".
+- Biblioteca > Nova Vegetação: cadastre suas próprias vegetações.
 
 Se um módulo novo der problema no seu projeto, desligue-o em
 Configurações > Composição > Módulos: o restante continua funcionando.

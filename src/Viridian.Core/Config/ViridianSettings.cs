@@ -70,7 +70,13 @@ public sealed class PlantingDefaults
 /// <summary>Configurações do escritório. Gravadas em JSON e compartilháveis entre computadores.</summary>
 public sealed class ViridianSettings
 {
-    public int SchemaVersion { get; set; } = 1;
+    /// <summary>
+    /// Versão do arquivo de configurações (2: maciços com cores mais próximas da biblioteca). Arquivos antigos não
+    /// têm o campo e ficam com 0, o que dispara a migração em <see cref="Normalize"/>.
+    /// </summary>
+    public int SchemaVersion { get; set; }
+
+    public const int CurrentSchema = 2;
 
     /// <summary>Pasta raiz da biblioteca. Vazio = pasta padrão do usuário.</summary>
     public string LibraryRoot { get; set; } = string.Empty;
@@ -180,6 +186,12 @@ public sealed class ViridianSettings
         Scales.Normalize();
         RecentSpecies ??= new List<string>();
         Colors ??= new ColorSettings();
+        if (SchemaVersion < 2 && Math.Abs(Colors.MassingBackgroundTint - 0.55) < 1e-9)
+        {
+            Colors.MassingBackgroundTint = 0.3; // o padrão antigo (0,55) deixava os maciços quase brancos
+        }
+
+        SchemaVersion = Math.Max(SchemaVersion, CurrentSchema);
         Colors.Normalize();
         Costs ??= new CostSettings();
         Costs.Normalize();

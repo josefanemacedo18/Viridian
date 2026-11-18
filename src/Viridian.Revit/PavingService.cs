@@ -79,57 +79,115 @@ public static class PavingService
             layers.Add(new CompoundStructureLayer(RevitUnits.MmToFeet(layer.ThicknessMm), function, material));
         }
 
-        CompoundStructure structure = BuildStructure(document, layers, surface, type);
-        floorType.SetCompoundStructure(structure);
+        ApplyStructure(document, floorType, layers, surface, type);
         ElementData.Write(floorType, KindPaving, new PavingLink { PavingId = type.Id, Signature = type.Signature });
         return floorType;
     }
 
-    private static CompoundStructure BuildStructure(Document document, List<CompoundStructureLayer> layers, ElementId surface, PavingType type)
+    /// <summary>
+    /// Grava as camadas no tipo de piso. Pisos exigem condições próprias (borda/EndCap, camadas de casca): por isso a
+    /// estrutura parte da que o próprio tipo já tem e, se o Revit recusar, tenta alternativas mais simples.
+    /// </summary>
+    private static void ApplyStructure(Document document, FloorType floorType, List<CompoundStructureLayer> layers, ElementId surface, PavingType type)
     {
-        // Revestimento na face superior (camada externa) e as demais como núcleo; se o Revit recusar alguma
-        // combinação (membrana na borda, por exemplo), cai para a estrutura simples e, por fim, só o revestimento.
+        var attempts = new List<(string Name, Func<CompoundStructure?> Make)>
+        {
+            ("camadas sobre a estrutura do tipo", () => FromExisting(floorType, layers, shells: true)),
+            ("camadas sem casca sobre a estrutura do tipo", () => FromExisting(floorType, layers, shells: false)),
+            ("camadas simples", () => Simple(layers)),
+            ("camadas simples sem mantas", () => Simple(layers.Where(l => l.Width > 0).ToList())),
+            ("camada única", () =>
+            {
+                CompoundStructure single = CompoundStructure.CreateSingleLayerCompoundStructure(MaterialFunctionAssignment.Structure, RevitUnits.MmToFeet(type.TotalThicknessMm), surface);
+                TrySet(() => single.EndCap = EndCapCondition.NoEndCap);
+                return single;
+            }),
+        };
+
+        var errors = new List<string>();
+        foreach ((string name, Func<CompoundStructure?> make) in attempts)
+        {
+            try
+            {
+                CompoundStructure? structure = make();
+                if (structure is null)
+                {
+                    continue;
+                }
+
+                if (!structure.IsValid(document, out _, out _))
+                {
+                    errors.Add(name + ": estrutura inválida");
+                    continue;
+                }
+
+                floorType.SetCompoundStructure(structure);
+                if (errors.Count > 0)
+                {
+                    ViridianLog.Warn($"Piso \"{type.Name}\": usada a alternativa \"{name}\". Tentativas anteriores: {string.Join("; ", errors)}");
+                }
+
+                return;
+            }
+            catch (Exception ex) when (ex is Autodesk.Revit.Exceptions.ApplicationException or ArgumentException or InvalidOperationException)
+            {
+                errors.Add(name + ": " + ex.Message);
+            }
+        }
+
+        throw new ViridianException($"O Revit não aceitou as camadas do piso \"{type.Name}\".\n" + string.Join("\n", errors));
+    }
+
+    private static CompoundStructure? FromExisting(FloorType floorType, List<CompoundStructureLayer> layers, bool shells)
+    {
+        CompoundStructure? structure = floorType.GetCompoundStructure();
+        if (structure is null)
+        {
+            return null;
+        }
+
+        EndCapCondition endCap = structure.EndCap;
+        structure.SetLayers(layers);
+        TrySet(() => structure.EndCap = endCap);
+        TrySet(() => structure.SetNumberOfShellLayers(ShellLayerType.Exterior, shells && layers.Count > 1 ? 1 : 0));
+        TrySet(() => structure.SetNumberOfShellLayers(ShellLayerType.Interior, 0));
+        SetStructural(structure, layers);
+        return structure;
+    }
+
+    private static CompoundStructure Simple(List<CompoundStructureLayer> layers)
+    {
+        CompoundStructure structure = CompoundStructure.CreateSimpleCompoundStructure(layers);
+        TrySet(() => structure.EndCap = EndCapCondition.NoEndCap);
+        SetStructural(structure, layers);
+        return structure;
+    }
+
+    private static void SetStructural(CompoundStructure structure, List<CompoundStructureLayer> layers)
+    {
+        int core = layers.FindIndex(l => l.Function == MaterialFunctionAssignment.Structure);
+        if (core >= 0)
+        {
+            TrySet(() =>
+            {
+                if (structure.CanLayerBeStructuralMaterial(core))
+                {
+                    structure.StructuralMaterialIndex = core;
+                }
+            });
+        }
+    }
+
+    private static void TrySet(Action action)
+    {
         try
         {
-            CompoundStructure structure = CompoundStructure.CreateSimpleCompoundStructure(layers);
-            if (layers.Count > 1)
-            {
-                structure.SetNumberOfShellLayers(ShellLayerType.Exterior, 1);
-            }
-
-            int core = layers.FindIndex(1, l => l.Function == MaterialFunctionAssignment.Structure);
-            if (core > 0 && structure.CanLayerBeStructuralMaterial(core))
-            {
-                structure.StructuralMaterialIndex = core;
-            }
-
-            if (structure.IsValid(document, out _, out _))
-            {
-                return structure;
-            }
-
-            ViridianLog.Warn($"Piso \"{type.Name}\": estrutura em camadas recusada; usando estrutura simples.");
+            action();
         }
-        catch (Exception ex) when (ex is Autodesk.Revit.Exceptions.ApplicationException or ArgumentException)
+        catch (Exception ex) when (ex is Autodesk.Revit.Exceptions.ApplicationException or ArgumentException or InvalidOperationException)
         {
-            ViridianLog.Warn($"Piso \"{type.Name}\": estrutura em camadas", ex);
+            // condição não aceita neste tipo: mantém a do Revit
         }
-
-        try
-        {
-            List<CompoundStructureLayer> solid = layers.Where(l => l.Width > 0).ToList();
-            CompoundStructure simple = CompoundStructure.CreateSimpleCompoundStructure(solid);
-            if (simple.IsValid(document, out _, out _))
-            {
-                return simple;
-            }
-        }
-        catch (Exception ex) when (ex is Autodesk.Revit.Exceptions.ApplicationException or ArgumentException)
-        {
-            ViridianLog.Warn($"Piso \"{type.Name}\": estrutura simples", ex);
-        }
-
-        return CompoundStructure.CreateSingleLayerCompoundStructure(MaterialFunctionAssignment.Structure, RevitUnits.MmToFeet(type.ThicknessMm), surface);
     }
 
     /// <summary>Troca o tipo dos pisos informados. Retorna quantos foram alterados. Precisa de transação.</summary>

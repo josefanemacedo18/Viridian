@@ -346,6 +346,13 @@ internal static class IconFactory
                 Arrow(dc, new Point(4, 9), new Point(14, 4), accent);
                 break;
 
+            case "new-species":
+                Crown(dc, new Point(13, 18), 10, 8, main, light);
+                dc.DrawEllipse(green, null, new Point(13, 18), 1.8, 1.8);
+                dc.DrawLine(accent, new Point(25, 3), new Point(25, 13));
+                dc.DrawLine(accent, new Point(20, 8), new Point(30, 8));
+                break;
+
             case "spec":
                 dc.DrawRectangle(Fill(Colors.White), main, new Rect(3, 4, 26, 24));
                 dc.DrawLine(main, new Point(3, 10), new Point(29, 10));
