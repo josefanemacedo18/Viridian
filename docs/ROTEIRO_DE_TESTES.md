@@ -4,12 +4,28 @@ O código foi compilado contra a API oficial do Revit 2027 e a lógica sem depen
 
 Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Viridian\Logs` (Viridian > Sobre abre a pasta).
 
+## Teste rápido da versão 1.4 (cerca de 30 minutos)
+
+Faça antes de liberar a versão para o escritório, num projeto de teste com vegetação, maciços, pisos e uma edificação.
+
+1. **Carregamento:** a aba mostra os doze painéis, inclusive Pisos e Drenagem; o Estudo Solar aparece no painel Composição e o Quadro de Especificação no painel Documentação.
+2. **Ferramentas antigas (sem regressão):** Inserir uma espécie, Distribuir num canteiro, Criar Maciço, Etiquetar, Legenda, Relatórios e Prancha Automática funcionam como antes.
+3. **Compras:** Relatórios > aba Compras > "Marcar a lista atual como comprada"; feche; troque uma espécie por outra (Substituir) e reabra: a espécie nova aparece "a comprar" e a antiga "fora do projeto: sobram N".
+4. **Quadro de Especificação** com uma prancha aberta: o quadro entra no centro da prancha, com a escavação em centímetros.
+5. **Memorial:** a seção 5 traz o quadro "Covas e escavação".
+6. **Gerador de Pisos:** escolha "Intertravado 10×20×6 espinha de peixe", selecione um piso do Revit, abra o gerador e use "Aplicar aos pisos selecionados". Confira a paginação na planta e numa vista 3D, e as camadas no tipo do piso.
+7. **Jardim de Chuva:** selecione um telhado, rode o comando, escolha um canteiro e crie o detalhe em corte.
+8. **Estudo Solar:** rode numa região ao lado da edificação, na média do ano: é criada uma cópia da planta com o mapa; a planta original não muda.
+9. **Desligar módulos:** em Configurações > Composição > Módulos, desligue o Gerador de pisos; o botão avisa que o módulo está desativado. Religue.
+
+Se algum módulo novo falhar, desligue-o nas configurações: o restante do plugin continua funcionando. Envie o registro de erros (Viridian > Sobre).
+
 ## 1. Carregamento
 
 1. Instale com `Instalar.cmd` e abra o Revit 2027.
 2. Escolha **Sempre carregar** no aviso de segurança.
-3. Confira a aba **Viridian** com os painéis Biblioteca, Plantio, Maciços, Identificação, Quantitativos, Documentação, Composição, Detalhamento, Maquete 3D, Verificação e Configurações, todos com ícones.
-4. Sem projeto aberto, **Buscar Espécie**, **Importar Família**, **Ateliê de Paletas**, **Configurações** e **Sobre** ficam disponíveis; os demais, desativados.
+3. Confira a aba **Viridian** com os painéis Biblioteca, Plantio, Maciços, Identificação, Quantitativos, Documentação, Composição, Detalhamento, Pisos e Drenagem, Maquete 3D, Verificação e Configurações, todos com ícones.
+4. Sem projeto aberto, **Buscar Espécie**, **Importar Família**, **Ateliê de Paletas**, **Gerador de Pisos**, **Configurações** e **Sobre** ficam disponíveis; os demais, desativados.
 
 ## 2. Biblioteca
 
@@ -143,3 +159,48 @@ Use um projeto com árvores, palmeiras, arbustos, um maciço de forração e um 
 9. **Desfazer:** Ctrl+Z desfaz a geração inteira em um passo.
 10. **Remover Maquete** com a vista da maquete aberta: o Viridian troca de vista, apaga as formas, os materiais "VIR Maquete" e a vista. Coloque a vista em uma prancha antes de remover: nesse caso a vista é mantida.
 11. Configurações > Composição > Maquete 3D: reduza o máximo de exemplares para 10 e gere de novo; o resumo informa quantos ficaram de fora. Desmarque as manchas de flor e confira.
+
+## 17. Compras e quadro de especificação
+
+1. Relatórios > **Compras**: digite quantidades na coluna Comprado (inclusive com ponto de milhar, como 1.200); valores inválidos (texto, negativos) são recusados.
+2. "Completar só o que falta" ajusta apenas os itens em falta. "Zerar compras" pede confirmação.
+3. Feche e reabra o projeto: as compras continuam gravadas. Exporte para Excel: há a aba **Compras**.
+4. Desfazer (Ctrl+Z) depois de fechar os relatórios desfaz o registro das compras.
+5. **Quadro de Especificação** sem prancha aberta: cria a vista de desenho "Viridian - Quadro de especificação". Rode de novo depois de mudar uma nota em Configurações > Composição: a mesma vista é atualizada.
+6. Com a vista já colocada em outra prancha, rode com uma prancha diferente aberta: o Viridian avisa que o quadro já está em outra prancha.
+
+## 18. Gerador de pisos
+
+1. Sem projeto aberto, o gerador abre: edite, duplique, crie e exclua pisos; os botões que dependem do Revit ficam desativados.
+2. Mude comprimento, junta, rotação e paginação: a prévia acompanha em escala real (amostra de 2 m). Valores inválidos aparecem em vermelho e não são gravados.
+3. Edite um piso padrão, salve e use "Restaurar": volta aos valores do Viridian.
+4. Camadas: acrescente, remova, suba e desça; uma camada com espessura zero só é aceita como manta.
+5. **Criar tipo de piso**: confira em Editar tipo > Estrutura o revestimento como acabamento na face superior e as camadas abaixo. Mude a junta no gerador e crie de novo: o mesmo tipo é atualizado (pisos que já o usam acompanham).
+6. **Aplicar aos pisos selecionados**: os pisos trocam de tipo; Ctrl+Z desfaz em um passo.
+7. **Hachura para plantas**: Anotar > Região preenchida, escolha o tipo "VIR Piso ..." e desenhe; a paginação aparece em escala real, também ao mudar a escala da vista.
+8. **Detalhe em corte**: vista de desenho 1:10 com as camadas, cotas e chamadas.
+9. Quantitativo: com pisos aplicados, a lista do gerador mostra a área, a compra com perda e as peças; exporte para Excel e confira as camadas em m³ (mantas em m²).
+10. Biblioteca na rede: aponte Configurações > Biblioteca para uma pasta compartilhada e confira que outro computador vê os pisos criados.
+
+## 19. Jardim de chuva e tolerância ao encharcamento
+
+1. Buscar Espécie: a ficha mostra "Tolera encharcamento" (com "estimativa" quando não cadastrada). No cadastro, escolha um valor e confira na ficha.
+2. Selecione um ou mais telhados e rode o Jardim de Chuva: a área de contribuição vem preenchida.
+3. Escolha o canteiro na planta: a área do jardim vem preenchida e o resultado diz se é suficiente. Com área insuficiente, aparece o aviso.
+4. Informe a infiltração do solo (por exemplo, 25 mm/h): aparece o tempo de esvaziamento; com 0, o resultado pede o ensaio e prevê dreno de fundo.
+5. As listas de espécies sugeridas (fundo, taludes, bordas) não trazem invasoras.
+6. "Salvar como padrão" e reabra: os valores voltam. "Criar detalhe em corte" cria a vista com o corte e o memorial de cálculo.
+7. Desligue o módulo em Configurações > Módulos e confira o aviso ao clicar no botão.
+
+## 20. Estudo solar
+
+1. Gerenciar > Localização: defina a cidade do projeto. Rode o Estudo Solar numa região com árvores e uma edificação: o resumo mostra a latitude usada.
+2. **Norte:** gire o norte verdadeiro do projeto (Gerenciar > Posição > Girar norte verdadeiro) e rode de novo no solstício de inverno. Ligue as sombras do Revit numa vista 3D com o mesmo dia ao meio-dia: as áreas de sombra do mapa devem ficar do mesmo lado que as sombras do Revit. Se ficarem espelhadas ou giradas, ajuste "Ajuste do norte" em Configurações > Composição e anote o caso.
+3. O mapa é criado numa cópia da planta ("Viridian - Estudo solar - ..."), com legenda; a planta original não muda.
+4. A lista aponta plantas que não recebem a luz que pedem; clique duplo mostra a planta.
+5. Desligue "Considerar edificações e terreno": o cálculo fica mais rápido e só as copas fazem sombra.
+6. Ctrl+Z desfaz o estudo inteiro (vista e mapa) em um passo.
+
+## 21. Revisão das fotos
+
+1. As fotos marcadas na revisão (mãos, só frutos ou sementes, mudas, ilustrações) foram substituídas somente depois da sua aprovação; confira algumas fichas.

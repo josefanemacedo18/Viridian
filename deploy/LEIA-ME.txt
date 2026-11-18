@@ -1,4 +1,4 @@
-﻿VIRIDIAN 1.3 — Paisagismo 2D técnico para Autodesk Revit 2027
+﻿VIRIDIAN 1.4 — Paisagismo 2D técnico para Autodesk Revit 2027
 ==============================================================
 
 INSTALAR
@@ -31,6 +31,14 @@ PRIMEIROS PASSOS
 7. Maquete 3D: vista 3D com a vegetação em volume, assentada no terreno.
    As plantas baixas não mudam. Atualizar Maquete refaz depois de mudanças;
    Remover Maquete apaga tudo o que ela criou.
+8. Pisos e Drenagem: Gerador de Pisos (biblioteca de pisos com paginação,
+   camadas, hachura, detalhe e quantitativo) e Jardim de Chuva.
+9. Estudo Solar (painel Composição): horas de sol com a sombra das copas e
+   das edificações; Quadro de Especificação (painel Documentação); aba
+   Compras nos relatórios.
+
+Se um módulo novo der problema no seu projeto, desligue-o em
+Configurações > Composição > Módulos: o restante continua funcionando.
 
 Na primeira inserção de cada espécie o Viridian gera a família 2D a partir
 do modelo de família instalado com o Revit (Vegetação ou Modelo genérico).

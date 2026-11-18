@@ -22,7 +22,7 @@ Antes de usar em projetos reais, siga o [roteiro de testes](docs/ROTEIRO_DE_TEST
 
 ## Módulos e ferramentas
 
-A aba **Viridian** tem onze painéis. **Buscar Espécie** é a biblioteca completa (consulta, filtros e cadastro); **Inserir** é a inserção rápida.
+A aba **Viridian** tem doze painéis. **Buscar Espécie** é a biblioteca completa (consulta, filtros e cadastro); **Inserir** é a inserção rápida.
 
 ### Biblioteca
 
@@ -33,7 +33,7 @@ A aba **Viridian** tem onze painéis. **Buscar Espécie** é a biblioteca comple
 | **Importar Família** | Assistente "Importar símbolo personalizado": verifica categoria, linhas 2D, ponto de inserção e tipos; registra a família na biblioteca e a associa a uma espécie. |
 | **Atualizar Dados** | Sincroniza o projeto com o catálogo: dados dos tipos, símbolos regerados quando o desenho ou as cores mudaram, maciços e etiquetas. |
 
-Cada espécie tem **textura** (fina, média ou grossa, sugerida pelo gênero e pela forma e ajustável no cadastro) e **escala visual** (miúda, média ou monumental, calculada pelo porte adulto), usadas na composição dos canteiros.
+Cada espécie tem **textura** (fina, média ou grossa, sugerida pelo gênero e pela forma e ajustável no cadastro) e **escala visual** (miúda, média ou monumental, calculada pelo porte adulto), usadas na composição dos canteiros, e **tolerância ao encharcamento** (baixa, média ou alta; estimada pela necessidade de água enquanto não for cadastrada), usada no jardim de chuva.
 
 O catálogo padrão traz **382 espécies** usadas no paisagismo brasileiro: 196 nativas (com os biomas de ocorrência: Amazônia, Caatinga, Cerrado, Mata Atlântica, Pampa e Pantanal) e 186 exóticas comuns no Brasil, com as **invasoras sinalizadas**. São 141 árvores, 36 palmeiras, 53 arbustos, 58 herbáceas, 31 forrações, 8 gramados, 32 trepadeiras e 23 aquáticas. **380 têm fotografia** (iNaturalist, somente licenças CC0, CC BY e CC BY-SA, com os créditos na ficha e em `Fotos\CREDITOS.txt`). Alturas, copas, espaçamentos e densidades são **referências de projeto** e devem ser conferidos pelo responsável técnico.
 
@@ -75,6 +75,7 @@ O catálogo padrão traz **382 espécies** usadas no paisagismo brasileiro: 196 
 |---|---|
 | **Relatórios** | Por espécie, por maciço, de **aquisição**, **orçamento** e **manutenção**, com exportação para Excel (`.xlsx` com todas as abas). |
 | **Aquisição** | Lista de compra com reserva de reposição, unidade comercial e preço. |
+| **Compras** (aba dos relatórios) | Registro do que **já foi comprado**, gravado no próprio projeto, comparado com o que o projeto pede hoje: o que **falta comprar** e o que **sobra** depois de substituições ou exclusões de espécies. Botões para marcar a lista como comprada ou completar só o que falta; aba própria na planilha do Excel. |
 | **Orçamento** | Fornecimento e plantio a partir de uma **tabela de preços importada** pelo escritório (SINAPI, tabela municipal ou própria, em `.xlsx` ou `.csv`; o cabeçalho é localizado automaticamente). Vincula códigos de insumo e de serviço às espécies (busca na tabela), aplica o **BDI** e aponta unidades divergentes e códigos não encontrados. O Viridian não traz preços: os valores vêm sempre da tabela do usuário ou do cadastro. |
 | **Manutenção** | Cronograma por espécie e mês: **rega de implantação** (pelo mês do plantio) e na estiagem (pela estação seca da região), **adubação** (inclusive de pré-floração), **podas logo após a floração**, poda de formação, limpeza de palmeiras, corte de gramados (quinzenal nas chuvas, mensal na seca), coroamento, tutoramento e **reposição de falhas** aos 30 e 90 dias com a reserva prevista. |
 
@@ -85,6 +86,9 @@ O catálogo padrão traz **382 espécies** usadas no paisagismo brasileiro: 196 
 | **Prancha Automática** | Cria a prancha com a planta ativa (opcionalmente com o quadro de fotos), a legenda com fotos e a tabela de quantitativos, diagramadas sobre o carimbo escolhido: planta à esquerda, legenda e tabela na coluna da direita, canto do carimbo livre, margens da NBR 10068. Reduz a escala para a planta caber e usa uma vista dependente quando a planta já está em outra prancha. |
 | **Exportar CAD** | Exporta vistas e pranchas para **DWG** (2007 a 2018, em metros ou milímetros, com cores e preenchimentos da vista, opção de coordenadas compartilhadas) e gera a **biblioteca de blocos DXF** dos símbolos (espécies do projeto ou catálogo inteiro), com camadas por nível de detalhe, preenchimento e floração. |
 | **Tabelas Nativas** | Cria as tabelas de vegetação do Revit (por espécie e por exemplar). |
+| **Quadro de Especificação** | Tabela para a prancha com código, espécie (nome popular e científico), quantidade, altura da muda, **escavação em centímetros** (cova ou camada) e a **especificação** de cada espécie, montada com os mesmos modelos das notas do detalhe de plantio. Com uma prancha aberta, o quadro é colocado nela. |
+
+![Quadro de especificação](docs/img/quadro-especificacao.jpg)
 
 ### Composição
 
@@ -92,9 +96,25 @@ O catálogo padrão traz **382 espécies** usadas no paisagismo brasileiro: 196 
 |---|---|
 | **Ateliê de Paletas** | Escolha de espécies pela cor: harmonias **monocromática, análoga, complementar e tríade** a partir de um matiz, ou **paletas prontas** (quente tropical, branco e verde, rosa e lilás, azul e roxo, entre outras). Filtra por categoria, somente nativas, somente com floração vistosa e **meses de floração** desejados. As espécies aparecem em ordem de afinidade com a cor da flor e da folhagem, com símbolo e foto; dali é possível inserir ou distribuir. Funciona mesmo sem projeto aberto. |
 | **Verificar Canteiro** | Escolha a região: o canteiro é avaliado por **equilíbrio** (espécie dominante), **diversidade**, **contraste de texturas**, **escala** em relação às dimensões do canteiro, **sub-bosque** sob palmeiras e árvores, e **meses sem floração vistosa**. As observações são recomendações de composição, com clique duplo para ver as plantas; os limites ficam em Configurações > Composição. |
+| **Estudo Solar** | Escolha a região: o Viridian calcula as **horas de sol direto** em uma malha de pontos e na posição de cada planta, com a sombra das **copas adultas**, das **edificações e do terreno** (também de vínculos). A latitude vem da localização do projeto (ou é digitada) e a posição do sol é calculada em hora solar, na **média do ano** ou nos solstícios e no equinócio. O mapa colorido (menos de 2 h a 8 h ou mais) fica numa **cópia da planta**, e a lista aponta as plantas que **não recebem a luz que pedem** (sol pleno, meia-sombra, sombra). |
 | **Calendário de Floração** | Quadro de **janeiro a dezembro** com o que floresce no projeto, cada mês pintado na cor da flor, a quantidade de cada espécie e os **meses sem floração** destacados. É criado como vista de desenho, pronta para a prancha. |
 
 ![Calendário de floração](docs/img/calendario.jpg)
+
+![Estudo solar (simulação)](docs/img/estudo-solar.jpg)
+
+### Pisos e Drenagem
+
+| Ferramenta | O que faz |
+|---|---|
+| **Gerador de Pisos** | Biblioteca com mais de 30 pisos de paisagismo: **cimentícios e atérmicos, fulget (granito lavado) moldado e em placas, intertravados (espinha de peixe, amarrado, trama, hexagonal, veicular), drenantes (blocos, placas e concreto permeável), pedras naturais (São Tomé serrada e em cacos, Miracema, ardósia, basalto, granito flameado, Goiás em opus), pedra portuguesa, porcelanatos externos (inclusive de 2 cm sobre grama), tijolo, concreto desempenado e veicular, decks de madeira e WPC, pedrisco, seixo, emborrachados e grama-concreto**. Tudo é personalizável: dimensões da peça, junta, rotação, **paginação** (junta reta, amarração 1/2 e 1/3, espinha de peixe 90° e 45°, trama, diagonal, hexagonal, opus, cacos, mosaico, réguas, granular e vazado), cores, caimento, perda e **camadas** (assentamento, argamassa, contrapiso, base, sub-base, manta, barrotes). A prévia mostra o piso em escala real. Daí: **aplicar aos pisos selecionados** do Revit, **criar o tipo de piso** (camadas e material com a paginação na superfície, em escala real), criar a **hachura para plantas** (região preenchida), o **detalhe em corte** com cotas e chamadas e o **quantitativo** (área, perda, peças e volume de cada camada, com exportação para Excel). A biblioteca fica na pasta da biblioteca do escritório; os pisos padrão trazem as referências das medidas. |
+| **Jardim de Chuva** | Dimensiona o jardim pelo volume a reter (**área de contribuição × coeficiente de escoamento × chuva de projeto**) e pelo armazenamento da lâmina e das camadas porosas; confere a área escolhida na planta, estima o tempo de esvaziamento pela infiltração do solo e indica quando prever **dreno de fundo**. Sugere espécies do catálogo para o **fundo** (tolerantes a alagamento), os **taludes** e as **bordas**, nativas primeiro e sem invasoras, e cria o **detalhe em corte** com camadas, lâmina, extravasor e o memorial de cálculo. Selecionar telhados e pisos antes do comando soma a área de contribuição. Os valores são de partida e editáveis: confirme com o manual de drenagem do município e com o ensaio de infiltração. |
+
+![Pisos da biblioteca](docs/img/pisos.jpg)
+
+![Detalhe de piso](docs/img/detalhe-piso.jpg)
+
+![Jardim de chuva](docs/img/jardim-de-chuva.jpg)
 
 ### Detalhamento
 
@@ -141,7 +161,7 @@ A maquete é **opcional e não altera o que já existe**: as formas são geradas
 | Ferramenta | O que faz |
 |---|---|
 | **Escalas** | Perfis de representação **Detalhado**, **Intermediário**, **Simplificado** e **Mínimo**. A dimensão real do símbolo nunca muda; só o detalhamento. |
-| **Configurações** | Biblioteca, escalas, padrão gráfico das linhas, **cores** (preenchimento sólido ou reticulado, clareamento, floração, maciços coloridos e cor-base de cada categoria, com pré-visualização), **interferências**, **composição** (limites das regras, modelos das notas de especificação e opções da maquete 3D), **acessibilidade**, maciços, plantio, codificação, análise, etiquetas e hachuras do escritório. |
+| **Configurações** | Biblioteca, escalas, padrão gráfico das linhas, **cores** (preenchimento sólido ou reticulado, clareamento, floração, maciços coloridos e cor-base de cada categoria, com pré-visualização), **interferências**, **composição** (limites das regras, modelos das notas de especificação, maquete 3D, estudo solar e **módulos** que podem ser desligados), **acessibilidade**, maciços, plantio, codificação, análise, etiquetas e hachuras do escritório. |
 | **Sobre** | Versão e atalhos para as pastas da biblioteca, de configurações e de registros. |
 
 ---
@@ -204,7 +224,7 @@ Opcionalmente, o código da espécie é gravado também em **Marca de tipo** e o
 
 | Pasta | Conteúdo |
 |---|---|
-| `%APPDATA%\Viridian\Biblioteca` (configurável) | `Dados\catalogo.json`, `Dados\tabela-precos.json` (tabela importada), famílias geradas por categoria, `Personalizado\` (famílias, símbolos, hachuras, etiquetas) e `Fotos\` (fotos próprias do escritório) |
+| `%APPDATA%\Viridian\Biblioteca` (configurável) | `Dados\catalogo.json`, `Dados\tabela-precos.json` (tabela importada), `Dados\pisos.json` (biblioteca de pisos), famílias geradas por categoria, `Personalizado\` (famílias, símbolos, hachuras, etiquetas) e `Fotos\` (fotos próprias do escritório) |
 | `%APPDATA%\Autodesk\Revit\Addins\2027\Viridian\Fotos` | fotografias do catálogo padrão e `CREDITOS.txt` |
 | `%APPDATA%\Viridian\Config` | `viridian.config.json` e o arquivo de parâmetros compartilhados |
 | `%APPDATA%\Viridian\Logs` | registro de erros |
@@ -231,16 +251,16 @@ No Windows, use `build\package.ps1`. O pacote é gerado em `dist/`.
 
 | Projeto | Responsabilidade |
 |---|---|
-| `Viridian.Core` | Regras sem dependência do Revit: geometria, símbolos e cores, distribuição e eixos de plantio, maciços, escalas, codificação, hachuras, relatórios, orçamento e leitura de tabelas de preços, cronograma de manutenção, interferências, diagramação de pranchas, verificação, composição (paletas, texturas, calendário de floração, regras de canteiro), detalhamento (detalhes de plantio, cortes, crescimento, especificações), malhas da maquete 3D (formas das plantas, triangulação dos maciços), memorial e exportação `.xlsx`, `.docx` e `.dxf` |
-| `Viridian.Library` | Catálogo botânico, catálogo padrão (dados e créditos das fotos), tabela de preços, configurações, pastas e registro de erros |
-| `Viridian.Revit` | Integração com a API: parâmetros compartilhados, Extensible Storage, famílias com copa colorida, plantio, eixos, maciços, perfis de escala, etiquetas, legenda, tabelas, pranchas, exportação DWG, leitura de redes nos vínculos, desenho das vistas de detalhamento e maquete 3D (formas diretas, materiais, terreno) |
+| `Viridian.Core` | Regras sem dependência do Revit: geometria, símbolos e cores, distribuição e eixos de plantio, maciços, escalas, codificação, hachuras, relatórios, orçamento e leitura de tabelas de preços, cronograma de manutenção, interferências, diagramação de pranchas, verificação, composição (paletas, texturas, calendário de floração, regras de canteiro), detalhamento (detalhes de plantio, cortes, crescimento, especificações, quadro de especificação, escavação), pisos (paginações, hachuras de modelo, camadas, detalhe e quantitativo), jardim de chuva, estudo solar (posição do sol e sombras), comparativo de compras, malhas da maquete 3D (formas das plantas, triangulação dos maciços), memorial e exportação `.xlsx`, `.docx` e `.dxf` |
+| `Viridian.Library` | Catálogo botânico, catálogo padrão (dados e créditos das fotos), biblioteca de pisos, tabela de preços, configurações, pastas e registro de erros |
+| `Viridian.Revit` | Integração com a API: parâmetros compartilhados, Extensible Storage, famílias com copa colorida, plantio, eixos, maciços, perfis de escala, etiquetas, legenda, tabelas, pranchas, exportação DWG, leitura de redes nos vínculos, desenho das vistas de detalhamento, maquete 3D (formas diretas, materiais, terreno), tipos de piso em camadas, estudo solar (obstrução e mapa) e gravação das compras no projeto |
 | `Viridian.UI` | Janelas WPF |
 | `Viridian.Addin` | `IExternalApplication`, faixa de opções, comandos e atualização automática de escala |
 | `tests/Viridian.Tests` | Testes automatizados (xUnit) |
-| `tools/Viridian.Preview` | Gera pranchas SVG dos símbolos, cores, distribuições, hachuras, detalhamentos e da maquete 3D, e um memorial de exemplo, para conferência visual |
+| `tools/Viridian.Preview` | Gera pranchas SVG dos símbolos, cores, distribuições, hachuras, detalhamentos, pisos, jardim de chuva, estudo solar e da maquete 3D, e um memorial de exemplo, para conferência visual |
 
 ---
 
 ## Fora do escopo
 
-Famílias 3D paramétricas de vegetação, renderização fotorrealista, levantamento arbóreo, cálculo de volume de solo, modelagem de terrenos, ferramentas de desenho de pisos e sistemas de tabelas paralelos ao Revit.
+Famílias 3D paramétricas de vegetação, renderização fotorrealista, levantamento arbóreo, modelagem de terrenos, projeto hidráulico de drenagem (o jardim de chuva é um pré-dimensionamento) e sistemas de tabelas paralelos ao Revit.
