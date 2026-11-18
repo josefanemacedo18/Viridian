@@ -351,6 +351,10 @@ public partial class SettingsWindow : ViridianWindow
         SolarMaxBox.Text = s.Solar.MaxPoints.ToString(Num.PtBr);
         SolarFullBox.Text = Num.Format(s.Solar.FullSunHours);
         SolarShadeBox.Text = Num.Format(s.Solar.ShadeHours);
+        SolarPartBox.Text = Num.Format(s.Solar.PartShadeHours);
+        SolarTolBox.Text = Num.Format(s.Solar.ToleranceHours);
+        SolarLonBox.Text = Num.Format(s.Solar.LongitudeDeg, "0.####");
+        SolarTzBox.Text = Num.Format(s.Solar.TimeZoneHours);
         SolarBuildingsBox.IsChecked = s.Solar.IncludeBuildings;
         ModulePavingBox.IsChecked = s.Modules.Paving;
         ModuleRainBox.IsChecked = s.Modules.RainGarden;
@@ -723,7 +727,11 @@ public partial class SettingsWindow : ViridianWindow
         double solarGrid = Number(SolarGridBox, "Malha do estudo solar", 0.25, 20);
         int solarMax = Integer(SolarMaxBox, "Máximo de pontos do estudo solar", 50, 5000);
         double solarFull = Number(SolarFullBox, "Horas de sol pleno", 1, 14);
-        double solarShade = Number(SolarShadeBox, "Horas de sombra", 0, 14);
+        double solarShade = Number(SolarShadeBox, "Horas de meia-sombra", 0, 14);
+        double solarPart = Number(SolarPartBox, "Horas de sombra parcial", 0, 14);
+        double solarTol = Number(SolarTolBox, "Tolerância do estudo solar", 0, 3);
+        double solarLon = Number(SolarLonBox, "Longitude", -180, 180);
+        double solarTz = Number(SolarTzBox, "Fuso horário", -12, 14);
         if (problems.Count == 0 && solarShade > solarFull)
         {
             problems.Add("As horas de sombra devem ser menores que as de sol pleno.");
@@ -808,18 +816,22 @@ public partial class SettingsWindow : ViridianWindow
             CheckFlowering = RuleFloweringBox.IsChecked == true,
         };
         s.Specifications = new SpecificationSettings { Templates = new Dictionary<string, string>(_specTemplates) };
-        s.Solar = new Core.Solar.SolarSettings
-        {
-            UseProjectLocation = SolarProjectBox.IsChecked == true,
-            LatitudeDeg = solarLat,
-            NorthAdjustDeg = solarNorth,
-            StepMinutes = solarStep,
-            GridM = solarGrid,
-            MaxPoints = solarMax,
-            FullSunHours = solarFull,
-            ShadeHours = solarShade,
-            IncludeBuildings = SolarBuildingsBox.IsChecked == true,
-        };
+        // Parte das opções atuais: período, mapas e nome do local escolhidos na janela do estudo são mantidos.
+        Core.Solar.SolarSettings solar = (s.Solar ?? new Core.Solar.SolarSettings()).Clone();
+        solar.UseProjectLocation = SolarProjectBox.IsChecked == true;
+        solar.LatitudeDeg = solarLat;
+        solar.LongitudeDeg = solarLon;
+        solar.TimeZoneHours = solarTz;
+        solar.NorthAdjustDeg = solarNorth;
+        solar.StepMinutes = solarStep;
+        solar.GridM = solarGrid;
+        solar.MaxPoints = solarMax;
+        solar.FullSunHours = solarFull;
+        solar.ShadeHours = solarShade;
+        solar.PartShadeHours = Math.Min(solarPart, solarShade);
+        solar.ToleranceHours = solarTol;
+        solar.IncludeBuildings = SolarBuildingsBox.IsChecked == true;
+        s.Solar = solar;
         s.Modules = new ModuleSettings
         {
             Paving = ModulePavingBox.IsChecked == true,

@@ -33,6 +33,9 @@ internal static class WaterSolarPreview
     }
 
     /// <summary>Lote 30 × 20 m com três árvores e um bloco de 9 m de altura a leste, em São Paulo, média do ano.</summary>
+    /// <summary>Calendário de luz do último estudo simulado.</summary>
+    public static Viridian.Core.Detailing.Drawing? LastCalendar { get; private set; }
+
     public static string Solar()
     {
         List<Species> all = SeedCatalog.CreateSpecies();
@@ -67,8 +70,32 @@ internal static class WaterSolarPreview
         }
 
         (List<Point2> grid, double cell) = SolarStudy.Grid(region, settings.GridM, settings.MaxPoints);
-        var points = grid.Select(p => new SolarPoint { Position = new Vec3(p.X, p.Y, 0.3), Hours = new double[3] }).ToList();
-        SolarStudy.Compute(points, crowns, -23.55, Sun.KeyDates(-23.55), settings, v => v, Blocked);
+        IReadOnlyList<SolarDate> dates = Sun.MonthlyDates();
+        var points = grid.Select(p => new SolarPoint { Position = new Vec3(p.X, p.Y, 0.3), Hours = new double[dates.Count] }).ToList();
+        SolarStudy.Compute(points, crowns, -23.55, dates, settings, v => v, Blocked);
+
+        // Plantas de exemplo para o calendário de luz.
+        var samples = new (string Name, LightNeed Need, Point2 At)[]
+        {
+            ("Pitangueira", LightNeed.SolPleno, new Point2(9, 10)),
+            ("Lavanda", LightNeed.SolPleno, new Point2(4, 3)),
+            ("Moreia", LightNeed.MeiaSombra, new Point2(16, 8)),
+            ("Lírio-da-paz", LightNeed.Sombra, new Point2(5, 17)),
+            ("Clúsia", LightNeed.SolPleno, new Point2(22.5, 8)),
+        };
+        var rows = new List<LightCalendarRow>
+        {
+            new("Região analisada (média)", Enumerable.Range(0, 12).Select(d => points.Average(p => p.Hours[d])).ToList(), null, 0),
+        };
+        foreach ((string name, LightNeed need, Point2 at) in samples)
+        {
+            var sp = new SolarPoint { Position = new Vec3(at.X, at.Y, 0.6), Hours = new double[12] };
+            SolarStudy.Compute(new[] { sp }, crowns, -23.55, dates, settings, v => v, Blocked);
+            rows.Add(new LightCalendarRow("XX-0 " + name, sp.Hours, PlantLight.Evaluate(need, sp.Hours, dates, settings), 1));
+        }
+
+        LastCalendar = LightCalendar.Build("Calendário de luz — Térreo", "Mês a mês (dia típico de cada mês)",
+            new SolarSite(-23.5505, -46.6333, -3, "São Paulo", SiteSource.Projeto), dates, rows, settings, true);
 
         const double k = 26;
         var sb = new StringBuilder();
@@ -76,7 +103,7 @@ internal static class WaterSolarPreview
         double Y(double y) => 20 + (22 - y) * k;
         for (int i = 0; i < grid.Count; i++)
         {
-            string color = SolarClasses.Bins[SolarClasses.BinOf(points[i].Average)].Color;
+            string color = SolarClasses.ColorOf(points[i].Average, settings);
             sb.Append(Inv, $"<rect x='{20 + (grid[i].X - cell / 2) * k:0.#}' y='{Y(grid[i].Y + cell / 2):0.#}' width='{cell * k * 0.96:0.#}' height='{cell * k * 0.96:0.#}' fill='{color}' fill-opacity='0.85'/>");
         }
 
@@ -88,7 +115,7 @@ internal static class WaterSolarPreview
 
         sb.Append(Inv, $"<text x='20' y='14' font-family='Arial' font-size='13'>Estudo solar simulado — média do ano, latitude -23,55° (norte para cima); bloco de 9 m a leste</text>");
         double ly = 60;
-        foreach ((double from, double to, string color, string label) in SolarClasses.Bins)
+        foreach ((double from, double to, string color, string label) in SolarClasses.Bins(settings))
         {
             sb.Append(Inv, $"<rect x='{36 * k + 40}' y='{ly}' width='22' height='16' fill='{color}'/><text x='{36 * k + 70}' y='{ly + 12}' font-family='Arial' font-size='12'>{label}</text>");
             ly += 24;

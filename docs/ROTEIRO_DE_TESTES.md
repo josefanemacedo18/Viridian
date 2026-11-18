@@ -205,7 +205,12 @@ Use um projeto com árvores, palmeiras, arbustos, um maciço de forração e um 
 
 ## 20. Estudo solar
 
-1. Gerenciar > Localização: defina a cidade do projeto. Rode o Estudo Solar numa região com árvores e uma edificação: o resumo mostra a latitude usada.
+0. **Projeto sem localização:** num projeto novo, rode o Estudo Solar. A janela avisa que o projeto não tem localização e recomenda informar as coordenadas. No Google Maps, clique com o botão direito no terreno, copie os números, cole em "Colar coordenadas" e clique em Usar: latitude, longitude e fuso são preenchidos. Deixe "Gravar estas coordenadas" marcado; depois do estudo, Gerenciar > Localização mostra as mesmas coordenadas.
+1. Gerenciar > Localização: defina a cidade do projeto. Rode o Estudo Solar **mês a mês** numa região com árvores e uma edificação: a janela mostra as coordenadas do projeto e o resumo mostra o local usado.
+1a. **Calendário de luz:** a vista de desenho "Viridian - Calendário de luz - ..." mostra nascer e pôr do sol de cada mês (compare com um site de efemérides da cidade: diferença de poucos minutos), as horas da região e de cada espécie, com × nos meses em que não atende e a coluna "atende". Rodar de novo na mesma planta atualiza o mesmo calendário.
+1b. **Mapas:** marque "Média do ano", jun e dez: são criadas três cópias da planta, cada uma com a legenda das cinco faixas e o período.
+1c. **Faixas:** mude "Sol pleno a partir de" para 5 h: a legenda e as marcações mudam. "Restaurar faixas padrão" volta a 6/3/1 h.
+1d. **Sugestões:** numa planta de sol pleno à sombra da edificação, a lista mostra "não atende em N de 12 meses" e sugere espécies de sombra ou meia-sombra da mesma categoria. Nada é trocado no projeto.
 2. **Norte:** gire o norte verdadeiro do projeto (Gerenciar > Posição > Girar norte verdadeiro) e rode de novo no solstício de inverno. Ligue as sombras do Revit numa vista 3D com o mesmo dia ao meio-dia: as áreas de sombra do mapa devem ficar do mesmo lado que as sombras do Revit. Se ficarem espelhadas ou giradas, ajuste "Ajuste do norte" em Configurações > Composição e anote o caso.
 3. O mapa é criado numa cópia da planta ("Viridian - Estudo solar - ..."), com legenda; a planta original não muda.
 4. A lista aponta plantas que não recebem a luz que pedem; clique duplo mostra a planta.

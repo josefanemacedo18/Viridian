@@ -130,17 +130,25 @@ public class ShadeTests
     }
 
     [Fact]
-    public void Mismatch_Messages()
+    public void Bands_And_Fit()
     {
-        var sun = new Species { Light = LightNeed.SolPleno };
-        var shade = new Species { Light = LightNeed.Sombra };
         var s = new SolarSettings();
-        Assert.NotNull(SolarClasses.Mismatch(sun, 2, 1, s));
-        Assert.Null(SolarClasses.Mismatch(sun, 7, 5, s));
-        Assert.NotNull(SolarClasses.Mismatch(shade, 9, 6, s));
-        Assert.Null(SolarClasses.Mismatch(new Species(), 9, 6, s));
-        Assert.Equal(0, SolarClasses.BinOf(1));
-        Assert.Equal(4, SolarClasses.BinOf(12));
+        Assert.Equal(SolarBand.Sombra, SolarClasses.Band(0.5, s));
+        Assert.Equal(SolarBand.SombraParcial, SolarClasses.Band(2, s));
+        Assert.Equal(SolarBand.MeiaSombra, SolarClasses.Band(4.5, s));
+        Assert.Equal(SolarBand.SolPleno, SolarClasses.Band(7, s));
+        Assert.Equal(SolarBand.SolPlenoForte, SolarClasses.Band(9, s));
+        Assert.Equal(0, SolarClasses.BinOf(0.2, s));
+        Assert.Equal(4, SolarClasses.BinOf(12, s));
+        Assert.Equal(LightFit.Atende, SolarClasses.Fit(LightNeed.SolPleno, 7, s));
+        Assert.Equal(LightFit.Limite, SolarClasses.Fit(LightNeed.SolPleno, 5.2, s));
+        Assert.Equal(LightFit.NaoAtende, SolarClasses.Fit(LightNeed.SolPleno, 2, s));
+        Assert.Equal(LightFit.NaoAtende, SolarClasses.Fit(LightNeed.Sombra, 9, s));
+        Assert.Equal(LightFit.Atende, SolarClasses.Fit(LightNeed.MeiaSombra, 4, s));
+        Assert.Equal(LightFit.Limite, SolarClasses.Fit(LightNeed.MeiaSombra, 6.8, s));
+        Assert.Null(SolarClasses.Fit(LightNeed.NaoInformada, 9, s));
+        Assert.Equal(5, SolarClasses.Bins(s).Count);
+        Assert.Contains("6 h ou mais", SolarClasses.NeedText(LightNeed.SolPleno, s), StringComparison.Ordinal);
     }
 
     [Fact]

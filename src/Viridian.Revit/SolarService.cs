@@ -16,9 +16,9 @@ public sealed record SolarPlant(PlantRecord Record, Species Species, SolarPoint 
 /// <summary>Resultado do estudo solar de uma região.</summary>
 public sealed class SolarReport
 {
-    public double LatitudeDeg { get; init; }
+    public SolarSite Site { get; init; } = new(-23.55, -46.63, -3, string.Empty, SiteSource.Digitado);
 
-    public string Place { get; init; } = string.Empty;
+    public double LatitudeDeg => Site.LatitudeDeg;
 
     public IReadOnlyList<SolarDate> Dates { get; init; } = Array.Empty<SolarDate>();
 
@@ -36,6 +36,9 @@ public sealed class SolarReport
     public double MapHours(SolarPoint p) => p.Average;
 }
 
+/// <summary>Localização lida do projeto, com a indicação de que parece não ter sido definida.</summary>
+public sealed record ProjectSite(SolarSite Site, bool LooksUndefined, double TrueNorthDeg);
+
 /// <summary>
 /// Estudo solar no Revit: posição do sol pela latitude do projeto, sombra das copas da vegetação do Viridian e
 /// obstrução por edificações e terreno (também de vínculos), com mapa de horas de sol numa cópia da planta.
@@ -52,31 +55,84 @@ public static class SolarService
         BuiltInCategory.OST_Toposolid, BuiltInCategory.OST_Topography,
     };
 
-    /// <summary>Latitude usada: a da localização do projeto ou a digitada nas configurações.</summary>
-    public static double Latitude(Document document, SolarSettings settings, out string place)
+    /// <summary>
+    /// Localização do projeto (Gerenciar > Localização): latitude, longitude, fuso e nome. Coordenadas zeradas ou o
+    /// local padrão do modelo indicam projeto sem localização definida.
+    /// </summary>
+    public static ProjectSite ReadSite(Document document, SolarSettings settings)
     {
-        place = "latitude digitada nas configurações";
-        if (settings.UseProjectLocation)
+        double north = 0;
+        try
+        {
+            north = Geo.RadToDeg(document.ActiveProjectLocation.GetProjectPosition(XYZ.Zero).Angle);
+        }
+        catch (Exception ex)
+        {
+            ViridianLog.Warn("Estudo solar: norte do projeto", ex);
+        }
+
+        if (!settings.UseProjectLocation)
+        {
+            // O escritório preferiu as coordenadas das configurações: sem aviso de localização ausente.
+            return new ProjectSite(new SolarSite(settings.LatitudeDeg, settings.LongitudeDeg, settings.TimeZoneHours, settings.PlaceName, SiteSource.Digitado), false, north);
+        }
+
+        try
+        {
+            SiteLocation site = document.SiteLocation;
+            double lat = Geo.RadToDeg(site.Latitude), lon = Geo.RadToDeg(site.Longitude);
+            string name = site.PlaceName ?? string.Empty;
+            bool undefined = !double.IsFinite(lat) || !double.IsFinite(lon) || (Math.Abs(lat) < 1e-4 && Math.Abs(lon) < 1e-4)
+                             || name.Contains("default", StringComparison.OrdinalIgnoreCase) || name.Contains("padrão", StringComparison.OrdinalIgnoreCase)
+                             || Math.Abs(lat) > 66;
+            if (!undefined)
+            {
+                double tz = double.IsFinite(site.TimeZone) ? site.TimeZone : SolarSite.SuggestTimeZone(lon);
+                return new ProjectSite(new SolarSite(lat, lon, tz, name, SiteSource.Projeto), false, north);
+            }
+        }
+        catch (Exception ex)
+        {
+            ViridianLog.Warn("Estudo solar: localização do projeto", ex);
+        }
+
+        return new ProjectSite(new SolarSite(settings.LatitudeDeg, settings.LongitudeDeg, settings.TimeZoneHours, settings.PlaceName, SiteSource.Digitado), true, north);
+    }
+
+    /// <summary>Grava as coordenadas na localização do projeto (Gerenciar > Localização). Precisa de transação.</summary>
+    public static void SaveSite(Document document, SolarSite site)
+    {
+        SiteLocation location = document.SiteLocation;
+        location.Latitude = Geo.DegToRad(site.LatitudeDeg);
+        location.Longitude = Geo.DegToRad(site.LongitudeDeg);
+        try
+        {
+            location.TimeZone = site.TimeZoneHours;
+        }
+        catch (Exception ex) when (ex is Autodesk.Revit.Exceptions.ApplicationException)
+        {
+            ViridianLog.Warn("Estudo solar: fuso não aceito pelo Revit", ex);
+        }
+
+        if (!string.IsNullOrWhiteSpace(site.Name))
         {
             try
             {
-                SiteLocation site = document.SiteLocation;
-                double lat = Geo.RadToDeg(site.Latitude);
-                if (double.IsFinite(lat) && Math.Abs(lat) > 1e-6)
-                {
-                    place = string.IsNullOrWhiteSpace(site.PlaceName) ? "localização do projeto" : site.PlaceName;
-                    return Math.Clamp(lat, -66, 66);
-                }
-
-                place = "latitude digitada (o projeto não tem localização definida)";
+                location.PlaceName = site.Name.Trim();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is Autodesk.Revit.Exceptions.ApplicationException)
             {
-                ViridianLog.Warn("Estudo solar: localização do projeto", ex);
+                ViridianLog.Warn("Estudo solar: nome do local não aceito pelo Revit", ex);
             }
         }
+    }
 
-        return settings.LatitudeDeg;
+    /// <summary>Latitude usada (compatibilidade): a da localização do projeto ou a digitada nas configurações.</summary>
+    public static double Latitude(Document document, SolarSettings settings, out string place)
+    {
+        ProjectSite site = ReadSite(document, settings);
+        place = site.Site.Describe();
+        return site.Site.LatitudeDeg;
     }
 
     /// <summary>
@@ -130,10 +186,11 @@ public static class SolarService
         IReadOnlyList<(PlantRecord Record, Species Species)> shadingPlants,
         IReadOnlyList<SolarDate> dates,
         SolarSettings settings,
-        GrowthStage stage)
+        GrowthStage stage,
+        SolarSite site)
     {
         DateTime started = DateTime.Now;
-        double latitude = Latitude(document, settings, out string place);
+        double latitude = site.LatitudeDeg;
         Func<Vec3, Vec3> toModel = ToModel(document, settings);
         var terrain = new TerrainProbe(document, probe, true, 30);
 
@@ -155,7 +212,7 @@ public static class SolarService
         }
 
         (List<Point2> grid, double cell) = SolarStudy.Grid(region, settings.GridM, settings.MaxPoints);
-        var report = new SolarReport { LatitudeDeg = latitude, Place = place, Dates = dates, Cell = cell, UsedBuildings = settings.IncludeBuildings };
+        var report = new SolarReport { Site = site, Dates = dates, Cell = cell, UsedBuildings = settings.IncludeBuildings };
         var points = new List<SolarPoint>();
         foreach (Point2 p in grid)
         {
@@ -197,11 +254,19 @@ public static class SolarService
         return report;
     }
 
+    /// <summary>Calendário de luz da região numa vista de desenho (refeita a cada estudo da mesma planta). Precisa de transação.</summary>
+    public static ViewDrafting CalendarView(Document document, ViewPlan source, SolarReport report, string period, IReadOnlyList<LightCalendarRow> rows, SolarSettings settings, double textMm)
+    {
+        string title = "Calendário de luz — " + source.Name;
+        Drawing drawing = LightCalendar.Build(title, period, report.Site, report.Dates, rows, settings, report.UsedBuildings);
+        return new DesignService(textMm).DrawingView(document, PavingService.SafeName("Viridian - Calendário de luz - " + source.Name), drawing, 1);
+    }
+
     /// <summary>
     /// Mapa de horas de sol numa cópia da planta (a planta original não muda): quadros coloridos por faixa de horas,
     /// semitransparentes, e a legenda ao lado. Precisa de transação.
     /// </summary>
-    public static ViewPlan HeatMap(Document document, ViewPlan source, Polygon2 region, SolarReport report, string label, double textMm)
+    public static ViewPlan HeatMap(Document document, ViewPlan source, Polygon2 region, SolarReport report, string label, Func<SolarPoint, double> hours, SolarSettings settings, double textMm)
     {
         if (!source.CanViewBeDuplicated(ViewDuplicateOption.Duplicate))
         {
@@ -209,7 +274,7 @@ public static class SolarService
         }
 
         var view = (ViewPlan)document.GetElement(source.Duplicate(ViewDuplicateOption.Duplicate));
-        string baseName = $"Viridian - Estudo solar - {source.Name}";
+        string baseName = $"Viridian - Estudo solar - {label} - {source.Name}";
         string name = baseName;
         using (var collector = new FilteredElementCollector(document))
         {
@@ -223,10 +288,11 @@ public static class SolarService
         view.Name = name;
         double half = report.Cell * 0.48;
         double z = source.GenLevel?.ProjectElevation ?? 0; // pés: plano da planta
-        for (int bin = 0; bin < SolarClasses.Bins.Count; bin++)
+        IReadOnlyList<(double From, double To, string Color, string Label)> bins = SolarClasses.Bins(settings);
+        for (int bin = 0; bin < bins.Count; bin++)
         {
             var loops = new List<CurveLoop>();
-            foreach ((Point2 p, SolarPoint sp) in report.Grid.Where(g => SolarClasses.BinOf(report.MapHours(g.Point)) == bin))
+            foreach ((Point2 p, SolarPoint sp) in report.Grid.Where(g => SolarClasses.BinOf(hours(g.Point), settings) == bin))
             {
                 XYZ a = RevitUnits.ToXyz(new Point2(p.X - half, p.Y - half), z), b = RevitUnits.ToXyz(new Point2(p.X + half, p.Y - half), z);
                 XYZ c = RevitUnits.ToXyz(new Point2(p.X + half, p.Y + half), z), d = RevitUnits.ToXyz(new Point2(p.X - half, p.Y + half), z);
@@ -238,7 +304,7 @@ public static class SolarService
                 continue;
             }
 
-            FilledRegionType? type = HatchService.EnsureSolidRegionType(document, Rgb.Parse(SolarClasses.Bins[bin].Color, Rgb.White));
+            FilledRegionType? type = HatchService.EnsureSolidRegionType(document, Rgb.Parse(bins[bin].Color, Rgb.White));
             if (type is null)
             {
                 continue;
@@ -256,9 +322,14 @@ public static class SolarService
         y -= 8 * k;
         legend.Text(new Point2(0, y), label, -1, 0.9);
         y -= 6 * k;
-        legend.Text(new Point2(0, y), $"Latitude {report.LatitudeDeg.ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo("pt-BR"))}° ({report.Place})", -1, 0.85);
-        y -= 8 * k;
-        foreach ((double from, double to, string color, string text) in SolarClasses.Bins)
+        foreach (string part in TextLayout.Wrap(report.Site.Describe(), 60))
+        {
+            legend.Text(new Point2(0, y), part, -1, 0.85);
+            y -= 5 * k;
+        }
+
+        y -= 3 * k;
+        foreach ((double from, double to, string color, string text) in bins)
         {
             var box = new List<Point2> { new(0, y - 4 * k), new(8 * k, y - 4 * k), new(8 * k, y + 1 * k), new(0, y + 1 * k) };
             legend.Fills.Add(new DrawFill(box, Rgb.Parse(color, Rgb.White)));
@@ -268,6 +339,7 @@ public static class SolarService
         }
 
         legend.Text(new Point2(0, y - 2 * k), "Sombra das copas adultas" + (report.UsedBuildings ? ", edificações e terreno." : "."), -1, 0.8);
+        legend.Text(new Point2(0, y - 7 * k), "Horas de sol direto num dia típico; sem horário de verão.", -1, 0.8);
         Bounds2 bounds = region.Bounds;
         new DrawingRenderer(document, view, textMm) { ElevationFeet = z }.Render(legend, new Point2(bounds.MaxX + 10 * k, bounds.MaxY));
         return view;

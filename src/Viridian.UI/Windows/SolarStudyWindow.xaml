@@ -1,0 +1,98 @@
+<ui:ViridianWindow x:Class="Viridian.UI.Windows.SolarStudyWindow"
+                   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:ui="clr-namespace:Viridian.UI"
+                   Title="Viridian — Estudo solar"
+                   Width="780" Height="760" MinWidth="680" MinHeight="560">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Style="{StaticResource VirHeader}" Text="Estudo solar" Margin="0" />
+            <TextBlock Style="{StaticResource VirHint}" Margin="0,2,0,8" TextWrapping="Wrap"
+                       Text="Calcula as horas de sol direto em cada ponto da região e em cada planta, com a sombra das copas adultas e, se marcado, das edificações e do terreno. O resultado é um calendário de luz (vista de desenho), mapas coloridos em cópias da planta e a lista das plantas que não recebem a luz que pedem." />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,0,8,0">
+                <TextBlock Style="{StaticResource VirSection}" Margin="0,0,0,4" Text="Local da obra" />
+                <TextBlock x:Name="SiteStatus" TextWrapping="Wrap" Margin="0,0,0,6" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="230" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Label Content="Colar coordenadas (_Google Maps)" Target="{Binding ElementName=PasteBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="PasteBox" Grid.Column="1" AutomationProperties.Name="Coordenadas coladas, por exemplo menos 22,9068 e menos 43,1729"
+                             ToolTip="Ex.: -22.9068, -43.1729  ou  22°54'24&quot;S 43°10'22&quot;W" />
+                    <Button Grid.Column="2" Content="_Usar" Click="Paste_Click" Margin="6,0,0,0" ToolTip="Preenche latitude e longitude a partir do texto colado" />
+                    <Label Grid.Row="1" Content="_Latitude (graus; sul negativo)" Target="{Binding ElementName=LatBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="LatBox" Grid.Row="1" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Latitude em graus, negativa no hemisfério sul" />
+                    <Label Grid.Row="2" Content="Lo_ngitude (graus; oeste negativo)" Target="{Binding ElementName=LonBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="LonBox" Grid.Row="2" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Longitude em graus, negativa a oeste" />
+                    <Label Grid.Row="3" Content="_Fuso horário (UTC; Brasília = −3)" Target="{Binding ElementName=TzBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="TzBox" Grid.Row="3" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Fuso horário em horas em relação ao UTC" />
+                    <Button Grid.Row="3" Grid.Column="2" Content="Sugerir" Click="SuggestZone_Click" Margin="6,0,0,0" ToolTip="Sugere o fuso pela longitude (confira: as divisas de fuso não seguem os meridianos)" />
+                    <Label Grid.Row="4" Content="Nome do _local" Target="{Binding ElementName=NameBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="NameBox" Grid.Row="4" Grid.Column="1" AutomationProperties.Name="Nome do local da obra" />
+                </Grid>
+                <CheckBox x:Name="SaveBox" Margin="0,6,0,0" Content="_Gravar estas coordenadas na localização do projeto (Gerenciar > Localização)" />
+                <TextBlock x:Name="NorthText" Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                <TextBlock Style="{StaticResource VirHint}" TextWrapping="Wrap"
+                           Text="A latitude define a altura do sol ao longo do ano; a longitude e o fuso definem os horários de nascer e pôr do sol no quadro. As horas de sol não dependem do fuso. Não há horário de verão." />
+
+                <TextBlock Style="{StaticResource VirSection}" Text="Período" />
+                <RadioButton x:Name="MonthlyRadio" GroupName="Period" Content="_Mês a mês: um dia típico de cada mês (recomendado)" Checked="Period_Changed" />
+                <RadioButton x:Name="KeyRadio" GroupName="Period" Content="_Solstícios e equinócio (mais rápido)" Checked="Period_Changed" Margin="0,2,0,0" />
+
+                <TextBlock Style="{StaticResource VirSection}" Text="Mapas em cópias da planta" />
+                <CheckBox x:Name="AnnualBox" Content="Média do _ano" />
+                <TextBlock x:Name="MonthsLabel" Style="{StaticResource VirLabel}" Margin="0,4,0,2" Text="Meses com mapa próprio:" />
+                <WrapPanel x:Name="MonthsPanel" />
+                <TextBlock x:Name="MapsHint" Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="0,2,0,0" />
+
+                <TextBlock Style="{StaticResource VirSection}" Text="Faixas de luz (horas de sol direto por dia)" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="230" />
+                        <ColumnDefinition Width="90" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Label Content="Sol pleno a partir de (h)" Target="{Binding ElementName=FullBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="FullBox" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Horas de sol para sol pleno" />
+                    <Label Grid.Row="1" Content="Meia-sombra a partir de (h)" Target="{Binding ElementName=ShadeBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="ShadeBox" Grid.Row="1" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Horas de sol para meia-sombra" />
+                    <Label Grid.Row="2" Content="Sombra parcial a partir de (h)" Target="{Binding ElementName=PartBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="PartBox" Grid.Row="2" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Horas de sol para sombra parcial" />
+                    <Label Grid.Row="3" Content="Tolerância &quot;no limite&quot; (h)" Target="{Binding ElementName=TolBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="TolBox" Grid.Row="3" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Tolerância em horas para considerar a planta no limite" />
+                    <TextBlock x:Name="BandsText" Grid.RowSpan="4" Grid.Column="2" Margin="12,0,0,0" TextWrapping="Wrap" VerticalAlignment="Top" />
+                </Grid>
+                <Button Content="Restaurar faixas padrão" Click="DefaultBands_Click" HorizontalAlignment="Left" Margin="0,6,0,0" />
+                <CheckBox x:Name="BuildingsBox" Margin="0,8,0,0" Content="Considerar _edificações e terreno (também de vínculos), além das copas" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <DockPanel Grid.Row="2" Margin="0,10,0,0" LastChildFill="False">
+            <Button Content="Cancelar" IsCancel="True" DockPanel.Dock="Right" />
+            <Button Content="_Calcular" Click="Run_Click" IsDefault="True" Style="{StaticResource VirPrimaryButton}" DockPanel.Dock="Right" />
+        </DockPanel>
+    </Grid>
+</ui:ViridianWindow>

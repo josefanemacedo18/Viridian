@@ -308,13 +308,18 @@
                         <TextBlock Style="{StaticResource VirHint}" Text="Com um terreno no projeto (toposólido ou superfície, também em vínculos), as plantas são assentadas sobre ele; em lajes e coberturas, ficam sobre a laje." />
 
                         <TextBlock Style="{StaticResource VirSection}" Text="Estudo solar" />
-                        <CheckBox x:Name="SolarProjectBox" Content="Usar a latitude da localização do projeto (Gerenciar > Localização)" />
+                        <CheckBox x:Name="SolarProjectBox" Content="Usar a localização do projeto (Gerenciar > Localização) quando definida" />
+                        <TextBlock Style="{StaticResource VirHint}" TextWrapping="Wrap" Text="As coordenadas abaixo são o ponto de partida quando o projeto não tem localização. Na janela do estudo é possível colar as coordenadas da obra e gravá-las no projeto." />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="300" />
                                 <ColumnDefinition Width="90" />
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
@@ -339,8 +344,16 @@
                             </Grid>
                             <TextBlock Grid.Row="4" Style="{StaticResource VirLabel}" Text="Sol pleno a partir de (h de sol direto)" />
                             <TextBox x:Name="SolarFullBox" Grid.Row="4" Grid.Column="1" AutomationProperties.Name="Horas para sol pleno" />
-                            <TextBlock Grid.Row="5" Style="{StaticResource VirLabel}" Text="Sombra abaixo de (h de sol direto)" />
-                            <TextBox x:Name="SolarShadeBox" Grid.Row="5" Grid.Column="1" AutomationProperties.Name="Horas para sombra" />
+                            <TextBlock Grid.Row="5" Style="{StaticResource VirLabel}" Text="Meia-sombra a partir de (h de sol direto)" />
+                            <TextBox x:Name="SolarShadeBox" Grid.Row="5" Grid.Column="1" AutomationProperties.Name="Horas para meia-sombra" />
+                            <TextBlock Grid.Row="6" Style="{StaticResource VirLabel}" Text="Sombra parcial a partir de (h; abaixo: sombra)" />
+                            <TextBox x:Name="SolarPartBox" Grid.Row="6" Grid.Column="1" AutomationProperties.Name="Horas para sombra parcial" />
+                            <TextBlock Grid.Row="7" Style="{StaticResource VirLabel}" Text="Tolerância &quot;no limite&quot; (h)" />
+                            <TextBox x:Name="SolarTolBox" Grid.Row="7" Grid.Column="1" AutomationProperties.Name="Tolerância em horas" />
+                            <TextBlock Grid.Row="8" Style="{StaticResource VirLabel}" Text="Longitude sem localização (graus; oeste negativo)" />
+                            <TextBox x:Name="SolarLonBox" Grid.Row="8" Grid.Column="1" AutomationProperties.Name="Longitude em graus" />
+                            <TextBlock Grid.Row="9" Style="{StaticResource VirLabel}" Text="Fuso sem localização (UTC; Brasília = −3)" />
+                            <TextBox x:Name="SolarTzBox" Grid.Row="9" Grid.Column="1" AutomationProperties.Name="Fuso horário" />
                         </Grid>
                         <CheckBox x:Name="SolarBuildingsBox" Content="Considerar edificações e terreno (também de vínculos), além das copas" />
 

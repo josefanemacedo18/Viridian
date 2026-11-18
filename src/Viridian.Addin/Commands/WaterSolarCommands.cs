@@ -100,7 +100,10 @@ public sealed class RainGardenCommand : CommandBase
     }
 }
 
-/// <summary>Estudo solar de uma região: mapa de horas de sol e plantas fora da luz que pedem.</summary>
+/// <summary>
+/// Estudo solar de uma região: horas de sol direto mês a mês (ou nos solstícios e no equinócio), calendário de luz,
+/// mapas em cópias da planta e as plantas que não recebem a luz que pedem, com sugestões de espécies.
+/// </summary>
 [Transaction(TransactionMode.Manual)]
 [Regeneration(RegenerationOption.Manual)]
 public sealed class SolarStudyCommand : CommandBase
@@ -109,34 +112,36 @@ public sealed class SolarStudyCommand : CommandBase
     {
         ctx.RequireModule(ctx.Settings.Modules.Solar, "Estudo solar");
         ViewPlan view = ctx.RequirePlanView();
-        SolarSettings settings = ctx.Settings.Solar;
-        double latitude = SolarService.Latitude(ctx.Doc, settings, out string place);
-        IReadOnlyList<SolarDate> all = Sun.KeyDates(latitude);
-
-        var dialog = new TaskDialog("Viridian — Estudo solar")
-        {
-            MainInstruction = "Que época analisar?",
-            MainContent = $"Latitude {latitude:0.00}° ({place}). As horas de sol direto consideram as copas adultas"
-                          + (settings.IncludeBuildings ? ", as edificações e o terreno (também de vínculos)." : ".")
-                          + "\nA latitude e o norte vêm de Gerenciar > Localização; ajustes em Configurações > Composição.",
-            CommonButtons = TaskDialogCommonButtons.Cancel,
-            AllowCancellation = true,
-        };
-        dialog.AddCommandLink(TaskDialogCommandLinkId.CommandLink1, "Média do ano", "Média do solstício de inverno, do equinócio e do solstício de verão.");
-        dialog.AddCommandLink(TaskDialogCommandLinkId.CommandLink2, all[0].Name, "Pior caso: sol mais baixo e sombras mais longas.");
-        dialog.AddCommandLink(TaskDialogCommandLinkId.CommandLink3, all[1].Name);
-        dialog.AddCommandLink(TaskDialogCommandLinkId.CommandLink4, all[2].Name);
-        (IReadOnlyList<SolarDate> dates, string label) = dialog.Show() switch
-        {
-            TaskDialogResult.CommandLink1 => ((IReadOnlyList<SolarDate>)all, "Média do ano (inverno, equinócio e verão)"),
-            TaskDialogResult.CommandLink2 => (new[] { all[0] }, all[0].Name),
-            TaskDialogResult.CommandLink3 => (new[] { all[1] }, all[1].Name),
-            TaskDialogResult.CommandLink4 => (new[] { all[2] }, all[2].Name),
-            _ => (Array.Empty<SolarDate>(), string.Empty),
-        };
-        if (dates.Count == 0)
+        ProjectSite project = SolarService.ReadSite(ctx.Doc, ctx.Settings.Solar);
+        var window = new SolarStudyWindow(project.Site, project.LooksUndefined, project.TrueNorthDeg, ctx.Settings.Solar);
+        if (!ctx.ShowDialog(window) || window.Site is not SolarSite site)
         {
             return Result.Cancelled;
+        }
+
+        ctx.Settings.Solar = window.Settings;
+        ctx.SaveSettings();
+        SolarSettings settings = window.Settings;
+
+        IReadOnlyList<SolarDate> dates = settings.Monthly ? Sun.MonthlyDates() : Sun.KeyDates(site.LatitudeDeg);
+        string period = settings.Monthly ? "Mês a mês (dia típico de cada mês)" : "Solstícios e equinócio";
+        var maps = new List<(string Label, Func<SolarPoint, double> Hours)>();
+        if (settings.MapAnnual)
+        {
+            maps.Add(("Média do ano", p => p.Average));
+        }
+
+        if (settings.Monthly)
+        {
+            foreach (int m in settings.MapMonths)
+            {
+                int index = m - 1;
+                maps.Add((Sun.MonthNames[index], p => p.Hours[index]));
+            }
+        }
+        else
+        {
+            maps.Add((dates[0].Name, p => p.Hours[0])); // solstício de inverno: pior caso
         }
 
         RegionBoundary region = ctx.PickRegion("o estudo solar");
@@ -144,72 +149,132 @@ public sealed class SolarStudyCommand : CommandBase
         List<(PlantRecord Record, Species Species)> shading = DesignFlows.Plants(ctx, view);
         double levelZ = RevitUnits.ToMeters(view.GenLevel!.ProjectElevation);
 
-        (ViewPlan map, SolarReport report) = ctx.Grouped("Viridian: estudo solar", () =>
+        (List<ViewPlan> created, ViewDrafting calendar, SolarReport report, List<LightCalendarRow> rows) = ctx.Grouped("Viridian: estudo solar", () =>
         {
             View3D probe = Tx.Run(ctx.Doc, "Viridian: estudo solar (preparo)", () =>
             {
+                if (window.SaveToProject)
+                {
+                    SolarService.SaveSite(ctx.Doc, site);
+                }
+
                 View3D v = SolarService.CreateProbeView(ctx.Doc);
                 ctx.Doc.Regenerate();
                 return v;
             });
-            SolarReport analyzed = SolarService.Analyze(ctx.Doc, probe, region.Polygon, levelZ, inside, shading, dates, settings, GrowthStage.Maturidade);
-            ViewPlan created = Tx.Run(ctx.Doc, "Viridian: estudo solar", () =>
+            SolarReport analyzed = SolarService.Analyze(ctx.Doc, probe, region.Polygon, levelZ, inside, shading, dates, settings, GrowthStage.Maturidade, site);
+            List<LightCalendarRow> calendarRows = CalendarRows(ctx, analyzed, settings);
+            (List<ViewPlan> views, ViewDrafting drafting) = Tx.Run(ctx.Doc, "Viridian: estudo solar", () =>
             {
-                ViewPlan heat = SolarService.HeatMap(ctx.Doc, view, region.Polygon, analyzed, label, ctx.Settings.Labels.TextSizeMm);
+                var heatMaps = maps.Select(m => SolarService.HeatMap(ctx.Doc, view, region.Polygon, analyzed, m.Label, m.Hours, settings, ctx.Settings.Labels.TextSizeMm)).ToList();
+                ViewDrafting cal = SolarService.CalendarView(ctx.Doc, view, analyzed, period, calendarRows, settings, ctx.Settings.Labels.TextSizeMm);
                 ctx.Doc.Delete(probe.Id);
-                return heat;
+                return (heatMaps, cal);
             }, suppressWarnings: true);
-            return (created, analyzed);
+            return (views, drafting, analyzed, calendarRows);
         }, _ => true);
 
-        ctx.UiDocument.ActiveView = map;
+        ctx.UiDocument.ActiveView = created.Count > 0 ? created[0] : calendar;
 
-        // Resumo e plantas cuja exigência de luz não combina com o local.
+        // Resumo, critérios e plantas cuja exigência de luz não combina com o local.
         double average = report.Grid.Count == 0 ? 0 : report.Grid.Average(g => g.Point.Average);
-        int full = report.Grid.Count(g => SolarClasses.Classify(g.Point.Average, settings) == LightNeed.SolPleno);
-        int shade = report.Grid.Count(g => SolarClasses.Classify(g.Point.Average, settings) == LightNeed.Sombra);
+        int full = report.Grid.Count(g => g.Point.Average >= settings.FullSunHours);
+        int shade = report.Grid.Count(g => g.Point.Average < settings.ShadeHours);
+        string mapsText = created.Count == 0 ? "nenhum mapa" : string.Join(", ", created.Select(v => $"\"{v.Name}\""));
+        string message = $"{period}. Local: {site.Describe()}. "
+                         + $"Média anual de {SolarClasses.Hours(average)} h de sol direto na região ({report.Grid.Count} pontos a cada {report.Cell:0.0} m): "
+                         + $"sol pleno (≥ {SolarClasses.Hours(settings.FullSunHours)} h) em {Percent(full, report.Grid.Count)}, "
+                         + $"menos de {SolarClasses.Hours(settings.ShadeHours)} h em {Percent(shade, report.Grid.Count)}. "
+                         + $"Calendário de luz na vista \"{calendar.Name}\"; mapas: {mapsText}. Cálculo em {report.Duration.TotalSeconds:0} s.";
+        if (window.SaveToProject)
+        {
+            message += " As coordenadas foram gravadas na localização do projeto.";
+        }
+        else if (site.Source == SiteSource.Digitado)
+        {
+            message += " As coordenadas digitadas não foram gravadas no projeto.";
+        }
+
         var issues = new List<IntegrityIssue>
         {
-            new()
-            {
-                Severity = IssueSeverity.Info,
-                Kind = IssueKind.Composicao,
-                Message = $"{label}: média de {average:0.0} h de sol direto na região ({report.Grid.Count} pontos a cada {report.Cell:0.0} m). "
-                          + $"Sol pleno (≥ {settings.FullSunHours:0} h) em {Percent(full, report.Grid.Count)}; sombra (< {settings.ShadeHours:0} h) em {Percent(shade, report.Grid.Count)}. "
-                          + $"Mapa na vista \"{map.Name}\". Cálculo em {report.Duration.TotalSeconds:0} s.",
-                ElementIds = Array.Empty<long>(),
-            },
+            new() { Severity = IssueSeverity.Info, Kind = IssueKind.Composicao, Message = message, ElementIds = Array.Empty<long>() },
         };
+
+        int fine = 0, unknown = 0;
         foreach (SolarPlant p in report.Plants)
         {
-            string? problem = SolarClasses.Mismatch(p.Species, p.Point.Average, p.Point.Hours[0], settings);
-            if (problem is not null)
+            PlantLight? light = PlantLight.Evaluate(p.Species.Light, p.Point.Hours, dates, settings);
+            if (light is null)
             {
-                issues.Add(new IntegrityIssue
-                {
-                    Severity = IssueSeverity.Aviso,
-                    Kind = IssueKind.Composicao,
-                    Message = $"{ctx.ProjectCode(p.Species)} {p.Species.PopularName} {problem}",
-                    ElementIds = new[] { p.Record.ElementId },
-                });
+                unknown++;
+                continue;
             }
-        }
 
-        if (issues.Count == 1)
-        {
-            IntegrityIssue first = issues[0];
-            issues[0] = new IntegrityIssue
+            if (light.Failing == 0)
             {
-                Severity = first.Severity,
-                Kind = first.Kind,
-                Message = first.Message + (report.Plants.Count == 0 ? " Não há plantas do catálogo na região." : " Todas as plantas da região recebem a luz que pedem."),
-                ElementIds = first.ElementIds,
-            };
+                fine++;
+                continue;
+            }
+
+            string name = $"{ctx.ProjectCode(p.Species)} {p.Species.PopularName}";
+            bool majority = light.Verdict == LightFit.NaoAtende;
+            string text = $"{name} {light.Describe(settings)}";
+            if (majority)
+            {
+                List<Species> suggestions = SolarSuggestions.For(p.Species, light.Mean, ctx.Catalog.All, settings);
+                if (suggestions.Count > 0)
+                {
+                    text += $" Sugestões do catálogo para {SolarClasses.NeedText(SolarClasses.Classify(light.Mean, settings), settings)}, apenas como sugestão: "
+                            + string.Join(", ", suggestions.Select(x => x.PopularName)) + ".";
+                }
+            }
+            else
+            {
+                text = $"{name} atende na maior parte do ano. " + text[(name.Length + 1)..];
+            }
+
+            issues.Add(new IntegrityIssue
+            {
+                Severity = majority ? IssueSeverity.Aviso : IssueSeverity.Info,
+                Kind = IssueKind.Composicao,
+                Message = text,
+                ElementIds = new[] { p.Record.ElementId },
+            });
         }
 
-        var window = new IntegrityWindow(issues, ids => ctx.ShowElements(ids)) { Title = "Viridian — Estudo solar" };
-        ctx.ShowDialog(window);
+        string tail = report.Plants.Count == 0 ? " Não há plantas do catálogo na região."
+            : $" {fine} de {report.Plants.Count} planta(s) recebem a luz que pedem em todos os {(dates.Count == 12 ? "meses" : "períodos")}"
+              + (unknown > 0 ? $"; {unknown} sem a luz informada na ficha." : ".");
+        IntegrityIssue first = issues[0];
+        issues[0] = new IntegrityIssue { Severity = first.Severity, Kind = first.Kind, Message = first.Message + tail, ElementIds = first.ElementIds };
+
+        var result = new IntegrityWindow(issues, ids => ctx.ShowElements(ids)) { Title = "Viridian — Estudo solar" };
+        ctx.ShowDialog(result);
         return Result.Succeeded;
+    }
+
+    /// <summary>Linhas do calendário de luz: a região (média dos pontos) e cada espécie (média dos seus exemplares).</summary>
+    private static List<LightCalendarRow> CalendarRows(ViridianContext ctx, SolarReport report, SolarSettings settings)
+    {
+        int n = report.Dates.Count;
+        var rows = new List<LightCalendarRow>();
+        if (report.Grid.Count > 0)
+        {
+            double[] region = Enumerable.Range(0, n).Select(d => report.Grid.Average(g => g.Point.Hours[d])).ToArray();
+            rows.Add(new LightCalendarRow("Região analisada (média)", region, null, 0));
+        }
+
+        foreach (IGrouping<string, SolarPlant> group in report.Plants.GroupBy(p => p.Species.Id).OrderBy(g => ctx.ProjectCode(g.First().Species), StringComparer.OrdinalIgnoreCase))
+        {
+            Species species = group.First().Species;
+            double[] hours = Enumerable.Range(0, n).Select(d => group.Average(p => p.Point.Hours[d])).ToArray();
+            int count = group.Count();
+            string label = $"{ctx.ProjectCode(species)} {species.PopularName}" + (count > 1 ? $" ({count})" : string.Empty)
+                           + species.Light switch { LightNeed.SolPleno => " · sol", LightNeed.MeiaSombra => " · meia-sombra", LightNeed.Sombra => " · sombra", _ => string.Empty };
+            rows.Add(new LightCalendarRow(label, hours, PlantLight.Evaluate(species.Light, hours, report.Dates, settings), count));
+        }
+
+        return rows;
     }
 
     private static string Percent(int part, int total) => total == 0 ? "0%" : $"{100.0 * part / total:0}%";

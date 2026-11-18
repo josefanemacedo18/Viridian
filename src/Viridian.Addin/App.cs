@@ -157,7 +157,7 @@ public sealed class App : IExternalApplication
             Small<FloweringCalendarCommand, ProjectAvailability>(assembly, "Calendário de Floração", "calendar",
                 "Quadro com o que está florido em cada mês do ano no projeto, nas cores das flores, e os meses sem floração."),
             Small<SolarStudyCommand, ProjectAvailability>(assembly, "Estudo Solar", "solar",
-                "Horas de sol direto numa região, com a sombra das copas adultas, das edificações e do terreno: mapa colorido numa cópia da planta e plantas que não recebem a luz que pedem."));
+                "Horas de sol direto mês a mês numa região, com a sombra das copas adultas, das edificações e do terreno, pelas coordenadas da obra: calendário de luz, mapas coloridos em cópias da planta e plantas que não recebem a luz que pedem, com sugestões de espécies."));
 
         RibbonPanel detailing = app.CreateRibbonPanel(TabName, "Detalhamento");
         Large<MemorialCommand, ProjectAvailability>(detailing, assembly, "Memorial\nIlustrado", "memorial",

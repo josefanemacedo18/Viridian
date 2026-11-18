@@ -1,4 +1,4 @@
-﻿VIRIDIAN 1.5.1 — Paisagismo 2D técnico para Autodesk Revit 2027
+﻿VIRIDIAN 1.6 — Paisagismo 2D técnico para Autodesk Revit 2027
 ==============================================================
 
 INSTALAR
@@ -36,6 +36,13 @@ PRIMEIROS PASSOS
 9. Estudo Solar (painel Composição): horas de sol com a sombra das copas e
    das edificações; Quadro de Especificação (painel Documentação); aba
    Compras nos relatórios.
+
+NOVIDADES DA 1.6
+- Estudo Solar refeito: coordenadas da obra (lidas do projeto; se faltarem,
+  o Viridian avisa e você pode colar do Google Maps e gravar no projeto),
+  cálculo mês a mês, cinco faixas de luz editáveis, calendário de luz com
+  nascer e pôr do sol, mapas da média e dos meses escolhidos e sugestões de
+  espécies para as plantas que não recebem a luz que pedem.
 
 NOVIDADES DA 1.5
 - Símbolos coloridos no Revit como na biblioteca (copa e floração). Em
