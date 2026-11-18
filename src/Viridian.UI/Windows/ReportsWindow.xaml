@@ -71,6 +71,40 @@
                     <TextBlock x:Name="AcquisitionTotal" Grid.Row="1" Style="{StaticResource VirValue}" HorizontalAlignment="Right" Margin="0,6,0,0" />
                 </Grid>
             </TabItem>
+            <TabItem x:Name="PurchasesTab" Header="Compras">
+                <Grid Margin="4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource VirHint}" TextWrapping="Wrap"
+                                   Text="Registre o que já foi comprado: o comparativo mostra o que falta comprar e o que sobra depois de substituições ou exclusões de espécies. Digite a quantidade na coluna Comprado. O registro fica gravado no projeto." />
+                        <WrapPanel Margin="0,6,0,6">
+                            <Button Content="_Marcar a lista atual como comprada" Click="PurchaseAll_Click" Margin="0"
+                                    ToolTip="Preenche Comprado com a quantidade de compra de cada item" />
+                            <Button Content="Completar só o que _falta" Click="PurchaseMissing_Click"
+                                    ToolTip="Acrescenta às compras apenas a diferença dos itens em falta" />
+                            <Button Content="_Zerar compras" Click="PurchaseClear_Click" />
+                        </WrapPanel>
+                    </StackPanel>
+                    <DataGrid x:Name="PurchaseGrid" Grid.Row="1" IsReadOnly="False" CellEditEnding="PurchaseGrid_CellEditEnding"
+                              AutomationProperties.Name="Comparativo entre o projeto e as compras">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Código" Binding="{Binding Code}" Width="70" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Nome popular" Binding="{Binding PopularName}" Width="*" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Nome científico" Binding="{Binding ScientificName}" Width="*" FontStyle="Italic" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Unidade" Binding="{Binding Unit}" Width="66" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Necessário" Binding="{Binding Needed, StringFormat=N0}" Width="84" IsReadOnly="True" ElementStyle="{StaticResource VirRightCell}" />
+                            <DataGridTextColumn Header="Comprado" Binding="{Binding Purchased, UpdateSourceTrigger=LostFocus}" Width="84" FontWeight="SemiBold" ElementStyle="{StaticResource VirRightCell}" />
+                            <DataGridTextColumn Header="Diferença" Binding="{Binding Difference, StringFormat=+#;-#;0}" Width="80" IsReadOnly="True" ElementStyle="{StaticResource VirRightCell}" />
+                            <DataGridTextColumn Header="Situação" Binding="{Binding Status}" Width="190" IsReadOnly="True" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock x:Name="PurchaseSummary" Grid.Row="2" Style="{StaticResource VirValue}" HorizontalAlignment="Right" Margin="0,6,0,0" />
+                </Grid>
+            </TabItem>
             <TabItem x:Name="BudgetTab" Header="Orçamento">
                 <Grid Margin="4">
                     <Grid.RowDefinitions>

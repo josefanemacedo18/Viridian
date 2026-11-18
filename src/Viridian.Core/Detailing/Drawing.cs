@@ -120,3 +120,50 @@ public sealed class Drawing
         return points.Any() ? Bounds2.FromPoints(points) : new Bounds2(0, 0, 0, 0);
     }
 }
+
+/// <summary>Quebra de texto por número de caracteres, sem cortar palavras.</summary>
+public static class TextLayout
+{
+    public static IEnumerable<string> Wrap(string? text, int width)
+    {
+        width = Math.Max(8, width);
+        foreach (string paragraph in (text ?? string.Empty).Replace("\r\n", "\n").Split('\n'))
+        {
+            var line = new System.Text.StringBuilder();
+            foreach (string word in paragraph.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                string piece = word;
+                while (piece.Length > width)
+                {
+                    // Palavra maior que a linha (códigos, endereços): corta para não estourar a coluna.
+                    if (line.Length > 0)
+                    {
+                        yield return line.ToString();
+                        line.Clear();
+                    }
+
+                    yield return piece[..width];
+                    piece = piece[width..];
+                }
+
+                if (line.Length > 0 && line.Length + 1 + piece.Length > width)
+                {
+                    yield return line.ToString();
+                    line.Clear();
+                }
+
+                if (line.Length > 0)
+                {
+                    line.Append(' ');
+                }
+
+                line.Append(piece);
+            }
+
+            if (line.Length > 0)
+            {
+                yield return line.ToString();
+            }
+        }
+    }
+}

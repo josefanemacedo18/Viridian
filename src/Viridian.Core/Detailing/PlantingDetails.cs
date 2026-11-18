@@ -89,6 +89,48 @@ public static class PlantingDetails
         }
     }
 
+    /// <summary>Cova quadrada: largura × largura × profundidade (m³ por unidade). Zero para canteiros e gramados.</summary>
+    public static double PitVolumeM3(PlantingDimensions d) =>
+        d.PitWidthM > 0 && d.PitDepthM > 0 ? d.PitWidthM * d.PitWidthM * d.PitDepthM : 0;
+
+    /// <summary>
+    /// Texto da escavação em centímetros: "60 × 60 × 60 cm" para covas ou "camada de 20 cm" para canteiros e gramados.
+    /// </summary>
+    public static string ExcavationText(PlantingDimensions d)
+    {
+        static string Cm(double m) => Math.Round(m * 100).ToString("0", Pt);
+        if (d.PitWidthM > 0 && d.PitDepthM > 0)
+        {
+            return $"{Cm(d.PitWidthM)} × {Cm(d.PitWidthM)} × {Cm(d.PitDepthM)} cm";
+        }
+
+        return d.SoilLayerM > 0 ? $"camada de {Cm(d.SoilLayerM)} cm" : "—";
+    }
+
+    /// <summary>
+    /// Volume de escavação (m³) para a quantidade informada: covas × volume da cova, ou área (m²) × camada de solo nos
+    /// canteiros e gramados vendidos por área. Nulo quando não é possível estimar (forração vendida por muda sem área).
+    /// </summary>
+    public static double? ExcavationM3(PlantingDimensions d, double quantity, bool quantityIsArea)
+    {
+        if (quantity <= 0)
+        {
+            return 0;
+        }
+
+        if (d.PitWidthM > 0 && d.PitDepthM > 0 && !quantityIsArea)
+        {
+            return quantity * PitVolumeM3(d);
+        }
+
+        if (d.SoilLayerM > 0 && quantityIsArea)
+        {
+            return quantity * d.SoilLayerM;
+        }
+
+        return null;
+    }
+
     private static double DefaultSeedlingHeight(Species s) => s.Category switch
     {
         PlantCategory.Arvore => 2.0,

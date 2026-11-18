@@ -454,3 +454,58 @@ public sealed class MemorialCommand : CommandBase
         }
     }
 }
+
+/// <summary>Quadro de especificação da vegetação para a prancha (vista de desenho em escala 1:1).</summary>
+[Transaction(TransactionMode.Manual)]
+[Regeneration(RegenerationOption.Manual)]
+public sealed class SpecificationBoardCommand : CommandBase
+{
+    public const string ViewName = "Viridian - Quadro de especificação";
+
+    internal override Result Run(ViridianContext ctx)
+    {
+        ProjectSnapshot snapshot = ProjectReader.Read(ctx.Doc, ctx.Lookup);
+        List<(Species Species, SpeciesReportRow Row)> species = DesignFlows.ProjectSpecies(ctx, snapshot);
+        if (species.Count == 0)
+        {
+            throw new ViridianException("Não há vegetação do catálogo no projeto.");
+        }
+
+        var items = species.Select(s => new SpecificationItem(s.Species, s.Row.Code, s.Row.Total, s.Row.Unit)).ToList();
+        Drawing drawing = SpecificationBoard.Build(items, ctx.Settings.Specifications, ctx.Settings.Labels.TextSizeMm);
+        var design = new DesignService(ctx.Settings.Labels.TextSizeMm);
+        ViewSheet? sheet = ctx.UiDocument.ActiveView as ViewSheet;
+        (ViewDrafting view, bool placed) = ctx.Grouped("Viridian: quadro de especificação", () =>
+            Tx.Run(ctx.Doc, "Viridian: quadro de especificação", () =>
+            {
+                ViewDrafting created = design.DrawingView(ctx.Doc, ViewName, drawing, 1);
+                bool onSheet = false;
+                if (sheet is not null && Viewport.CanAddViewToSheet(ctx.Doc, sheet.Id, created.Id))
+                {
+                    // Colocado no centro da prancha; o usuário arrasta para a posição definitiva.
+                    BoundingBoxUV outline = sheet.Outline;
+                    var center = new XYZ((outline.Min.U + outline.Max.U) / 2, (outline.Min.V + outline.Max.V) / 2, 0);
+                    Viewport.Create(ctx.Doc, sheet.Id, created.Id, center);
+                    onSheet = true;
+                }
+
+                return (created, onSheet);
+            }, suppressWarnings: true), _ => true);
+
+        if (placed)
+        {
+            TaskDialog.Show("Viridian", $"Quadro de especificação colocado no centro da prancha \"{sheet!.SheetNumber} - {sheet.Name}\". Arraste-o para a posição desejada.");
+        }
+        else
+        {
+            ctx.UiDocument.ActiveView = view;
+            TaskDialog.Show("Viridian",
+                $"Quadro criado na vista de desenho \"{ViewName}\" ({items.Count} espécie(s)).\n\n" +
+                (sheet is not null
+                    ? "O quadro já está em outra prancha; o conteúdo foi atualizado lá."
+                    : "Para colocá-lo na prancha, abra a prancha e rode o comando de novo, ou arraste a vista do Navegador de projeto para a prancha."));
+        }
+
+        return Result.Succeeded;
+    }
+}

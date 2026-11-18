@@ -87,33 +87,7 @@ public sealed class DesignService
     }
 
     /// <summary>Quebra o texto em linhas de até <paramref name="width"/> caracteres, sem cortar palavras.</summary>
-    public static IEnumerable<string> Wrap(string text, int width)
-    {
-        foreach (string paragraph in (text ?? string.Empty).Replace("\r\n", "\n").Split('\n'))
-        {
-            var line = new System.Text.StringBuilder();
-            foreach (string word in paragraph.Split(' ', StringSplitOptions.RemoveEmptyEntries))
-            {
-                if (line.Length > 0 && line.Length + 1 + word.Length > width)
-                {
-                    yield return line.ToString();
-                    line.Clear();
-                }
-
-                if (line.Length > 0)
-                {
-                    line.Append(' ');
-                }
-
-                line.Append(word);
-            }
-
-            if (line.Length > 0)
-            {
-                yield return line.ToString();
-            }
-        }
-    }
+    public static IEnumerable<string> Wrap(string text, int width) => TextLayout.Wrap(text, width);
 
     /// <summary>Escala usual que faz o desenho caber em cerca de 50 cm de largura no papel.</summary>
     public static int FitScale(Drawing drawing, double paperWidthM = 0.5)

@@ -17,7 +17,8 @@ public static class ReportSheets
         DateTime generatedAt,
         Budget? budget = null,
         IReadOnlyList<MaintenanceTask>? maintenance = null,
-        string priceReference = "")
+        string priceReference = "",
+        IReadOnlyList<PurchaseComparisonRow>? purchases = null)
     {
         string subtitle = (string.IsNullOrWhiteSpace(projectTitle) ? string.Empty : projectTitle + " · ")
                           + "Gerado pelo Viridian em " + generatedAt.ToString("dd/MM/yyyy HH:mm", CultureInfo.GetCultureInfo("pt-BR"));
@@ -77,6 +78,11 @@ public static class ReportSheets
             acquisition.Sum(r => r.PurchaseQuantity), null, null, acquisition.Sum(r => r.Total)) { Bold = true });
 
         var sheets = new List<XlsxSheet> { bySpecies, byMassing, purchase };
+        if (purchases is not null && purchases.Count > 0)
+        {
+            sheets.Add(PurchaseSheet(purchases, subtitle));
+        }
+
         if (budget is not null && budget.Rows.Count > 0)
         {
             sheets.Add(BudgetSheet(budget, subtitle, priceReference));
@@ -88,6 +94,26 @@ public static class ReportSheets
         }
 
         return sheets;
+    }
+
+    private static XlsxSheet PurchaseSheet(IReadOnlyList<PurchaseComparisonRow> rows, string subtitle)
+    {
+        var sheet = new XlsxSheet("Compras");
+        sheet.TitleLines.Add("Comparativo entre o projeto e as compras realizadas");
+        sheet.TitleLines.Add(subtitle);
+        sheet.Columns.AddRange(new[]
+        {
+            new XlsxColumn("Código", 10), new XlsxColumn("Nome popular", 26), new XlsxColumn("Nome científico", 32), new XlsxColumn("Unidade", 10),
+            new XlsxColumn("Necessário", 12, XlsxFormat.Integer), new XlsxColumn("Comprado", 12, XlsxFormat.Integer),
+            new XlsxColumn("Diferença", 12, XlsxFormat.Integer), new XlsxColumn("Situação", 30),
+        });
+        foreach (PurchaseComparisonRow r in rows)
+        {
+            sheet.Rows.Add(new XlsxRow(r.Code, r.PopularName, r.ScientificName, r.Unit, r.Needed, r.Purchased, r.Difference, r.Status));
+        }
+
+        sheet.Rows.Add(new XlsxRow("Total", null, null, null, rows.Sum(r => r.Needed), rows.Sum(r => r.Purchased), rows.Sum(r => r.Difference), null) { Bold = true });
+        return sheet;
     }
 
     private static XlsxSheet BudgetSheet(Budget budget, string subtitle, string reference)

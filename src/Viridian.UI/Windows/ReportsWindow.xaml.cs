@@ -34,6 +34,9 @@ public sealed class ReportExtras
 
     /// <summary>Grava o código da tabela de preços na espécie (identificador, código, é serviço). Retorna falso se não gravou.</summary>
     public Func<string, string, bool, bool>? LinkCode { get; init; }
+
+    /// <summary>Compras já registradas no projeto (nulo quando não há registro).</summary>
+    public PurchaseLedger? Purchases { get; init; }
 }
 
 /// <summary>Linha do cronograma com os meses marcados, para a grade.</summary>
@@ -100,6 +103,7 @@ public partial class ReportsWindow : ViridianWindow
     private Budget _budget = new();
     private IReadOnlyList<MaintenanceTask> _maintenance = Array.Empty<MaintenanceTask>();
     private bool _loading = true;
+    private List<PurchaseComparisonRow> _purchaseRows = new();
 
     public ReportsWindow(
         string projectTitle,
@@ -122,11 +126,26 @@ public partial class ReportsWindow : ViridianWindow
         SpeciesGrid.ItemsSource = species;
         MassingGrid.ItemsSource = massings;
         AcquisitionGrid.ItemsSource = acquisition;
+        _purchaseRows = PurchaseComparison.Build(acquisition, extras.Purchases);
+        foreach (PurchaseComparisonRow row in _purchaseRows)
+        {
+            row.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(PurchaseComparisonRow.Purchased))
+                {
+                    PurchasesChanged = true;
+                    UpdatePurchaseSummary();
+                }
+            };
+        }
+
+        PurchaseGrid.ItemsSource = _purchaseRows;
+        UpdatePurchaseSummary();
         decimal total = acquisition.Sum(a => a.Total);
         AcquisitionTotal.Text = "Total estimado: " + total.ToString("C2", Num.PtBr)
                                 + (acquisition.Any(a => a.UnitPrice == 0) ? "   (há itens sem preço cadastrado)" : string.Empty);
 
-        foreach (DataGrid grid in new[] { SpeciesGrid, MassingGrid, AcquisitionGrid, BudgetGrid, MaintenanceGrid })
+        foreach (DataGrid grid in new[] { SpeciesGrid, MassingGrid, AcquisitionGrid, PurchaseGrid, BudgetGrid, MaintenanceGrid })
         {
             grid.Language = Language;
         }
@@ -170,6 +189,79 @@ public partial class ReportsWindow : ViridianWindow
 
     /// <summary>Indica que BDI, referência, mês de plantio ou estação seca mudaram e devem ser gravados.</summary>
     public bool SettingsChanged { get; private set; }
+
+    /// <summary>Indica que as quantidades compradas foram editadas e devem ser gravadas no projeto.</summary>
+    public bool PurchasesChanged { get; private set; }
+
+    /// <summary>Registro de compras como ficou na janela.</summary>
+    public PurchaseLedger Purchases => PurchaseComparison.ToLedger(_purchaseRows, DateTime.Now);
+
+    // ------------------------------------------------------------------ compras
+
+    private void UpdatePurchaseSummary()
+    {
+        (int items, int missing, int surplus) = PurchaseComparison.Summary(_purchaseRows);
+        PurchaseSummary.Text = _purchaseRows.All(r => r.Purchased == 0)
+            ? "Nenhuma compra registrada."
+            : (items == 0 ? "Todos os itens atendidos" : $"{items} item(ns) com falta: {missing.ToString("N0", Num.PtBr)} unidade(s) a comprar")
+              + (surplus > 0 ? $"   ·   {surplus.ToString("N0", Num.PtBr)} unidade(s) sobrando" : string.Empty);
+    }
+
+    private void PurchaseAll_Click(object sender, RoutedEventArgs e)
+    {
+        PurchaseGrid.CommitEdit(DataGridEditingUnit.Row, true);
+        foreach (PurchaseComparisonRow row in _purchaseRows.Where(r => !r.OutOfProject))
+        {
+            row.Purchased = row.Needed;
+        }
+    }
+
+    private void PurchaseMissing_Click(object sender, RoutedEventArgs e)
+    {
+        PurchaseGrid.CommitEdit(DataGridEditingUnit.Row, true);
+        foreach (PurchaseComparisonRow row in _purchaseRows.Where(r => r.Difference < 0))
+        {
+            row.Purchased = row.Needed;
+        }
+    }
+
+    private void PurchaseClear_Click(object sender, RoutedEventArgs e)
+    {
+        if (!Confirm("Zerar todas as quantidades compradas deste projeto?"))
+        {
+            return;
+        }
+
+        PurchaseGrid.CancelEdit();
+        foreach (PurchaseComparisonRow row in _purchaseRows)
+        {
+            row.Purchased = 0;
+        }
+    }
+
+    private void PurchaseGrid_CellEditEnding(object? sender, DataGridCellEditEndingEventArgs e)
+    {
+        if (e.EditAction != DataGridEditAction.Commit || e.EditingElement is not TextBox box)
+        {
+            return;
+        }
+
+        // Aceita só números inteiros não negativos; texto inválido volta ao valor anterior.
+        string text = box.Text.Trim().Replace(".", string.Empty);
+        if (text.Length == 0)
+        {
+            box.Text = "0";
+        }
+        else if (!int.TryParse(text, System.Globalization.NumberStyles.Integer, Num.PtBr, out int value) || value < 0)
+        {
+            e.Cancel = true;
+            Warn("Digite a quantidade comprada como número inteiro (0 ou mais).");
+        }
+        else
+        {
+            box.Text = value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+    }
 
     /// <summary>Indica que o cadastro de alguma espécie foi alterado (códigos de preço vinculados).</summary>
     public bool CatalogChanged { get; private set; }
@@ -390,8 +482,10 @@ public partial class ReportsWindow : ViridianWindow
 
         try
         {
+            PurchaseGrid.CommitEdit(DataGridEditingUnit.Row, true);
             XlsxWriter.Write(dialog.FileName, ReportSheets.Build(
-                _projectTitle, _species, _massings, _acquisition, DateTime.Now, _budget, _maintenance, _extras.Settings.Costs.PriceReference));
+                _projectTitle, _species, _massings, _acquisition, DateTime.Now, _budget, _maintenance, _extras.Settings.Costs.PriceReference,
+                _purchaseRows.Any(r => r.Purchased > 0) ? _purchaseRows : null));
             if (Confirm("Planilha exportada:\n" + dialog.FileName + "\n\nAbrir agora?"))
             {
                 Process.Start(new ProcessStartInfo(dialog.FileName) { UseShellExecute = true });

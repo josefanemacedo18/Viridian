@@ -51,6 +51,9 @@ public sealed class ProjectData
 
     /// <summary>Código da espécie neste projeto, por identificador de espécie (codificação por projeto).</summary>
     public Dictionary<string, string> SpeciesCodes { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Quantidades já compradas (comparativo de aquisição).</summary>
+    public Viridian.Core.Reports.PurchaseLedger Purchases { get; set; } = new();
 }
 
 /// <summary>
@@ -193,6 +196,8 @@ public static class ElementData
             {
                 data.SpeciesCodes = new Dictionary<string, string>(
                     data.SpeciesCodes ?? new Dictionary<string, string>(), StringComparer.OrdinalIgnoreCase);
+                data.Purchases ??= new Viridian.Core.Reports.PurchaseLedger();
+                data.Purchases.Items ??= new List<Viridian.Core.Reports.PurchaseRecord>();
                 return data;
             }
         }

@@ -253,7 +253,56 @@ public static class MemorialBuilder
             }
         }
 
+        Excavation(b, species);
         b.Add(new DocParagraph("Dimensões de covas, tutores e camadas são valores de referência; confira com as normas locais e com o responsável técnico.", DocStyle.Small));
+    }
+
+    /// <summary>Quadro de escavação: dimensões da cova em centímetros e volume total por espécie.</summary>
+    private static void Excavation(List<DocBlock> b, IReadOnlyList<MemorialSpecies> species)
+    {
+        if (species.Count == 0)
+        {
+            return;
+        }
+
+        b.Add(new DocParagraph("Covas e escavação", DocStyle.Heading2));
+        b.Add(new DocParagraph("Dimensões a escavar em cada ponto de plantio (largura × comprimento × profundidade) ou espessura da camada de solo preparado nos canteiros e gramados."));
+        var rows = new List<IReadOnlyList<DocCell>>
+        {
+            new[] { "Código", "Espécie", "Plantio", "Escavar", "Qtd.", "Volume (m³)" }.Select(h => new DocCell(h)).ToList(),
+        };
+        double total = 0;
+        bool partial = false;
+        foreach (MemorialSpecies s in species)
+        {
+            PlantingDimensions d = PlantingDetails.Dimensions(s.Species);
+            double? volume = PlantingDetails.ExcavationM3(d, s.Quantity, Reports.SupplyUnits.IsAreaBased(s.Unit));
+            if (volume is double v)
+            {
+                total += v;
+            }
+            else
+            {
+                partial = true;
+            }
+
+            rows.Add(new[]
+            {
+                new DocCell(s.Code),
+                new DocCell(s.Species.PopularName),
+                new DocCell(PlantingDetails.Name(d.Kind)),
+                new DocCell(PlantingDetails.ExcavationText(d)),
+                new DocCell(Quantity(s)),
+                new DocCell(volume is double vol ? vol.ToString("N2", Pt) : "pela área do canteiro"),
+            });
+        }
+
+        rows.Add(new[]
+        {
+            new DocCell("Total", bold: true), new DocCell(string.Empty), new DocCell(string.Empty), new DocCell(string.Empty), new DocCell(string.Empty),
+            new DocCell(total.ToString("N2", Pt) + (partial ? " + canteiros" : string.Empty), bold: true),
+        });
+        b.Add(new DocTable(new[] { 0.8, 2.0, 1.6, 1.9, 1.2, 1.2 }, rows, FontPt: 9));
     }
 
     private static void Maintenance(List<DocBlock> b, IReadOnlyList<MaintenanceTask> tasks)

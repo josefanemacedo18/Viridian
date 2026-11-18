@@ -175,6 +175,7 @@ public class ReportsCommand : CommandBase
             Settings = ctx.Settings,
             MaintenanceItems = DocumentationFlows.MaintenanceItems(ctx, species, acquisition),
             LinkCode = (id, code, service) => DocumentationFlows.LinkPriceCode(ctx, id, code, service),
+            Purchases = ElementData.ReadProject(ctx.Doc).Purchases,
         };
         var window = new ReportsWindow(
             ProjectReader.ProjectTitle(ctx.Doc),
@@ -187,6 +188,18 @@ public class ReportsCommand : CommandBase
         if (window.SettingsChanged)
         {
             ctx.SaveSettings();
+        }
+
+        if (window.PurchasesChanged)
+        {
+            // Relê os dados do projeto para não sobrescrever outras informações gravadas entretanto.
+            PurchaseLedger ledger = window.Purchases;
+            Tx.Run(ctx.Doc, "Viridian: compras registradas", () =>
+            {
+                ProjectData data = ElementData.ReadProject(ctx.Doc);
+                data.Purchases = ledger;
+                ElementData.WriteProject(ctx.Doc, data);
+            });
         }
 
         if (!accepted)
