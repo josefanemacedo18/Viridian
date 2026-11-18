@@ -28,6 +28,15 @@ SvgSheets.MemorialSample(Path.Combine(outDir, "memorial-exemplo.docx"), Path.Get
 File.WriteAllText(Path.Combine(outDir, "quadro-fotos.svg"), SvgSheets.PhotoBoardSheet(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "Viridian.Addin", "Fotos"))));
 File.WriteAllText(Path.Combine(outDir, "maquete.svg"), MaquetePreview.Scene(Viridian.Core.Detailing.GrowthStage.Maturidade));
 File.WriteAllText(Path.Combine(outDir, "maquete-plantio.svg"), MaquetePreview.Scene(Viridian.Core.Detailing.GrowthStage.Plantio));
+File.WriteAllText(Path.Combine(outDir, "pisos.svg"), PavingPreview.Sheet());
+foreach (string id in new[] { "vir-paver-10x20-espinha", "vir-deck-cumaru", "vir-drenante-bloco", "vir-fulget-moldado" })
+{
+    var piso = Viridian.Core.Paving.PavingDefaults.Create().First(t => t.Id == id);
+    File.WriteAllText(Path.Combine(outDir, "detalhe-" + id + ".svg"), SvgSheets.DrawingSvg(Viridian.Core.Paving.PavingDetail.Draw(piso), 1100));
+}
+
+File.WriteAllText(Path.Combine(outDir, "jardim-de-chuva.svg"), SvgSheets.DrawingSvg(WaterSolarPreview.RainGarden(), 260));
+File.WriteAllText(Path.Combine(outDir, "estudo-solar.svg"), WaterSolarPreview.Solar());
 Console.WriteLine("Pranchas geradas em " + Path.GetFullPath(outDir));
 
 internal static class SvgSheets
@@ -193,6 +202,9 @@ internal static class SvgSheets
             new[] { new Viridian.Core.Detailing.GrowthMassing(amendoim, new Polygon2(new[] { new Point2(3, 1), new Point2(12, 1), new Point2(12, 4), new Point2(3, 4) })) }, colors), 9);
         var cal = Viridian.Core.Composition.FloweringCalendar.Build(all.Where(s => !string.IsNullOrEmpty(s.FlowerColor)).Take(14).Select(s => (s, s.Code, 1.0)));
         yield return ("calendario", Viridian.Core.Composition.CalendarDrawing.Build(cal, colors, "Calendário de floração"), 6000);
+        var specItems = new[] { ipe, jeriva, Find("Plinia cauliflora"), pitanga, amendoim, Find("Bauhinia variegata") }
+            .Select((s, i) => new Viridian.Core.Detailing.SpecificationItem(s, s.Code, 2 + i * 3, s.SupplyUnit)).ToList();
+        yield return ("quadro-especificacao", Viridian.Core.Detailing.SpecificationBoard.Build(specItems, new Viridian.Core.Detailing.SpecificationSettings(), 2.0), 5500);
     }
 
     /// <summary>SVG de um desenho do Viridian (metros × fator em pixels).</summary>

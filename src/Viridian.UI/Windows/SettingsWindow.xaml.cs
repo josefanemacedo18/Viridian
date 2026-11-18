@@ -343,6 +343,18 @@ public partial class SettingsWindow : ViridianWindow
         ModelSearchBox.Text = Num.Format(s.Model3D.TerrainSearchM);
         ModelTrunkBox.Text = s.Model3D.TrunkColor;
         ModelFlowersBox.IsChecked = s.Model3D.ShowFlowers;
+        SolarProjectBox.IsChecked = s.Solar.UseProjectLocation;
+        SolarLatBox.Text = Num.Format(s.Solar.LatitudeDeg, "0.####");
+        SolarNorthBox.Text = Num.Format(s.Solar.NorthAdjustDeg);
+        SolarStepBox.Text = s.Solar.StepMinutes.ToString(Num.PtBr);
+        SolarGridBox.Text = Num.Format(s.Solar.GridM);
+        SolarMaxBox.Text = s.Solar.MaxPoints.ToString(Num.PtBr);
+        SolarFullBox.Text = Num.Format(s.Solar.FullSunHours);
+        SolarShadeBox.Text = Num.Format(s.Solar.ShadeHours);
+        SolarBuildingsBox.IsChecked = s.Solar.IncludeBuildings;
+        ModulePavingBox.IsChecked = s.Modules.Paving;
+        ModuleRainBox.IsChecked = s.Modules.RainGarden;
+        ModuleSolarBox.IsChecked = s.Modules.Solar;
 
         s.Specifications.Normalize();
         _specTemplates = new Dictionary<string, string>(s.Specifications.Templates);
@@ -705,6 +717,17 @@ public partial class SettingsWindow : ViridianWindow
         double maxCrown = Number(MaxCrownBox, "Copa adulta em relação ao canteiro", 20, 300);
         int modelMax = Integer(ModelMaxBox, "Máximo de exemplares da maquete", 1, Core.Model3D.ModelSettings.HardLimit);
         double modelSearch = Number(ModelSearchBox, "Distância de busca do terreno", 0.5, 200);
+        double solarLat = Number(SolarLatBox, "Latitude", -66, 66);
+        double solarNorth = Number(SolarNorthBox, "Ajuste do norte", -180, 180);
+        int solarStep = Integer(SolarStepBox, "Intervalo do estudo solar", 10, 120);
+        double solarGrid = Number(SolarGridBox, "Malha do estudo solar", 0.25, 20);
+        int solarMax = Integer(SolarMaxBox, "Máximo de pontos do estudo solar", 50, 5000);
+        double solarFull = Number(SolarFullBox, "Horas de sol pleno", 1, 14);
+        double solarShade = Number(SolarShadeBox, "Horas de sombra", 0, 14);
+        if (problems.Count == 0 && solarShade > solarFull)
+        {
+            problems.Add("As horas de sombra devem ser menores que as de sol pleno.");
+        }
         if (!Core.Colors.Rgb.TryParse(ModelTrunkBox.Text.Trim(), out _))
         {
             problems.Add("Cor dos troncos inválida (use o formato #RRGGBB).");
@@ -785,6 +808,24 @@ public partial class SettingsWindow : ViridianWindow
             CheckFlowering = RuleFloweringBox.IsChecked == true,
         };
         s.Specifications = new SpecificationSettings { Templates = new Dictionary<string, string>(_specTemplates) };
+        s.Solar = new Core.Solar.SolarSettings
+        {
+            UseProjectLocation = SolarProjectBox.IsChecked == true,
+            LatitudeDeg = solarLat,
+            NorthAdjustDeg = solarNorth,
+            StepMinutes = solarStep,
+            GridM = solarGrid,
+            MaxPoints = solarMax,
+            FullSunHours = solarFull,
+            ShadeHours = solarShade,
+            IncludeBuildings = SolarBuildingsBox.IsChecked == true,
+        };
+        s.Modules = new ModuleSettings
+        {
+            Paving = ModulePavingBox.IsChecked == true,
+            RainGarden = ModuleRainBox.IsChecked == true,
+            Solar = ModuleSolarBox.IsChecked == true,
+        };
         s.Model3D = new Core.Model3D.ModelSettings
         {
             MaxPlants = modelMax,

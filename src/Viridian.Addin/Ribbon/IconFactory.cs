@@ -346,6 +346,61 @@ internal static class IconFactory
                 Arrow(dc, new Point(4, 9), new Point(14, 4), accent);
                 break;
 
+            case "spec":
+                dc.DrawRectangle(Fill(Colors.White), main, new Rect(3, 4, 26, 24));
+                dc.DrawLine(main, new Point(3, 10), new Point(29, 10));
+                dc.DrawLine(thin, new Point(10, 4), new Point(10, 28));
+                dc.DrawLine(thin, new Point(13, 15), new Point(26, 15));
+                dc.DrawLine(thin, new Point(13, 20), new Point(26, 20));
+                dc.DrawLine(thin, new Point(13, 25), new Point(22, 25));
+                dc.DrawEllipse(green, null, new Point(6.5, 16), 2, 2);
+                break;
+
+            case "paving":
+            {
+                Brush stone = Fill(Color.FromRgb(0xCF, 0xC8, 0xBA));
+                dc.DrawRectangle(stone, main, new Rect(3, 4, 26, 24));
+                dc.DrawLine(thin, new Point(3, 12), new Point(29, 12));
+                dc.DrawLine(thin, new Point(3, 20), new Point(29, 20));
+                dc.DrawLine(thin, new Point(12, 4), new Point(12, 12));
+                dc.DrawLine(thin, new Point(21, 4), new Point(21, 12));
+                dc.DrawLine(thin, new Point(7, 12), new Point(7, 20));
+                dc.DrawLine(thin, new Point(16, 12), new Point(16, 20));
+                dc.DrawLine(thin, new Point(25, 12), new Point(25, 20));
+                dc.DrawLine(thin, new Point(12, 20), new Point(12, 28));
+                dc.DrawLine(thin, new Point(21, 20), new Point(21, 28));
+                break;
+            }
+
+            case "raingarden":
+            {
+                Brush water = Fill(Color.FromRgb(0x8E, 0xC3, 0xE6));
+                dc.DrawGeometry(Fill(Color.FromRgb(0xA9, 0x8A, 0x63)), thin, Geometry.Parse("M 2,14 L 8,14 L 11,24 L 21,24 L 24,14 L 30,14 L 30,28 L 2,28 Z"));
+                dc.DrawGeometry(water, null, Geometry.Parse("M 9,18 L 23,18 L 21,24 L 11,24 Z"));
+                dc.DrawLine(main, new Point(16, 18), new Point(16, 9));
+                dc.DrawLine(main, new Point(16, 12), new Point(12, 7));
+                dc.DrawLine(main, new Point(16, 12), new Point(20, 7));
+                dc.DrawLine(Stroke(Color.FromRgb(0x3A, 0x7B, 0xB8), 1.3, size), new Point(6, 3), new Point(5, 7));
+                dc.DrawLine(Stroke(Color.FromRgb(0x3A, 0x7B, 0xB8), 1.3, size), new Point(26, 3), new Point(25, 7));
+                break;
+            }
+
+            case "solar":
+            {
+                Brush sun = Fill(Color.FromRgb(0xF2, 0xB8, 0x2E));
+                dc.DrawEllipse(sun, accent, new Point(10, 10), 5, 5);
+                for (int i = 0; i < 8; i++)
+                {
+                    double a = i * Math.PI / 4;
+                    dc.DrawLine(accent, new Point(10 + Math.Cos(a) * 7, 10 + Math.Sin(a) * 7), new Point(10 + Math.Cos(a) * 9, 10 + Math.Sin(a) * 9));
+                }
+
+                dc.DrawGeometry(Fill(Color.FromArgb(0x70, 0x34, 0x45, 0x7A)), null, Geometry.Parse("M 18,28 L 30,28 L 30,22 L 24,19 Z"));
+                dc.DrawLine(main, new Point(21, 28), new Point(21, 20));
+                dc.DrawEllipse(light, main, new Point(21, 16), 5, 5);
+                break;
+            }
+
             case "model3d":
             {
                 // Caixa isométrica com uma árvore em volume.

@@ -168,6 +168,15 @@ internal sealed class ViridianContext
 
     // ------------------------------------------------------------------ vistas e seleção
 
+    /// <summary>Interrompe o comando quando o módulo foi desligado em Configurações.</summary>
+    public void RequireModule(bool enabled, string name)
+    {
+        if (!enabled)
+        {
+            throw new ViridianException($"O módulo \"{name}\" está desativado em Configurações > Módulos.");
+        }
+    }
+
     /// <summary>Vista em planta ativa, exigida pelos comandos de plantio.</summary>
     public ViewPlan RequirePlanView()
     {

@@ -137,7 +137,9 @@ public sealed class App : IExternalApplication
             Small<CadExportCommand, ProjectAvailability>(assembly, "Exportar CAD", "cad",
                 "Exporta vistas e pranchas para DWG (com cores e preenchimentos) e gera a biblioteca de blocos DXF dos símbolos."),
             Small<SchedulesCommand, ProjectAvailability>(assembly, "Tabelas Nativas", "schedule",
-                "Cria as tabelas de vegetação do Revit (por espécie e por exemplar)."));
+                "Cria as tabelas de vegetação do Revit (por espécie e por exemplar)."),
+            Small<SpecificationBoardCommand, ProjectAvailability>(assembly, "Quadro de Especificação", "spec",
+                "Tabela com código, espécie, quantidade, muda, escavação em centímetros e a especificação de cada espécie, para a prancha. Com uma prancha aberta, o quadro é colocado nela."));
 
         RibbonPanel composition = app.CreateRibbonPanel(TabName, "Composição");
         Large<PaletteCommand, AlwaysAvailable>(composition, assembly, "Ateliê de\nPaletas", "palette",
@@ -147,7 +149,9 @@ public sealed class App : IExternalApplication
             Small<BedCheckCommand, ProjectAvailability>(assembly, "Verificar Canteiro", "composition",
                 "Avalia a composição de um canteiro: equilíbrio entre espécies, diversidade, contraste de texturas, escala, sub-bosque de palmeiras e floração ao longo do ano."),
             Small<FloweringCalendarCommand, ProjectAvailability>(assembly, "Calendário de Floração", "calendar",
-                "Quadro com o que está florido em cada mês do ano no projeto, nas cores das flores, e os meses sem floração."));
+                "Quadro com o que está florido em cada mês do ano no projeto, nas cores das flores, e os meses sem floração."),
+            Small<SolarStudyCommand, ProjectAvailability>(assembly, "Estudo Solar", "solar",
+                "Horas de sol direto numa região, com a sombra das copas adultas, das edificações e do terreno: mapa colorido numa cópia da planta e plantas que não recebem a luz que pedem."));
 
         RibbonPanel detailing = app.CreateRibbonPanel(TabName, "Detalhamento");
         Large<MemorialCommand, ProjectAvailability>(detailing, assembly, "Memorial\nIlustrado", "memorial",
@@ -160,6 +164,14 @@ public sealed class App : IExternalApplication
                 "Desenhe uma linha na planta: as plantas cortadas aparecem em silhueta com altura e copa reais, no plantio, aos 3 ou 6 anos ou na maturidade."),
             Small<GrowthCommand, ProjectAvailability>(assembly, "Crescimento 2D", "growth",
                 "O mesmo canteiro no plantio, aos 3 e 6 anos e na maturidade, com as copas estimadas pela taxa de crescimento."));
+
+        RibbonPanel paving = app.CreateRibbonPanel(TabName, "Pisos e Drenagem");
+        Large<PavingCommand, AlwaysAvailable>(paving, assembly, "Gerador\nde Pisos", "paving",
+            "Biblioteca de pisos (cimentícios, fulget, intertravados, drenantes, pedras, porcelanatos, concreto, decks, pedriscos, emborrachados e grama-concreto) com paginação, juntas, cores e camadas personalizáveis.",
+            "Aplica o piso a pisos do Revit (tipo com camadas e material com a paginação em escala real), cria a hachura para plantas, o detalhe em corte e o quantitativo.");
+        Large<RainGardenCommand, ProjectAvailability>(paving, assembly, "Jardim\nde Chuva", "raingarden",
+            "Dimensiona o jardim de chuva pelo volume a reter, sugere plantas para fundo, taludes e bordas e cria o detalhe em corte com o memorial de cálculo.",
+            "Selecione telhados ou pisos antes do comando para somar a área de contribuição.");
 
         RibbonPanel model = app.CreateRibbonPanel(TabName, "Maquete 3D");
         Large<MaqueteCommand, ProjectAvailability>(model, assembly, "Maquete\n3D", "model3d",

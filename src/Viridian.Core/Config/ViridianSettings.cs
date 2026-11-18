@@ -14,6 +14,8 @@ using Viridian.Core.Interference;
 using Viridian.Core.Composition;
 using Viridian.Core.Detailing;
 using Viridian.Core.Model3D;
+using Viridian.Core.Water;
+using Viridian.Core.Solar;
 
 namespace Viridian.Core.Config;
 
@@ -157,6 +159,15 @@ public sealed class ViridianSettings
     /// <summary>Maquete 3D.</summary>
     public ModelSettings Model3D { get; set; } = new();
 
+    /// <summary>Liga e desliga os módulos da versão 1.4 (se algum der problema, o restante continua funcionando).</summary>
+    public ModuleSettings Modules { get; set; } = new();
+
+    /// <summary>Jardim de chuva.</summary>
+    public RainGardenSettings RainGarden { get; set; } = new();
+
+    /// <summary>Estudo solar.</summary>
+    public SolarSettings Solar { get; set; } = new();
+
     public TierStyle StyleOf(SymbolTier tier) =>
         TierStyles.FirstOrDefault(s => s.Tier == tier) ?? DefaultTierStyles().FirstOrDefault(s => s.Tier == tier) ?? new TierStyle { Tier = tier };
 
@@ -184,6 +195,11 @@ public sealed class ViridianSettings
         Specifications.Normalize();
         Model3D ??= new ModelSettings();
         Model3D.Normalize();
+        Modules ??= new ModuleSettings();
+        RainGarden ??= new RainGardenSettings();
+        RainGarden.Normalize();
+        Solar ??= new SolarSettings();
+        Solar.Normalize();
         Density ??= new DensityRules();
         Density.Normalize();
         InstanceCode ??= new InstanceCodeFormat();
@@ -251,6 +267,16 @@ public sealed class AccessibilitySettings
     {
         TextScale = double.IsFinite(TextScale) ? Math.Clamp(TextScale, 1.0, 2.0) : 1.0;
     }
+}
+
+/// <summary>Módulos que podem ser desligados nas configurações.</summary>
+public sealed class ModuleSettings
+{
+    public bool Paving { get; set; } = true;
+
+    public bool RainGarden { get; set; } = true;
+
+    public bool Solar { get; set; } = true;
 }
 
 /// <summary>Leitura e escrita de cores no formato #RRGGBB.</summary>

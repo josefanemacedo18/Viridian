@@ -306,6 +306,49 @@
                         </Grid>
                         <CheckBox x:Name="ModelFlowersBox" Content="Manchas de flor nas espécies de floração vistosa" />
                         <TextBlock Style="{StaticResource VirHint}" Text="Com um terreno no projeto (toposólido ou superfície, também em vínculos), as plantas são assentadas sobre ele; em lajes e coberturas, ficam sobre a laje." />
+
+                        <TextBlock Style="{StaticResource VirSection}" Text="Estudo solar" />
+                        <CheckBox x:Name="SolarProjectBox" Content="Usar a latitude da localização do projeto (Gerenciar > Localização)" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="300" />
+                                <ColumnDefinition Width="90" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Style="{StaticResource VirLabel}" Text="Latitude sem localização no projeto (graus; sul negativo)" />
+                            <TextBox x:Name="SolarLatBox" Grid.Column="1" AutomationProperties.Name="Latitude em graus" />
+                            <TextBlock Grid.Row="1" Style="{StaticResource VirLabel}" Text="Ajuste do norte (graus, anti-horário)" />
+                            <TextBox x:Name="SolarNorthBox" Grid.Row="1" Grid.Column="1" AutomationProperties.Name="Ajuste do norte em graus" />
+                            <TextBlock Grid.Row="2" Style="{StaticResource VirLabel}" Text="Intervalo entre posições do sol (min)" />
+                            <TextBox x:Name="SolarStepBox" Grid.Row="2" Grid.Column="1" AutomationProperties.Name="Intervalo em minutos" />
+                            <TextBlock Grid.Row="3" Style="{StaticResource VirLabel}" Text="Malha de análise (m) · máximo de pontos" />
+                            <Grid Grid.Row="3" Grid.Column="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="SolarGridBox" AutomationProperties.Name="Lado da malha em metros" />
+                                <TextBox x:Name="SolarMaxBox" Grid.Column="1" Margin="4,0,0,0" AutomationProperties.Name="Máximo de pontos" />
+                            </Grid>
+                            <TextBlock Grid.Row="4" Style="{StaticResource VirLabel}" Text="Sol pleno a partir de (h de sol direto)" />
+                            <TextBox x:Name="SolarFullBox" Grid.Row="4" Grid.Column="1" AutomationProperties.Name="Horas para sol pleno" />
+                            <TextBlock Grid.Row="5" Style="{StaticResource VirLabel}" Text="Sombra abaixo de (h de sol direto)" />
+                            <TextBox x:Name="SolarShadeBox" Grid.Row="5" Grid.Column="1" AutomationProperties.Name="Horas para sombra" />
+                        </Grid>
+                        <CheckBox x:Name="SolarBuildingsBox" Content="Considerar edificações e terreno (também de vínculos), além das copas" />
+
+                        <TextBlock Style="{StaticResource VirSection}" Text="Módulos" />
+                        <TextBlock Style="{StaticResource VirHint}" Text="Desligue um módulo se ele der problema no seu projeto: o restante do Viridian continua funcionando." />
+                        <CheckBox x:Name="ModulePavingBox" Content="Gerador de pisos" />
+                        <CheckBox x:Name="ModuleRainBox" Content="Jardim de chuva" />
+                        <CheckBox x:Name="ModuleSolarBox" Content="Estudo solar" />
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
