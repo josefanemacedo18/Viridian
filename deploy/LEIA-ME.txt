@@ -1,4 +1,4 @@
-﻿VIRIDIAN 1.5 — Paisagismo 2D técnico para Autodesk Revit 2027
+﻿VIRIDIAN 1.5.1 — Paisagismo 2D técnico para Autodesk Revit 2027
 ==============================================================
 
 INSTALAR
@@ -40,7 +40,8 @@ PRIMEIROS PASSOS
 NOVIDADES DA 1.5
 - Símbolos coloridos no Revit como na biblioteca (copa e floração). Em
   projetos já começados, rode Viridian > Atualizar Dados uma vez para regerar
-  os símbolos. A cor usa o modelo "Item de detalhe" instalado com o Revit.
+  os símbolos. Na 1.5.1 a cor passou a ser uma superfície fina com material
+  colorido dentro da família, aceita por qualquer modelo de família.
 - Maciços com traçado próprio por espécie e as cores da biblioteca; arbustos,
   forrações e herbáceas usam hachura (sem árvores no meio).
 - Quadro de fotos: arraste a foto e a linha de ligação acompanha.

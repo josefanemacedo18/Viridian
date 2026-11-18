@@ -339,6 +339,21 @@ public static class MaqueteService
                 view.SetCategoryHidden(new ElementId(BuiltInCategory.OST_Entourage), false);
             }
         });
+        Try("cores dos símbolos 2D ocultas", () =>
+        {
+            // As camadas de cor dos símbolos de planta são superfícies finas no chão: na maquete, só os volumes.
+            if (!templated && Category.GetCategory(document, BuiltInCategory.OST_Planting) is Category planting)
+            {
+                foreach (Core.Symbols.SymbolTier tier in new[] { Core.Symbols.SymbolTier.Fill, Core.Symbols.SymbolTier.Flowers })
+                {
+                    string name = Core.Symbols.TierVisibility.SubcategoryName(tier);
+                    if (planting.SubCategories.Contains(name))
+                    {
+                        view.SetCategoryHidden(planting.SubCategories.get_Item(name).Id, true);
+                    }
+                }
+            }
+        });
 
         // Arestas das malhas no tom da folhagem, para não riscar as copas.
         foreach ((ElementId id, Rgb color) in lineColors)

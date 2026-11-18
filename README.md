@@ -188,7 +188,7 @@ Os símbolos 2D são gerados proceduralmente, em **dimensão real**, centrados n
 
 Cada espécie recebe a cor da sua folhagem (ou uma variação suave e estável da cor-base da categoria) e, quando floresce de forma vistosa, manchas na cor da flor. As linhas usam tons de verde-escuro e marrom, que leem bem sobre as copas e também em impressão em preto e branco. O preenchimento pode ser **sólido**, **reticulado** ou desligado.
 
-No Revit, as cores ficam num **componente de detalhe** aninhado na família de vegetação (gerado a partir do modelo "Item de detalhe" da instalação do Revit), o que garante a cor da biblioteca em planta. Se esse modelo não for encontrado, o Viridian tenta o método antigo e avisa quando não conseguir colorir. Em projetos criados com versões anteriores, rode **Atualizar Dados** para regerar os símbolos coloridos.
+No Revit, as cores ficam em **superfícies finíssimas (2 mm) com material na cor** da copa e da flor, dentro da própria família de vegetação: o padrão de superfície do material mostra a cor em planta nos estilos "Linhas ocultas" e "Sombreado", e as linhas do símbolo ficam por cima. Não depende de nenhum outro modelo de família. Essas camadas ficam nas subcategorias VIR Preenchimento e VIR Floração (as escalas as ligam e desligam), não aparecem em elevações e cortes e ficam ocultas na Maquete 3D; em outras vistas 3D aparecem como discos coloridos no chão, que podem ser ocultados em Visibilidade/Gráficos. Se o Revit recusar, o Viridian tenta outros dois métodos e, se nenhum servir, avisa mostrando o motivo. Em projetos criados com versões anteriores, rode **Atualizar Dados** para regerar os símbolos coloridos.
 
 ![Símbolos coloridos do catálogo](docs/img/cores.png)
 

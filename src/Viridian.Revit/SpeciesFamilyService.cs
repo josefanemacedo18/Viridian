@@ -388,10 +388,14 @@ public sealed class SpeciesFamilyService
                 if (SymbolFamilyBuilder.ColorFailures.Count > failuresBefore && !_colorWarningShown)
                 {
                     _colorWarningShown = true;
-                    Autodesk.Revit.UI.TaskDialog.Show("Viridian — cores do símbolo",
-                        $"O Revit não aceitou as cores do símbolo de \"{typeName}\"; ele foi inserido só com as linhas.\n\n"
-                        + "Verifique se a pasta de modelos de família do Revit (Arquivo > Opções > Locais de arquivos) contém o modelo "
-                        + "\"Item de detalhe\" (Metric Detail Item). O detalhe técnico ficou no registro de erros (Viridian > Sobre).");
+                    var dialog = new Autodesk.Revit.UI.TaskDialog("Viridian — cores do símbolo")
+                    {
+                        MainInstruction = $"O Revit não aceitou as cores do símbolo de \"{typeName}\".",
+                        MainContent = "O símbolo foi inserido só com as linhas. Envie esta mensagem (ou o registro de erros, em Viridian > Sobre) "
+                                      + "para a correção. Modelo de família usado: " + Path.GetFileName(template) + ".",
+                        ExpandedContent = "Motivos informados pelo Revit:\n" + SymbolFamilyBuilder.LastColorFailureReason,
+                    };
+                    dialog.Show();
                 }
 
                 if (!string.Equals(_settings.FamilyTemplateFile, template, StringComparison.OrdinalIgnoreCase))

@@ -27,10 +27,13 @@ public sealed class TemplateRejectedException : Exception
 public static class SymbolFamilyBuilder
 {
     /// <summary>Versão da montagem da família. Ao aumentá-la, as famílias geradas são refeitas.</summary>
-    public const int Version = 5;
+    public const int Version = 6;
 
     /// <summary>Espécies cujas cores o Revit recusou nesta sessão (para avisar o usuário uma única vez).</summary>
     public static List<string> ColorFailures { get; } = new();
+
+    /// <summary>Motivos da última recusa das cores (mostrados no aviso ao usuário).</summary>
+    public static string LastColorFailureReason { get; private set; } = string.Empty;
 
     /// <summary>Gera o arquivo .rfa de um símbolo. Não pode haver transação aberta em nenhum documento.</summary>
     /// <param name="paint">Cores da copa e da floração.</param>
@@ -145,40 +148,58 @@ public static class SymbolFamilyBuilder
         double tolerance = app.ShortCurveTolerance * 1.05;
         Plane plane = Plane.CreateByNormalAndOrigin(XYZ.BasisZ, new XYZ(0, 0, elevation));
 
-        // Etapa 2: cores (copa e floração). Primeiro como componente de detalhe aninhado (regiões de vista comuns,
-        // sempre exibidas nas plantas); se não houver modelo de detalhe, como regiões no plano do nível. São opcionais:
-        // se o Revit recusar, a etapa é desfeita e o símbolo segue só com as linhas (e o usuário é avisado).
+        // Etapa 2: cores (copa e floração). Três métodos, do mais ao menos robusto: (1) superfícies finas com material
+        // colorido (só extrusão e material, aceitos por qualquer família de modelo); (2) componente de detalhe aninhado
+        // com regiões preenchidas; (3) regiões preenchidas no plano do nível. São opcionais: se todos falharem, o
+        // símbolo segue só com as linhas e o usuário é avisado com o motivo.
         if (paint.HasFill)
         {
-            bool colored = NestedColorComponent.TryDraw(app, familyDocument, symbol, paint, elevation, tolerance);
+            var reasons = new List<string>();
+            bool colored = RunSilently(familyDocument, "Viridian: cores do símbolo (superfícies)", required: false, () =>
+            {
+                if (SurfaceColors.Draw(familyDocument, symbol, paint, elevation, tolerance, subcategories, reasons) == 0)
+                {
+                    throw new ViridianException("nenhuma superfície colorida foi criada");
+                }
+            }, reasons);
+
             if (!colored)
             {
-                int before = FamilyFills.CountRegions(familyDocument);
-                colored = RunSilently(familyDocument, "Viridian: cores do símbolo", required: false, () =>
-                {
-                    SketchPlane fillPlane = SketchPlane.Create(familyDocument, plane);
-                    FamilyFills.Draw(familyDocument, symbol, paint, fillPlane, elevation, tolerance, subcategories);
-                }) && FamilyFills.CountRegions(familyDocument) > before;
+                colored = NestedColorComponent.TryDraw(app, familyDocument, symbol, paint, elevation, tolerance, reasons);
             }
 
             if (!colored)
             {
-                ViridianLog.Warn($"O símbolo \"{typeName}\" foi gerado sem as cores: o Revit recusou as regiões preenchidas.");
+                int before = FamilyFills.CountRegions(familyDocument);
+                colored = RunSilently(familyDocument, "Viridian: cores do símbolo (regiões)", required: false, () =>
+                {
+                    SketchPlane fillPlane = SketchPlane.Create(familyDocument, plane);
+                    FamilyFills.Draw(familyDocument, symbol, paint, fillPlane, elevation, tolerance, subcategories);
+                }, reasons) && FamilyFills.CountRegions(familyDocument) > before;
+            }
+
+            if (!colored)
+            {
+                string why = string.Join("; ", reasons.Distinct().Take(6));
+                ViridianLog.Warn($"O símbolo \"{typeName}\" foi gerado sem as cores. Motivos: {why}");
                 lock (ColorFailures)
                 {
                     ColorFailures.Add(typeName);
+                    LastColorFailureReason = why;
                 }
             }
         }
 
         // Etapa 3: linhas simbólicas e tipo.
         int skipped = 0;
+        // As linhas ficam logo acima das camadas de cor (6 mm), para nunca serem encobertas por elas em planta.
+        Plane linePlane = Plane.CreateByNormalAndOrigin(XYZ.BasisZ, new XYZ(0, 0, elevation + 3 * SurfaceColors.LayerFeet));
         RunSilently(familyDocument, "Viridian: símbolo 2D", required: true, () =>
         {
-            SketchPlane sketchPlane = SketchPlane.Create(familyDocument, plane);
+            SketchPlane sketchPlane = SketchPlane.Create(familyDocument, linePlane);
             foreach (SymbolPrimitive primitive in symbol.Primitives)
             {
-                Curve? curve = ToCurve(primitive, elevation, tolerance);
+                Curve? curve = ToCurve(primitive, elevation + 3 * SurfaceColors.LayerFeet, tolerance);
                 if (curve is null)
                 {
                     skipped++;
@@ -216,7 +237,7 @@ public static class SymbolFamilyBuilder
     /// se houver erro, a etapa é desfeita. Nas etapas obrigatórias o erro rejeita o modelo (o próximo é tentado);
     /// nas opcionais apenas devolve falso.
     /// </summary>
-    private static bool RunSilently(Document document, string name, bool required, Action action)
+    private static bool RunSilently(Document document, string name, bool required, Action action, List<string>? reasons = null)
     {
         var failures = new SilentFailures();
         using var transaction = new Transaction(document, name);
@@ -234,6 +255,7 @@ public static class SymbolFamilyBuilder
         {
             transaction.RollBack();
             ViridianLog.Warn(name + ": etapa desfeita.", ex);
+            reasons?.Add(ex.Message);
             return false;
         }
         catch
@@ -258,6 +280,7 @@ public static class SymbolFamilyBuilder
         }
 
         ViridianLog.Warn(name + ": etapa desfeita (" + reason + ").");
+        reasons?.Add(reason);
         return false;
     }
 

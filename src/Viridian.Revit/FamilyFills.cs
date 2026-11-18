@@ -265,6 +265,12 @@ internal static class FamilyFills
         }
     }
 
+    /// <summary>Padrão sólido de desenho (ou de modelo) do documento, para materiais.</summary>
+    internal static ElementId? SolidPatternId(Document document) => SolidPatterns(document).FirstOrDefault()?.Id;
+
+    /// <summary>Padrão reticulado da copa, criado quando falta. Precisa de transação.</summary>
+    internal static ElementId? CrownHatchPatternId(Document document) => HatchPattern(document)?.Id;
+
     /// <summary>Padrões sólidos do documento: primeiro os de desenho, depois os de modelo.</summary>
     private static List<FillPatternElement> SolidPatterns(Document document)
     {
@@ -362,12 +368,14 @@ internal static class NestedColorComponent
         PlantSymbol symbol,
         SymbolPaint paint,
         double elevation,
-        double tolerance)
+        double tolerance,
+        List<string> reasons)
     {
         IReadOnlyList<string> templates = FamilyTemplateLocator.DetailCandidates(app);
         if (templates.Count == 0)
         {
             ViridianLog.Warn("Cores do símbolo: nenhum modelo de componente de detalhe encontrado nas pastas de modelos do Revit.");
+            reasons.Add("modelo \"Item de detalhe\" não encontrado");
             return false;
         }
 
@@ -381,10 +389,11 @@ internal static class NestedColorComponent
             {
                 if (!BuildDetailFamily(app, template, symbol, paint, tolerance, file))
                 {
+                    reasons.Add(Path.GetFileName(template) + ": regiões recusadas");
                     continue;
                 }
 
-                if (Nest(familyDocument, file, elevation))
+                if (Nest(familyDocument, file, elevation, reasons))
                 {
                     ViridianLog.Info($"Cores do símbolo: componente de detalhe aninhado ({Path.GetFileName(template)}).");
                     return true;
@@ -394,6 +403,7 @@ internal static class NestedColorComponent
             {
                 // As cores são opcionais: qualquer recusa aqui leva ao método alternativo, nunca interrompe o símbolo.
                 ViridianLog.Warn("Cores do símbolo: componente de detalhe com o modelo " + template, ex);
+                reasons.Add(Path.GetFileName(template) + ": " + ex.Message);
             }
             finally
             {
@@ -493,7 +503,7 @@ internal static class NestedColorComponent
     }
 
     /// <summary>Carrega o componente na família de vegetação e o coloca na vista em planta, no ponto de inserção.</summary>
-    private static bool Nest(Document familyDocument, string file, double elevation)
+    private static bool Nest(Document familyDocument, string file, double elevation, List<string> reasons)
     {
         ViewPlan? plan;
         using (var collector = new FilteredElementCollector(familyDocument))
@@ -551,6 +561,7 @@ internal static class NestedColorComponent
             }
 
             ViridianLog.Warn("Cores do símbolo: o componente de detalhe não pôde ser aninhado.", ex);
+            reasons.Add("aninhar componente: " + ex.Message);
             return false;
         }
     }
@@ -643,6 +654,195 @@ internal static class NestedColorComponent
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // arquivo temporário: será sobrescrito na próxima vez
+        }
+    }
+}
+
+/// <summary>
+/// Cores do símbolo como superfícies finíssimas (2 mm) no nível, com material na cor da copa e da flor. O padrão de
+/// superfície sólido do material aparece em planta em "Linhas ocultas" e "Sombreado". Usa apenas extrusão e material,
+/// recursos básicos de qualquer família de modelo, sem depender de regiões preenchidas nem de outros modelos de família.
+/// As superfícies ficam nas subcategorias "VIR Preenchimento" e "VIR Floração" (controladas pelas escalas) e não
+/// aparecem em vistas de elevação e corte.
+/// </summary>
+internal static class SurfaceColors
+{
+    /// <summary>Espessura de cada camada de cor: 2 mm (a floração fica por cima da copa).</summary>
+    internal const double LayerFeet = 2.0 / 304.8;
+
+    /// <summary>Desenha as cores. Retorna quantas superfícies foram criadas. Precisa de transação.</summary>
+    public static int Draw(
+        Document familyDocument,
+        PlantSymbol symbol,
+        SymbolPaint paint,
+        double elevation,
+        double tolerance,
+        IReadOnlyDictionary<SymbolTier, Category> subcategories,
+        List<string> reasons)
+    {
+        int created = 0;
+        if (paint.Mode != CrownFillMode.Nenhum && symbol.FillOutline.Count >= 3)
+        {
+            ElementId? crown = EnsureMaterial(familyDocument, paint.Mode == CrownFillMode.Solido ? "VIR Copa" : "VIR Copa reticulado", paint.Crown, hatch: paint.Mode != CrownFillMode.Solido, reasons);
+            CurveArray? outline = Polygon(symbol.FillOutline, elevation, tolerance);
+            if (crown is null)
+            {
+                reasons.Add("material da copa não criado");
+            }
+            else if (outline is null)
+            {
+                reasons.Add("contorno da copa inválido");
+            }
+            else if (Extrude(familyDocument, outline, elevation, crown, subcategories, SymbolTier.Fill, reasons))
+            {
+                created++;
+            }
+        }
+
+        if (paint.Flower is Rgb flower && symbol.FlowerSpots.Count > 0)
+        {
+            ElementId? material = EnsureMaterial(familyDocument, "VIR Floração", flower, hatch: false, reasons);
+            if (material is not null)
+            {
+                double z = elevation + LayerFeet;
+                foreach (FlowerSpot spot in symbol.FlowerSpots)
+                {
+                    if (Circle(spot, z, tolerance) is CurveArray circle && Extrude(familyDocument, circle, z, material, subcategories, SymbolTier.Flowers, reasons))
+                    {
+                        created++;
+                    }
+                }
+            }
+        }
+
+        return created;
+    }
+
+    private static bool Extrude(Document document, CurveArray loop, double z, ElementId material, IReadOnlyDictionary<SymbolTier, Category> subcategories, SymbolTier tier, List<string> reasons)
+    {
+        Extrusion extrusion;
+        try
+        {
+            var profile = new CurveArrArray();
+            profile.Append(loop);
+            SketchPlane plane = SketchPlane.Create(document, Plane.CreateByNormalAndOrigin(XYZ.BasisZ, new XYZ(0, 0, z)));
+            extrusion = document.FamilyCreate.NewExtrusion(true, profile, plane, LayerFeet);
+        }
+        catch (Exception ex) when (ex is Autodesk.Revit.Exceptions.ApplicationException)
+        {
+            reasons.Add("superfície recusada: " + ex.Message);
+            ViridianLog.Warn("Cores do símbolo: superfície recusada pelo Revit.", ex);
+            return false;
+        }
+
+        if (extrusion is null)
+        {
+            reasons.Add("superfície não criada");
+            return false;
+        }
+
+        Try(() => extrusion.get_Parameter(BuiltInParameter.MATERIAL_ID_PARAM)?.Set(material));
+        if (subcategories.TryGetValue(tier, out Category? subcategory))
+        {
+            Try(() => extrusion.Subcategory = subcategory);
+        }
+
+        // Só em planta: elevações e cortes não mostram as camadas de cor.
+        Try(() => extrusion.SetVisibility(new FamilyElementVisibility(FamilyElementVisibilityType.Model)
+        {
+            IsShownInFrontBack = false,
+            IsShownInLeftRight = false,
+            IsShownInTopBottom = true,
+        }));
+        return true;
+    }
+
+    /// <summary>Material com a cor no sombreado e o padrão de superfície (sólido ou reticulado) na mesma cor.</summary>
+    private static ElementId? EnsureMaterial(Document document, string prefix, Rgb color, bool hatch, List<string> reasons)
+    {
+        string name = FamilyFills.ColorTypeName(prefix, color);
+        try
+        {
+            Material? material;
+            using (var collector = new FilteredElementCollector(document))
+            {
+                material = collector.OfClass(typeof(Material)).Cast<Material>().FirstOrDefault(m => string.Equals(m.Name, name, StringComparison.Ordinal));
+            }
+
+            material ??= document.GetElement(Material.Create(document, name)) as Material;
+            if (material is null)
+            {
+                return null;
+            }
+
+            var revitColor = new Color(color.R, color.G, color.B);
+            material.Color = revitColor;
+            Try(() => material.UseRenderAppearanceForShading = false);
+            Try(() => material.Transparency = 0);
+            ElementId? pattern = hatch ? FamilyFills.CrownHatchPatternId(document) : FamilyFills.SolidPatternId(document);
+            if (pattern is not null)
+            {
+                Try(() => material.SurfaceForegroundPatternId = pattern);
+                Try(() => material.SurfaceForegroundPatternColor = revitColor);
+            }
+            else
+            {
+                reasons.Add("sem padrão de preenchimento sólido (a cor aparece só no estilo Sombreado)");
+            }
+
+            Try(() => material.CutForegroundPatternId = ElementId.InvalidElementId);
+            return material.Id;
+        }
+        catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+        {
+            reasons.Add("material \"" + name + "\": " + ex.Message);
+            return null;
+        }
+    }
+
+    private static CurveArray? Polygon(IReadOnlyList<Point2> outline, double z, double tolerance)
+    {
+        CurveLoop? loop = FamilyFills.PolygonLoop(outline, z, tolerance);
+        if (loop is null)
+        {
+            return null;
+        }
+
+        var array = new CurveArray();
+        foreach (Curve curve in loop)
+        {
+            array.Append(curve);
+        }
+
+        return array;
+    }
+
+    private static CurveArray? Circle(FlowerSpot spot, double z, double tolerance)
+    {
+        CurveLoop? loop = FamilyFills.CircleLoop(spot, z, tolerance);
+        if (loop is null)
+        {
+            return null;
+        }
+
+        var array = new CurveArray();
+        foreach (Curve curve in loop)
+        {
+            array.Append(curve);
+        }
+
+        return array;
+    }
+
+    private static void Try(Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception ex) when (ex is Autodesk.Revit.Exceptions.ApplicationException)
+        {
+            // propriedade não aceita neste modelo: segue com o valor padrão
         }
     }
 }
