@@ -57,6 +57,21 @@ public enum VisualScale
     Monumental = 2,
 }
 
+/// <summary>Tolerância ao solo encharcado por algumas horas ou dias (jardins de chuva, áreas alagáveis).</summary>
+public enum WaterloggingTolerance
+{
+    NaoInformada = 0,
+
+    /// <summary>Não tolera encharcamento: bordas e taludes altos do jardim de chuva.</summary>
+    Baixa = 1,
+
+    /// <summary>Tolera encharcamento curto: taludes.</summary>
+    Media = 2,
+
+    /// <summary>Tolera alagamento frequente: fundo do jardim de chuva.</summary>
+    Alta = 3,
+}
+
 public enum GrowthRate
 {
     NaoInformado = 0,
@@ -219,6 +234,14 @@ public static class Labels
         GrowthRate.Medio => "Médio",
         GrowthRate.Rapido => "Rápido",
         _ => "Não informado",
+    };
+
+    public static string Of(WaterloggingTolerance t) => t switch
+    {
+        WaterloggingTolerance.Baixa => "Baixa",
+        WaterloggingTolerance.Media => "Média",
+        WaterloggingTolerance.Alta => "Alta",
+        _ => "Não informada",
     };
 
     public static string Of(WaterNeed need) => need switch

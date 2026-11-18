@@ -62,6 +62,11 @@ public partial class SpeciesEditorWindow : ViridianWindow
             TextureBox.Items.Add(new Choice<Texture>(Labels.Of(texture), texture));
         }
 
+        foreach (WaterloggingTolerance t in Enum.GetValues<WaterloggingTolerance>())
+        {
+            WaterloggingBox.Items.Add(new Choice<WaterloggingTolerance>(Labels.Of(t), t));
+        }
+
         foreach (Biome biome in Labels.Biomes)
         {
             BiomePanel.Children.Add(new CheckBox { Content = Labels.Of(biome), Tag = biome, Margin = new Thickness(0, 3, 14, 3) });
@@ -137,6 +142,14 @@ public partial class SpeciesEditorWindow : ViridianWindow
         }
 
         Select(TextureBox, s.EffectiveTexture);
+        if (WaterloggingBox.Items[0] is Choice<WaterloggingTolerance>)
+        {
+            // Primeira opção mostra a estimativa usada enquanto a tolerância não for cadastrada.
+            WaterloggingBox.Items[0] = new Choice<WaterloggingTolerance>(
+                $"Não informada (estimada: {Labels.Of(Viridian.Core.Water.WaterloggingRules.Estimate(s))})", WaterloggingTolerance.NaoInformada);
+        }
+
+        Select(WaterloggingBox, s.Waterlogging);
         ScaleText.Text = Labels.Of(s.Scale);
         FoliageColorBox.Text = s.FoliageColor;
         FlowerColorBox.Text = s.FlowerColor;
@@ -414,6 +427,7 @@ public partial class SpeciesEditorWindow : ViridianWindow
         s.FoliageColor = NormalizeColor(FoliageColorBox.Text, "cor da folhagem", problems);
         s.FlowerColor = NormalizeColor(FlowerColorBox.Text, "cor da flor", problems);
         s.Texture = Value(TextureBox, s.EffectiveTexture);
+        s.Waterlogging = Value(WaterloggingBox, s.Waterlogging);
         if (!string.IsNullOrWhiteSpace(s.Flowering) && MonthSet.Parse(s.Flowering).IsEmpty)
         {
             problems.Add("Não reconheci os meses de floração. Use, por exemplo: ago–out, set–nov e mar–abr, ano todo.");

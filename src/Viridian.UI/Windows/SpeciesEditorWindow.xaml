@@ -102,6 +102,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <TextBlock Style="{StaticResource VirLabel}" Text="Crescimento" />
                             <ComboBox x:Name="GrowthBox" Grid.Column="1" />
@@ -120,8 +121,12 @@
                             <TextBlock x:Name="ScaleText" Grid.Row="2" Grid.Column="3" VerticalAlignment="Center" Foreground="{StaticResource VirMuted}"
                                        ToolTip="Calculada pela altura e pela copa adultas" />
 
-                            <TextBlock Grid.Row="3" Style="{StaticResource VirLabel}" Text="Observações" VerticalAlignment="Top" Margin="0,6,8,0" />
-                            <TextBox x:Name="NotesBox" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3" AcceptsReturn="True" TextWrapping="Wrap"
+                            <TextBlock Grid.Row="3" Style="{StaticResource VirLabel}" Text="Tolera encharcamento" />
+                            <ComboBox x:Name="WaterloggingBox" Grid.Row="3" Grid.Column="1" AutomationProperties.Name="Tolerância ao encharcamento"
+                                      ToolTip="Usada no jardim de chuva: alta para o fundo (alagamento), média para os taludes, baixa para as bordas." />
+
+                            <TextBlock Grid.Row="4" Style="{StaticResource VirLabel}" Text="Observações" VerticalAlignment="Top" Margin="0,6,8,0" />
+                            <TextBox x:Name="NotesBox" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3" AcceptsReturn="True" TextWrapping="Wrap"
                                      MinHeight="48" MaxHeight="90" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" />
                         </Grid>
                     </GroupBox>

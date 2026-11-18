@@ -1,0 +1,136 @@
+<ui:ViridianWindow x:Class="Viridian.UI.Windows.RainGardenWindow"
+                   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:ui="clr-namespace:Viridian.UI"
+                   Title="Viridian — Jardim de chuva"
+                   Width="1060" Height="700" MinWidth="900" MinHeight="560">
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="400" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <StackPanel Grid.ColumnSpan="2">
+            <TextBlock Style="{StaticResource VirHeader}" Text="Jardim de chuva" Margin="0" />
+            <TextBlock Style="{StaticResource VirHint}" Margin="0,2,0,8" TextWrapping="Wrap"
+                       Text="Dimensionamento pelo volume a reter: área de contribuição × coeficiente de escoamento × chuva de projeto. Os valores são de partida e editáveis: confirme a chuva de projeto e os coeficientes com o manual de drenagem do município e faça o ensaio de infiltração do solo." />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,12,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="250" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Style="{StaticResource VirSection}" Grid.ColumnSpan="2" Margin="0,0,0,4" Text="Escoamento" />
+                <Label Grid.Row="1" Content="Área de contribuição (m²)" Target="{Binding ElementName=AreaBox}" Padding="0" VerticalAlignment="Center" />
+                <TextBox x:Name="AreaBox" Grid.Row="1" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Área de contribuição em metros quadrados" />
+                <Label Grid.Row="2" Content="Superfície" Target="{Binding ElementName=SurfaceBox}" Padding="0" VerticalAlignment="Center" />
+                <ComboBox x:Name="SurfaceBox" Grid.Row="2" Grid.Column="1" SelectionChanged="Surface_Changed" AutomationProperties.Name="Tipo de superfície da área de contribuição" />
+                <Label Grid.Row="3" Content="Coeficiente de escoamento (0 a 1)" Target="{Binding ElementName=RunoffBox}" Padding="0" VerticalAlignment="Center" />
+                <TextBox x:Name="RunoffBox" Grid.Row="3" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Coeficiente de escoamento" />
+                <Label Grid.Row="4" Content="Chuva de projeto (mm)" Target="{Binding ElementName=RainBox}" Padding="0" VerticalAlignment="Center" />
+                <TextBox x:Name="RainBox" Grid.Row="4" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Chuva de projeto em milímetros" />
+
+                <TextBlock Style="{StaticResource VirSection}" Grid.Row="5" Grid.ColumnSpan="2" Text="Jardim" />
+                <Label Grid.Row="6" Content="Área do jardim (m², 0 = calcular)" Target="{Binding ElementName=GardenAreaBox}" Padding="0" VerticalAlignment="Center" />
+                <TextBox x:Name="GardenAreaBox" Grid.Row="6" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Área do jardim em metros quadrados" />
+                <Label Grid.Row="7" Content="Lâmina d'água (cm)" Target="{Binding ElementName=PondingBox}" Padding="0" VerticalAlignment="Center" />
+                <TextBox x:Name="PondingBox" Grid.Row="7" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Lâmina d'água em centímetros" />
+                <Label Grid.Row="8" Content="Borda livre (cm)" Target="{Binding ElementName=FreeboardBox}" Padding="0" VerticalAlignment="Center" />
+                <TextBox x:Name="FreeboardBox" Grid.Row="8" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Borda livre em centímetros" />
+                <Label Grid.Row="9" Content="Cobertura morta (cm)" Target="{Binding ElementName=MulchBox}" Padding="0" VerticalAlignment="Center" />
+                <TextBox x:Name="MulchBox" Grid.Row="9" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Cobertura morta em centímetros" />
+                <Label Grid.Row="10" Content="Substrato (cm) · porosidade (%)" Target="{Binding ElementName=SubstrateBox}" Padding="0" VerticalAlignment="Center" />
+                <Grid Grid.Row="10" Grid.Column="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="SubstrateBox" TextChanged="Field_Changed" AutomationProperties.Name="Espessura do substrato em centímetros" />
+                    <TextBox x:Name="SubstratePorosityBox" Grid.Column="1" Margin="6,0,0,0" TextChanged="Field_Changed" AutomationProperties.Name="Porosidade do substrato em porcentagem" />
+                </Grid>
+                <Label Grid.Row="11" Content="Brita (cm) · porosidade (%)" Target="{Binding ElementName=GravelBox}" Padding="0" VerticalAlignment="Center" />
+                <Grid Grid.Row="11" Grid.Column="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="GravelBox" TextChanged="Field_Changed" AutomationProperties.Name="Espessura da brita em centímetros" />
+                    <TextBox x:Name="GravelPorosityBox" Grid.Column="1" Margin="6,0,0,0" TextChanged="Field_Changed" AutomationProperties.Name="Porosidade da brita em porcentagem" />
+                </Grid>
+
+                <TextBlock Style="{StaticResource VirSection}" Grid.Row="12" Grid.ColumnSpan="2" Text="Solo" />
+                <Label Grid.Row="13" Content="Infiltração (mm/h, 0 = não ensaiado)" Target="{Binding ElementName=InfiltrationBox}" Padding="0" VerticalAlignment="Center" />
+                <TextBox x:Name="InfiltrationBox" Grid.Row="13" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Taxa de infiltração do solo em milímetros por hora" />
+                <Label Grid.Row="14" Content="Esvaziar em até (h)" Target="{Binding ElementName=DrainBox}" Padding="0" VerticalAlignment="Center" />
+                <TextBox x:Name="DrainBox" Grid.Row="14" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Tempo máximo de esvaziamento em horas" />
+                <Button Grid.Row="15" Grid.ColumnSpan="2" Content="Restaurar valores de partida" Click="Defaults_Click" HorizontalAlignment="Left" Margin="0,10,0,0" />
+            </Grid>
+        </ScrollViewer>
+
+        <Grid Grid.Row="1" Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <TextBlock Style="{StaticResource VirSection}" Margin="0,0,0,4" Text="Resultado" />
+            <Border Grid.Row="1" BorderBrush="{DynamicResource VirBorder}" BorderThickness="1" Padding="10">
+                <TextBlock x:Name="ResultText" TextWrapping="Wrap" />
+            </Border>
+            <TextBlock Grid.Row="2" Style="{StaticResource VirSection}" Text="Espécies sugeridas do catálogo" />
+            <Grid Grid.Row="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Style="{StaticResource VirLabel}" Text="Fundo (tolera alagamento)" />
+                <TextBlock Grid.Column="1" Style="{StaticResource VirLabel}" Margin="6,0,0,0" Text="Taludes (encharcamento curto)" />
+                <TextBlock Grid.Column="2" Style="{StaticResource VirLabel}" Margin="6,0,0,0" Text="Bordas" />
+                <ListBox x:Name="BottomList" Grid.Row="1" AutomationProperties.Name="Espécies para o fundo" />
+                <ListBox x:Name="SlopeList" Grid.Row="1" Grid.Column="1" Margin="6,0,0,0" AutomationProperties.Name="Espécies para os taludes" />
+                <ListBox x:Name="EdgeList" Grid.Row="1" Grid.Column="2" Margin="6,0,0,0" AutomationProperties.Name="Espécies para as bordas" />
+                <TextBlock Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="0,4,0,0"
+                           Text="Nativas primeiro. * = tolerância estimada pela necessidade de água (cadastre a tolerância na ficha da espécie para confirmar). Invasoras não são sugeridas." />
+            </Grid>
+        </Grid>
+
+        <DockPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="0,10,0,0" LastChildFill="False">
+            <Button Content="_Salvar como padrão" Click="SaveDefaults_Click" Margin="0" DockPanel.Dock="Left"
+                    ToolTip="Grava estes valores de partida nas configurações" />
+            <Button Content="Fechar" IsCancel="True" DockPanel.Dock="Right" />
+            <Button x:Name="DetailButton" Content="Criar _detalhe em corte" Click="Detail_Click" Style="{StaticResource VirPrimaryButton}" DockPanel.Dock="Right"
+                    ToolTip="Vista de desenho com o corte, as camadas, o extravasor e o memorial de cálculo" />
+        </DockPanel>
+    </Grid>
+</ui:ViridianWindow>

@@ -60,6 +60,16 @@ public sealed class Species
     /// <summary>Textura considerada nas análises: a cadastrada ou a sugerida.</summary>
     public Texture EffectiveTexture => Texture != Texture.NaoInformada ? Texture : Composition.TextureRules.Suggest(this);
 
+    /// <summary>Tolerância ao encharcamento cadastrada. Não informada = estimativa pela categoria e pela necessidade de água.</summary>
+    public WaterloggingTolerance Waterlogging { get; set; }
+
+    /// <summary>Tolerância considerada nas análises: a cadastrada ou a estimada.</summary>
+    public WaterloggingTolerance EffectiveWaterlogging =>
+        Waterlogging != WaterloggingTolerance.NaoInformada ? Waterlogging : Viridian.Core.Water.WaterloggingRules.Estimate(this);
+
+    /// <summary>Verdadeiro quando a tolerância usada é estimada (não cadastrada).</summary>
+    public bool WaterloggingEstimated => Waterlogging == WaterloggingTolerance.NaoInformada;
+
     /// <summary>Escala visual pelo porte adulto.</summary>
     public VisualScale Scale => Composition.TextureRules.ScaleOf(this);
 

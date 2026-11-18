@@ -33,6 +33,9 @@ public sealed class DrawingRenderer
         _shortCurve = document.Application.ShortCurveTolerance * 1.5;
     }
 
+    /// <summary>Cota (pés) do plano de desenho: zero em vistas de desenho; a do nível em plantas.</summary>
+    public double ElevationFeet { get; init; }
+
     /// <summary>Desenha com o ponto (0,0) do desenho na origem informada (metros). Precisa de transação.</summary>
     public int Render(Drawing drawing, Point2 origin)
     {
@@ -76,7 +79,7 @@ public sealed class DrawingRenderer
         var points = new List<XYZ>();
         foreach (Point2 p in fill.Outline)
         {
-            XYZ xyz = RevitUnits.ToXyz(p + origin);
+            XYZ xyz = RevitUnits.ToXyz(p + origin, ElevationFeet);
             if (points.Count == 0 || points[^1].DistanceTo(xyz) >= _shortCurve)
             {
                 points.Add(xyz);
@@ -118,8 +121,8 @@ public sealed class DrawingRenderer
 
     private bool Line(Point2 a, Point2 b, bool heavy)
     {
-        XYZ p = RevitUnits.ToXyz(a);
-        XYZ q = RevitUnits.ToXyz(b);
+        XYZ p = RevitUnits.ToXyz(a, ElevationFeet);
+        XYZ q = RevitUnits.ToXyz(b, ElevationFeet);
         if (p.DistanceTo(q) < _shortCurve)
         {
             return false;
@@ -161,7 +164,7 @@ public sealed class DrawingRenderer
                 },
                 VerticalAlignment = VerticalTextAlignment.Middle,
             };
-            TextNote.Create(_document, _view.Id, RevitUnits.ToXyz(text.At + origin), LabelService.ToRevitText(text.Text), options);
+            TextNote.Create(_document, _view.Id, RevitUnits.ToXyz(text.At + origin, ElevationFeet), LabelService.ToRevitText(text.Text), options);
             return true;
         }
         catch (Autodesk.Revit.Exceptions.ApplicationException ex)

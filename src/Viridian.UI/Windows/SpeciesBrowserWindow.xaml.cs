@@ -230,6 +230,7 @@ public partial class SpeciesBrowserWindow : ViridianWindow
             new("Luminosidade", Labels.Of(species.Light)),
             new("Floração", string.IsNullOrWhiteSpace(species.Flowering) ? "—" : species.Flowering),
             new("Textura", Labels.Of(species.EffectiveTexture) + (species.Texture == Texture.NaoInformada ? " (sugerida)" : string.Empty)),
+            new("Tolera encharcamento", Labels.Of(species.EffectiveWaterlogging) + (species.WaterloggingEstimated ? " (estimativa)" : string.Empty)),
             new("Escala visual", Labels.Of(species.Scale)),
             new("Biomas", species.Biomes == Biome.Nenhum ? (species.Origin == PlantOrigin.Nativa ? "—" : "não nativa do Brasil") : Labels.Of(species.Biomes)),
             new("Cores", ColorText(species)),
