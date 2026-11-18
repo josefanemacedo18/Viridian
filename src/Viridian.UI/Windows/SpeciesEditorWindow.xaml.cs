@@ -164,6 +164,7 @@ public partial class SpeciesEditorWindow : ViridianWindow
     private void ShowFiles()
     {
         PhotoText.Text = string.IsNullOrWhiteSpace(Species.PhotoFile) ? "(nenhuma)" : Path.GetFileName(Species.PhotoFile);
+        PhotoCreditBox.Text = Species.PhotoCredit;
         CustomFamilyText.Text = Species.HasCustomPlantingFamily ? Path.GetFileName(Species.CustomPlantingFamilyFile) : "(símbolo gerado pelo Viridian)";
         CustomFamilyRemove.IsEnabled = Species.HasCustomPlantingFamily;
         CustomDetailText.Text = Species.HasCustomDetailFamily ? Path.GetFileName(Species.CustomDetailFamilyFile) : "(nenhum)";
@@ -284,8 +285,8 @@ public partial class SpeciesEditorWindow : ViridianWindow
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Fotografia de referência",
-            Filter = "Imagens|*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.tif;*.tiff|Todos os arquivos|*.*",
+            Title = "Fotografia da espécie (de preferência a planta inteira)",
+            Filter = "Imagens|*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.tif;*.tiff;*.webp|Todos os arquivos|*.*",
         };
         if (dialog.ShowDialog(this) != true)
         {
@@ -294,21 +295,14 @@ public partial class SpeciesEditorWindow : ViridianWindow
 
         try
         {
-            Directory.CreateDirectory(_paths.PhotosFolder);
-            string name = Species.Id + Path.GetExtension(dialog.FileName).ToLowerInvariant();
-            File.Copy(dialog.FileName, Path.Combine(_paths.PhotosFolder, name), overwrite: true);
-            Species.PhotoFile = name;
-
             // Foto própria do escritório: os créditos da foto do catálogo deixam de valer.
-            Species.PhotoCredit = string.Empty;
-            Species.PhotoLicense = string.Empty;
-            Species.PhotoSource = string.Empty;
+            PhotoImport.Assign(Species, PhotoImport.FromFile(_paths, Species.Id, dialog.FileName), PhotoCreditBox.Text);
             ShowFiles();
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException or System.Runtime.InteropServices.COMException or FileFormatException)
         {
-            ViridianLog.Error("Falha ao copiar fotografia.", ex);
-            Warn("Não foi possível copiar a fotografia para a biblioteca:\n" + ex.Message);
+            ViridianLog.Error("Falha ao importar fotografia.", ex);
+            Warn("Não foi possível usar esta imagem:\n" + ex.Message);
         }
     }
 
@@ -421,6 +415,7 @@ public partial class SpeciesEditorWindow : ViridianWindow
         s.Light = Value(LightBox, s.Light);
         s.Flowering = FloweringBox.Text.Trim();
         s.Notes = NotesBox.Text.Trim();
+        s.PhotoCredit = string.IsNullOrWhiteSpace(s.PhotoFile) ? string.Empty : PhotoCreditBox.Text.Trim();
         s.Biomes = BiomePanel.Children.OfType<CheckBox>()
             .Where(b => b.IsChecked == true && b.Tag is Biome)
             .Aggregate(Biome.Nenhum, (all, b) => all | (Biome)b.Tag);

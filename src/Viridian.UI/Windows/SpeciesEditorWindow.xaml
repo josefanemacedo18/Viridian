@@ -189,11 +189,15 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <TextBlock Style="{StaticResource VirLabel}" Text="Fotografia" />
                             <TextBlock x:Name="PhotoText" Grid.Column="1" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                             <Button Grid.Column="2" Content="Procurar..." Click="PhotoBrowse_Click" MinWidth="76" />
                             <Button Grid.Column="3" Content="Remover" Click="PhotoRemove_Click" MinWidth="70" />
+                            <TextBlock Grid.Row="3" Style="{StaticResource VirLabel}" Text="Crédito da foto" Margin="0,6,8,0" />
+                            <TextBox x:Name="PhotoCreditBox" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3" Margin="0,6,0,0"
+                                     AutomationProperties.Name="Crédito da fotografia" ToolTip="Autor ou fonte da foto (aparece na ficha, na legenda e no memorial)" />
 
                             <TextBlock Grid.Row="1" Style="{StaticResource VirLabel}" Text="Família Vegetação" Margin="0,6,8,0" />
                             <TextBlock x:Name="CustomFamilyText" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,6,0,0" />

@@ -125,7 +125,9 @@
                         <Border BorderBrush="{StaticResource VirBorder}" BorderThickness="1" Margin="0,0,4,0">
                             <c:SymbolPreview x:Name="SymbolView" />
                         </Border>
-                        <Border Grid.Column="1" BorderBrush="{StaticResource VirBorder}" BorderThickness="1" Margin="4,0,0,0" Background="#FAFAFA">
+                        <Border x:Name="PhotoBorder" Grid.Column="1" BorderBrush="{StaticResource VirBorder}" BorderThickness="1" Margin="4,0,0,0" Background="#FAFAFA"
+                                AllowDrop="True" Drop="Photo_Drop" DragOver="Photo_DragOver"
+                                ToolTip="Arraste um arquivo de imagem para cá para trocar a foto">
                             <Grid>
                                 <TextBlock x:Name="NoPhotoText" Text="Sem fotografia" Style="{StaticResource VirHint}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 <Image x:Name="PhotoImage" Stretch="UniformToFill" AutomationProperties.Name="Fotografia da espécie" />
@@ -133,6 +135,14 @@
                         </Border>
                     </Grid>
                     <TextBlock x:Name="PhotoCreditText" Style="{StaticResource VirHint}" TextWrapping="Wrap" FontSize="10" Margin="0,3,0,0" HorizontalAlignment="Right" />
+                    <WrapPanel x:Name="PhotoButtons" HorizontalAlignment="Right" Margin="0,2,0,0">
+                        <Button Content="Trocar _foto..." Click="PhotoChange_Click" Margin="0" Padding="8,2"
+                                ToolTip="Escolha um arquivo de imagem (JPG, PNG...). A foto fica na pasta de fotos da biblioteca do escritório." />
+                        <Button Content="Colar imagem" Click="PhotoPaste_Click" Padding="8,2"
+                                ToolTip="Cole a imagem copiada (no navegador: botão direito na foto > Copiar imagem)" />
+                        <Button x:Name="PhotoRestoreButton" Content="Foto do catálogo" Click="PhotoRestore_Click" Padding="8,2"
+                                ToolTip="Volta à fotografia original do catálogo padrão do Viridian" />
+                    </WrapPanel>
                     <ComboBox x:Name="ProfileBox" Margin="0,6,0,0" SelectionChanged="ProfileBox_SelectionChanged" ToolTip="Perfil de representação da pré-visualização" />
                     <ItemsControl x:Name="DetailRows" Margin="0,8,0,0">
                         <ItemsControl.ItemTemplate>

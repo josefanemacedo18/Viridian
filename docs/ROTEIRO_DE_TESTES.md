@@ -201,6 +201,11 @@ Use um projeto com árvores, palmeiras, arbustos, um maciço de forração e um 
 5. Desligue "Considerar edificações e terreno": o cálculo fica mais rápido e só as copas fazem sombra.
 6. Ctrl+Z desfaz o estudo inteiro (vista e mapa) em um passo.
 
-## 21. Revisão das fotos
+## 21. Fotos das espécies
 
-1. As fotos marcadas na revisão (mãos, só frutos ou sementes, mudas, ilustrações) foram substituídas somente depois da sua aprovação; confira algumas fichas.
+1. Buscar Espécie > ficha > **Trocar foto...**: escolha um JPG ou PNG grande; a ficha mostra a foto nova na hora, com o crédito "Foto do escritório".
+2. No navegador, clique com o botão direito numa foto e escolha "Copiar imagem"; na ficha, **Colar imagem**.
+3. Arraste um arquivo de imagem do Explorador para cima da foto da ficha.
+4. Editar espécie: o campo **Crédito da foto** aceita o autor ou a fonte; confira na ficha, na legenda e no memorial.
+5. **Foto do catálogo** volta à foto original. A foto trocada aparece também na legenda, no quadro de fotos e no memorial.
+6. Com a biblioteca numa pasta de rede, a foto trocada aparece nos outros computadores do escritório.

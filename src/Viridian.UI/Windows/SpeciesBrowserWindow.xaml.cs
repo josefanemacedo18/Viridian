@@ -195,6 +195,8 @@ public partial class SpeciesBrowserWindow : ViridianWindow
         DistributeButton.IsEnabled = has;
         MassingButton.IsEnabled = has;
         SelectButton.IsEnabled = has;
+        PhotoButtons.IsEnabled = has;
+        PhotoRestoreButton.Visibility = species is not null && PhotoImport.HasSeedPhoto(species) ? Visibility.Visible : Visibility.Collapsed;
 
         if (species is null)
         {
@@ -379,6 +381,121 @@ public partial class SpeciesBrowserWindow : ViridianWindow
         if (SelectedSpecies is not null)
         {
             EditSpecies(_catalog.Duplicate(SelectedSpecies), "Duplicar espécie");
+        }
+    }
+
+    // ------------------------------------------------------------------ fotografia
+
+    private void PhotoChange_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedSpecies is null)
+        {
+            return;
+        }
+
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Fotografia da espécie (de preferência a planta inteira)",
+            Filter = "Imagens|*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.tif;*.tiff;*.webp|Todos os arquivos|*.*",
+        };
+        if (dialog.ShowDialog(this) == true)
+        {
+            ReplacePhoto(() => PhotoImport.FromFile(_paths, SelectedSpecies.Id, dialog.FileName));
+        }
+    }
+
+    private void PhotoPaste_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedSpecies is null)
+        {
+            return;
+        }
+
+        ReplacePhoto(() => PhotoImport.FromClipboard(_paths, SelectedSpecies.Id)
+                           ?? throw new InvalidOperationException("Não há imagem na área de transferência. No navegador, clique com o botão direito na foto e escolha \"Copiar imagem\"."));
+    }
+
+    private void Photo_DragOver(object sender, DragEventArgs e)
+    {
+        bool ok = SelectedSpecies is not null && e.Data.GetDataPresent(DataFormats.FileDrop)
+                  && (e.Data.GetData(DataFormats.FileDrop) as string[])?.Any(PhotoImport.IsImageFile) == true;
+        e.Effects = ok ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void Photo_Drop(object sender, DragEventArgs e)
+    {
+        string? file = (e.Data.GetData(DataFormats.FileDrop) as string[])?.FirstOrDefault(PhotoImport.IsImageFile);
+        if (SelectedSpecies is not null && file is not null)
+        {
+            ReplacePhoto(() => PhotoImport.FromFile(_paths, SelectedSpecies.Id, file));
+        }
+    }
+
+    private void PhotoRestore_Click(object sender, RoutedEventArgs e)
+    {
+        Species? current = SelectedSpecies;
+        if (current is null)
+        {
+            return;
+        }
+
+        Species copy = ViridianJson.Deserialize<Species>(ViridianJson.Serialize(current)) ?? current.Clone();
+        if (!PhotoImport.RestoreSeed(copy))
+        {
+            Inform("Esta espécie não faz parte do catálogo padrão do Viridian.");
+            return;
+        }
+
+        SavePhoto(copy);
+    }
+
+    /// <summary>Importa a imagem e grava na espécie selecionada (crédito "Foto do escritório", editável no cadastro).</summary>
+    private void ReplacePhoto(Func<string> import)
+    {
+        Species? current = SelectedSpecies;
+        if (current is null)
+        {
+            return;
+        }
+
+        string file;
+        try
+        {
+            file = import();
+        }
+        catch (InvalidOperationException ex)
+        {
+            Warn(ex.Message);
+            return;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException or System.Runtime.InteropServices.COMException or FileFormatException)
+        {
+            ViridianLog.Error("Falha ao importar fotografia.", ex);
+            Warn("Não foi possível usar esta imagem:\n" + ex.Message);
+            return;
+        }
+
+        Species copy = ViridianJson.Deserialize<Species>(ViridianJson.Serialize(current)) ?? current.Clone();
+        PhotoImport.Assign(copy, file, string.Empty);
+        SavePhoto(copy);
+    }
+
+    private void SavePhoto(Species species)
+    {
+        try
+        {
+            _catalog.Save(species);
+            Refresh(species.Id);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Warn(ex.Message);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ViridianLog.Error("Falha ao gravar o catálogo.", ex);
+            Warn("Não foi possível gravar o catálogo em disco:\n" + ex.Message);
         }
     }
 
