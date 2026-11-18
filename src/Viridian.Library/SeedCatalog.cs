@@ -31,7 +31,7 @@ public sealed class PhotoInfo
 public static class SeedCatalog
 {
     /// <summary>Versão do catálogo padrão. Ao aumentá-la, os catálogos existentes são atualizados.</summary>
-    public const int Version = 3;
+    public const int Version = 4;
 
     public const string IdPrefix = "sp-";
 

@@ -383,6 +383,14 @@ public sealed class CatalogStore
                 else
                 {
                     FillMissing(current, seed);
+
+                    // Espécie editada que ainda usa a foto do catálogo: a foto foi revisada, então os créditos acompanham.
+                    if (string.Equals(current.PhotoFile, seed.PhotoFile, StringComparison.OrdinalIgnoreCase))
+                    {
+                        current.PhotoCredit = seed.PhotoCredit;
+                        current.PhotoLicense = seed.PhotoLicense;
+                        current.PhotoSource = seed.PhotoSource;
+                    }
                 }
 
                 continue;

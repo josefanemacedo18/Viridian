@@ -203,6 +203,8 @@ Use um projeto com árvores, palmeiras, arbustos, um maciço de forração e um 
 
 ## 21. Fotos das espécies
 
+0. As fotos do catálogo foram revisadas para mostrar a planta inteira (porte, copa, touceira). Percorra algumas fichas em Buscar Espécie; se alguma não agradar, troque-a como abaixo.
+
 1. Buscar Espécie > ficha > **Trocar foto...**: escolha um JPG ou PNG grande; a ficha mostra a foto nova na hora, com o crédito "Foto do escritório".
 2. No navegador, clique com o botão direito numa foto e escolha "Copiar imagem"; na ficha, **Colar imagem**.
 3. Arraste um arquivo de imagem do Explorador para cima da foto da ficha.
