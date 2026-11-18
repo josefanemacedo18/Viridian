@@ -371,3 +371,61 @@ public sealed class PlanPreview : FrameworkElement
         return pen;
     }
 }
+
+/// <summary>Amostra de piso em escala real: cor da superfície com a paginação desenhada nas juntas.</summary>
+public sealed class PavingSwatch : FrameworkElement
+{
+    private Core.Paving.PavingType? _type;
+    private HatchPattern? _pattern;
+
+    /// <summary>Largura representada pela amostra, em milímetros.</summary>
+    public double WidthMm { get; set; } = 2000;
+
+    public void Show(Core.Paving.PavingType? type)
+    {
+        _type = type;
+        try
+        {
+            _pattern = type is null ? null : Core.Paving.PavingPatterns.Build(type);
+        }
+        catch (Exception)
+        {
+            _pattern = null;
+        }
+
+        InvalidateVisual();
+    }
+
+    protected override void OnRender(DrawingContext dc)
+    {
+        base.OnRender(dc);
+        var bounds = new Rect(0, 0, ActualWidth, ActualHeight);
+        if (_type is null || ActualWidth < 4 || ActualHeight < 4)
+        {
+            dc.DrawRectangle(Brushes.White, null, bounds);
+            return;
+        }
+
+        Core.Colors.Rgb surface = _type.SurfaceRgb, joint = _type.JointRgb;
+        var fill = new SolidColorBrush(Color.FromRgb(surface.R, surface.G, surface.B));
+        fill.Freeze();
+        dc.DrawRectangle(fill, null, bounds);
+        if (_pattern is null)
+        {
+            return;
+        }
+
+        double k = ActualWidth / Math.Max(100, WidthMm);
+        var area = new Bounds2(0, 0, ActualWidth / k, ActualHeight / k);
+        double thickness = Math.Clamp(_type.JointMm * k, 0.8, 4);
+        var pen = new Pen(new SolidColorBrush(Color.FromRgb(joint.R, joint.G, joint.B)), thickness) { StartLineCap = PenLineCap.Flat, EndLineCap = PenLineCap.Flat };
+        pen.Freeze();
+        dc.PushClip(new RectangleGeometry(bounds));
+        foreach ((Point2 a, Point2 b) in HatchRasterizer.Segments(_pattern, area, 12000))
+        {
+            dc.DrawLine(pen, new Point(a.X * k, ActualHeight - a.Y * k), new Point(b.X * k, ActualHeight - b.Y * k));
+        }
+
+        dc.Pop();
+    }
+}

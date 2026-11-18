@@ -1,0 +1,182 @@
+<ui:ViridianWindow x:Class="Viridian.UI.Windows.PavingWindow"
+                   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:ui="clr-namespace:Viridian.UI"
+                   xmlns:c="clr-namespace:Viridian.UI.Controls"
+                   Title="Viridian — Gerador de pisos"
+                   Width="1240" Height="760" MinWidth="1040" MinHeight="600">
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="270" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="330" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <StackPanel Grid.ColumnSpan="3">
+            <TextBlock Style="{StaticResource VirHeader}" Text="Gerador de pisos e pavimentações" Margin="0" />
+            <TextBlock Style="{StaticResource VirHint}" Margin="0,2,0,8"
+                       Text="Escolha um piso da biblioteca ou crie o seu: peça, junta, paginação, cores e camadas. Depois aplique a pisos do Revit, crie a hachura para plantas ou o detalhe em corte. As medidas são referências: confira com o fornecedor." />
+        </StackPanel>
+
+        <!-- Biblioteca -->
+        <Grid Grid.Row="1" Margin="0,0,12,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBox x:Name="SearchBox" TextChanged="Filter_Changed" AutomationProperties.Name="Pesquisar piso" ToolTip="Pesquisar pelo nome ou material" />
+            <ComboBox x:Name="CategoryFilter" Grid.Row="1" Margin="0,6,0,6" SelectionChanged="Filter_Changed" AutomationProperties.Name="Filtrar por categoria" />
+            <ListBox x:Name="TypeList" Grid.Row="2" SelectionChanged="TypeList_Changed" AutomationProperties.Name="Pisos da biblioteca" />
+            <WrapPanel Grid.Row="3" Margin="0,6,0,0">
+                <Button Content="_Novo" Click="New_Click" Margin="0" />
+                <Button Content="Du_plicar" Click="Duplicate_Click" />
+                <Button x:Name="DeleteButton" Content="Excluir" Click="Delete_Click" />
+                <Button x:Name="RestoreButton" Content="Restaurar" Click="Restore_Click" ToolTip="Volta um piso padrão aos valores originais" />
+            </WrapPanel>
+        </Grid>
+
+        <!-- Editor -->
+        <ScrollViewer Grid.Row="1" Grid.Column="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,0,8,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Label Content="No_me" Target="{Binding ElementName=NameBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="NameBox" Grid.Column="1" Grid.ColumnSpan="3" TextChanged="Field_Changed" AutomationProperties.Name="Nome do piso" />
+                    <Label Grid.Row="1" Content="_Categoria" Target="{Binding ElementName=CategoryBox}" Padding="0" VerticalAlignment="Center" />
+                    <ComboBox x:Name="CategoryBox" Grid.Row="1" Grid.Column="1" SelectionChanged="Field_Changed" AutomationProperties.Name="Categoria do piso" />
+                    <Label Grid.Row="1" Grid.Column="2" Content="_Paginação" Target="{Binding ElementName=PatternBox}" Padding="8,0,0,0" VerticalAlignment="Center" />
+                    <ComboBox x:Name="PatternBox" Grid.Row="1" Grid.Column="3" SelectionChanged="Field_Changed" AutomationProperties.Name="Paginação" />
+                    <Label Grid.Row="2" Content="_Material" Target="{Binding ElementName=MaterialBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="MaterialBox" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" TextChanged="Field_Changed" AutomationProperties.Name="Material e acabamento" />
+                    <Label Grid.Row="3" Content="Comprimento (mm)" Target="{Binding ElementName=LengthBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="LengthBox" Grid.Row="3" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Comprimento da peça em milímetros" />
+                    <Label Grid.Row="3" Grid.Column="2" Content="Largura (mm)" Target="{Binding ElementName=WidthBox}" Padding="8,0,0,0" VerticalAlignment="Center" />
+                    <TextBox x:Name="WidthBox" Grid.Row="3" Grid.Column="3" TextChanged="Field_Changed" AutomationProperties.Name="Largura da peça em milímetros" />
+                    <Label Grid.Row="4" Content="Espessura (mm)" Target="{Binding ElementName=ThicknessBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="ThicknessBox" Grid.Row="4" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Espessura do revestimento em milímetros" />
+                    <Label Grid.Row="4" Grid.Column="2" Content="Junta (mm)" Target="{Binding ElementName=JointBox}" Padding="8,0,0,0" VerticalAlignment="Center" />
+                    <TextBox x:Name="JointBox" Grid.Row="4" Grid.Column="3" TextChanged="Field_Changed" AutomationProperties.Name="Largura da junta em milímetros" />
+                    <Label Grid.Row="5" Content="Rotação (graus)" Target="{Binding ElementName=AngleBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="AngleBox" Grid.Row="5" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Rotação da paginação em graus" />
+                    <Label Grid.Row="5" Grid.Column="2" Content="Caimento (%)" Target="{Binding ElementName=SlopeBox}" Padding="8,0,0,0" VerticalAlignment="Center" />
+                    <TextBox x:Name="SlopeBox" Grid.Row="5" Grid.Column="3" TextChanged="Field_Changed" AutomationProperties.Name="Caimento em porcentagem" />
+                    <Label Grid.Row="6" Content="Perda (%)" Target="{Binding ElementName=WasteBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="WasteBox" Grid.Row="6" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Perda em porcentagem" />
+                    <CheckBox x:Name="CastBox" Grid.Row="6" Grid.Column="2" Grid.ColumnSpan="2" Margin="8,0,0,0" Content="Moldado no local (sem contagem de peças)"
+                              Checked="Field_Changed" Unchecked="Field_Changed" />
+                </Grid>
+
+                <TextBlock Style="{StaticResource VirSection}" Text="Cores" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="110" />
+                        <ColumnDefinition Width="34" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="110" />
+                        <ColumnDefinition Width="34" />
+                    </Grid.ColumnDefinitions>
+                    <Label Content="Superfície" Target="{Binding ElementName=ColorBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="ColorBox" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Cor da superfície em hexadecimal" />
+                    <Border x:Name="ColorSwatch" Grid.Column="2" Width="22" Height="22" BorderBrush="#555" BorderThickness="1" />
+                    <Label Grid.Column="3" Content="Juntas" Target="{Binding ElementName=JointColorBox}" Padding="8,0,0,0" VerticalAlignment="Center" />
+                    <TextBox x:Name="JointColorBox" Grid.Column="4" TextChanged="Field_Changed" AutomationProperties.Name="Cor das juntas em hexadecimal" />
+                    <Border x:Name="JointSwatch" Grid.Column="5" Width="22" Height="22" BorderBrush="#555" BorderThickness="1" />
+                </Grid>
+
+                <TextBlock Style="{StaticResource VirSection}" Text="Camadas abaixo do revestimento (de cima para baixo)" />
+                <DataGrid x:Name="LayerGrid" IsReadOnly="False" CanUserSortColumns="False" Height="150" CellEditEnding="LayerGrid_CellEditEnding"
+                          AutomationProperties.Name="Camadas do piso">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Camada" Binding="{Binding Name}" Width="*" />
+                        <DataGridComboBoxColumn x:Name="LayerKindColumn" Header="Função" SelectedValueBinding="{Binding Kind}" SelectedValuePath="Value" DisplayMemberPath="Label" Width="150" />
+                        <DataGridTextColumn Header="Espessura (mm)" Binding="{Binding ThicknessMm}" Width="100" />
+                        <DataGridTextColumn Header="Espaçamento (mm)" Binding="{Binding SpacingMm}" Width="115" />
+                    </DataGrid.Columns>
+                </DataGrid>
+                <WrapPanel Margin="0,6,0,0">
+                    <Button Content="Acrescentar camada" Click="AddLayer_Click" Margin="0" />
+                    <Button Content="Remover" Click="RemoveLayer_Click" />
+                    <Button Content="Subir" Click="UpLayer_Click" />
+                    <Button Content="Descer" Click="DownLayer_Click" />
+                </WrapPanel>
+                <TextBlock Style="{StaticResource VirHint}" Text="Mantas têm espessura zero. Espaçamento só para barrotes (entre eixos)." />
+
+                <TextBlock Style="{StaticResource VirSection}" Text="Uso e execução" />
+                <TextBox x:Name="NotesBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="54" VerticalContentAlignment="Top" TextChanged="Field_Changed" AutomationProperties.Name="Uso indicado e observações" />
+                <TextBlock Style="{StaticResource VirSection}" Text="Referências das medidas" />
+                <TextBox x:Name="ReferencesBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="40" VerticalContentAlignment="Top" TextChanged="Field_Changed" AutomationProperties.Name="Referências das medidas" />
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Label Content="Código do insumo" Target="{Binding ElementName=PriceCodeBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="PriceCodeBox" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Código do insumo na tabela de preços" />
+                    <Label Grid.Column="2" Content="Código do serviço" Target="{Binding ElementName=ServiceCodeBox}" Padding="8,0,0,0" VerticalAlignment="Center" />
+                    <TextBox x:Name="ServiceCodeBox" Grid.Column="3" TextChanged="Field_Changed" AutomationProperties.Name="Código do serviço na tabela de preços" />
+                </Grid>
+                <TextBlock x:Name="ProblemText" Foreground="#A4262C" TextWrapping="Wrap" Margin="0,6,0,0" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Prévia e projeto -->
+        <Grid Grid.Row="1" Grid.Column="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Border BorderBrush="{DynamicResource VirBorder}" BorderThickness="1">
+                <c:PavingSwatch x:Name="Swatch" Height="300" WidthMm="2000" />
+            </Border>
+            <TextBlock x:Name="SwatchText" Grid.Row="1" Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="0,4,0,0" />
+            <TextBlock Grid.Row="2" Style="{StaticResource VirSection}" Text="Pisos do projeto" />
+            <DataGrid x:Name="QuantityGrid" Grid.Row="3" AutomationProperties.Name="Quantitativo de pisos do projeto">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Piso" Binding="{Binding TypeName}" Width="*" />
+                    <DataGridTextColumn Header="Área (m²)" Binding="{Binding AreaM2, StringFormat=N2}" Width="70" ElementStyle="{StaticResource VirRightCell}" />
+                    <DataGridTextColumn Header="Compra" Binding="{Binding PurchaseText}" Width="120" />
+                </DataGrid.Columns>
+            </DataGrid>
+            <Button x:Name="ExportButton" Grid.Row="4" Content="Exportar quantitativo..." Click="Export_Click" HorizontalAlignment="Left" Margin="0,6,0,0" />
+        </Grid>
+
+        <!-- Ações -->
+        <DockPanel Grid.Row="2" Grid.ColumnSpan="3" Margin="0,10,0,0" LastChildFill="False">
+            <Button Content="_Salvar na biblioteca" Click="Save_Click" Style="{StaticResource VirPrimaryButton}" Margin="0" DockPanel.Dock="Left" />
+            <Button Content="Fechar" IsCancel="True" DockPanel.Dock="Right" />
+            <Button x:Name="DetailButton" Content="_Detalhe em corte" Click="Detail_Click" DockPanel.Dock="Right"
+                    ToolTip="Cria a vista de desenho com as camadas, cotas e chamadas (1:10)" />
+            <Button x:Name="RegionButton" Content="_Hachura para plantas" Click="Region_Click" DockPanel.Dock="Right"
+                    ToolTip="Cria o tipo de região preenchida com a paginação e a cor, para desenhar o piso em planta" />
+            <Button x:Name="TypeButton" Content="Criar _tipo de piso" Click="Type_Click" DockPanel.Dock="Right"
+                    ToolTip="Cria ou atualiza o tipo de piso do Revit com as camadas e o material com a paginação" />
+            <Button x:Name="ApplyButton" Content="_Aplicar aos pisos selecionados" Click="Apply_Click" DockPanel.Dock="Right" />
+        </DockPanel>
+    </Grid>
+</ui:ViridianWindow>
