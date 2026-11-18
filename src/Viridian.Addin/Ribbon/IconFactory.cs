@@ -379,6 +379,21 @@ internal static class IconFactory
                 break;
             }
 
+            case "stones":
+            {
+                // Pedras arredondadas de tons diferentes.
+                (double X, double Y, double R, byte Gray)[] stones =
+                {
+                    (9, 22, 6, 0xCF), (20, 23, 6.5, 0x9E), (14, 13, 5.5, 0xE6), (24, 12, 4.5, 0xB8), (7, 9, 3.5, 0x8A), (27, 26, 3, 0xD9),
+                };
+                foreach ((double x, double y, double r, byte g) in stones)
+                {
+                    dc.DrawEllipse(Fill(Color.FromRgb(g, (byte)(g - 6), (byte)(g - 14))), thin, new Point(x, y), r, r * 0.8);
+                }
+
+                break;
+            }
+
             case "raingarden":
             {
                 Brush water = Fill(Color.FromRgb(0x8E, 0xC3, 0xE6));

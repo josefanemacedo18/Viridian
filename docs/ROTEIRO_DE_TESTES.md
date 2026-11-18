@@ -227,3 +227,14 @@ Use um projeto com árvores, palmeiras, arbustos, um maciço de forração e um 
 4. Editar espécie: o campo **Crédito da foto** aceita o autor ou a fonte; confira na ficha, na legenda e no memorial.
 5. **Foto do catálogo** volta à foto original. A foto trocada aparece também na legenda, no quadro de fotos e no memorial.
 6. Com a biblioteca numa pasta de rede, a foto trocada aparece nos outros computadores do escritório.
+
+## 22. Pedras e coberturas
+
+1. Pisos e Drenagem > **Pedras e Coberturas**, sem projeto aberto: a janela abre com 31 materiais. Filtre por tipo (Seixo) e por uso (Borda de caminho). Edite a cor de "Brita colorida", salve, feche e reabra: a cor ficou gravada. Use **Novo** para criar uma pedra própria.
+2. **Quanto comprar:** com "Seixo branco" e uso Cobertura de canteiro, digite 10 m²: o resultado mostra cerca de 0,55 m³, 0,85 t e 43 sacos de 20 kg.
+3. **Cobrir região:** numa planta, escolha "Casca de pinus média", uso Cobertura morta, e clique em Cobrir região; escolha um canteiro (região preenchida, piso ou contorno desenhado). É criado um piso com a cor e as lascas da casca; as plantas continuam visíveis por cima.
+4. **Borda de caminho:** selecione um piso de caminho, escolha "Seixo preto", uso Borda de caminho, largura 30 cm, lado "para fora", e clique em Borda de caminho: a faixa contorna o caminho por fora. Repita com linhas desenhadas ao longo de um caminho e com a opção Desenhar a borda. Se sair do lado errado, Ctrl+Z e escolha o outro lado.
+5. **Aplicar:** selecione pisos existentes, abra a janela e aplique "Pedrisco de granito" como piso solto: o tipo recebe a manta e a base de 10 cm.
+6. **Quantitativo:** abra o Gerador de Pisos: os pisos de pedra aparecem na lista com volume, peso e sacos; exporte para Excel.
+7. **Jardim de chuva:** escolha "Brita 2" como camada drenante (a porosidade muda para 42%) e "Casca de pinus média" como cobertura morta; o detalhe em corte mostra os dois nomes.
+8. Em planta 1:100 e 1:50, confira se o desenho dos grãos fica legível. Se ficar denso demais, aumente o grão máximo do material ou use a hachura para plantas.

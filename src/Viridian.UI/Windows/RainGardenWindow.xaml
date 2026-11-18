@@ -43,6 +43,9 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <TextBlock Style="{StaticResource VirSection}" Grid.ColumnSpan="2" Margin="0,0,0,4" Text="Escoamento" />
                 <Label Grid.Row="1" Content="Área de contribuição (m²)" Target="{Binding ElementName=AreaBox}" Padding="0" VerticalAlignment="Center" />
@@ -87,7 +90,13 @@
                 <TextBox x:Name="InfiltrationBox" Grid.Row="13" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Taxa de infiltração do solo em milímetros por hora" />
                 <Label Grid.Row="14" Content="Esvaziar em até (h)" Target="{Binding ElementName=DrainBox}" Padding="0" VerticalAlignment="Center" />
                 <TextBox x:Name="DrainBox" Grid.Row="14" Grid.Column="1" TextChanged="Field_Changed" AutomationProperties.Name="Tempo máximo de esvaziamento em horas" />
-                <Button Grid.Row="15" Grid.ColumnSpan="2" Content="Restaurar valores de partida" Click="Defaults_Click" HorizontalAlignment="Left" Margin="0,10,0,0" />
+                <TextBlock Style="{StaticResource VirSection}" Grid.Row="15" Grid.ColumnSpan="2" Text="Materiais (catálogo de pedras e coberturas)" />
+                <Label Grid.Row="16" Content="Camada drenante" Target="{Binding ElementName=GravelMaterialBox}" Padding="0" VerticalAlignment="Center" />
+                <ComboBox x:Name="GravelMaterialBox" Grid.Row="16" Grid.Column="1" SelectionChanged="GravelMaterial_Changed" AutomationProperties.Name="Material da camada drenante"
+                          ToolTip="Preenche a porosidade com os vazios de referência do material" />
+                <Label Grid.Row="17" Content="Cobertura morta" Target="{Binding ElementName=MulchMaterialBox}" Padding="0" VerticalAlignment="Center" />
+                <ComboBox x:Name="MulchMaterialBox" Grid.Row="17" Grid.Column="1" SelectionChanged="Field_Changed" AutomationProperties.Name="Material da cobertura morta" />
+                <Button Grid.Row="18" Grid.ColumnSpan="2" Content="Restaurar valores de partida" Click="Defaults_Click" HorizontalAlignment="Left" Margin="0,10,0,0" />
             </Grid>
         </ScrollViewer>
 

@@ -57,6 +57,12 @@ public sealed class RainGardenSettings
 
     public double GravelPorosity { get; set; } = 0.40;
 
+    /// <summary>Material da camada drenante (do catálogo de pedras ou digitado).</summary>
+    public string GravelName { get; set; } = "Brita";
+
+    /// <summary>Material da cobertura morta (vazio = não especificado).</summary>
+    public string MulchName { get; set; } = string.Empty;
+
     /// <summary>Infiltração do solo de fundo (mm/h); zero quando não foi medida.</summary>
     public double InfiltrationMmH { get; set; }
 
@@ -86,6 +92,8 @@ public sealed class RainGardenSettings
         GravelPorosity = C(GravelPorosity, 0, 0.6, 0.40);
         InfiltrationMmH = C(InfiltrationMmH, 0, 2000, 0);
         MaxDrainHours = C(MaxDrainHours, 1, 240, 48);
+        GravelName = string.IsNullOrWhiteSpace(GravelName) ? "Brita" : GravelName.Trim();
+        MulchName = (MulchName ?? string.Empty).Trim();
     }
 
     public RainGardenSettings Clone() => (RainGardenSettings)MemberwiseClone();
@@ -190,9 +198,9 @@ public static class RainGardenCalculator
         {
             $"Área de contribuição: {N(contributingAreaM2, "N1")} m² · coeficiente de escoamento {N(s.RunoffCoefficient)} · chuva de projeto {N(s.RainMm, "0.#")} mm",
             $"Volume a reter: {N(contributingAreaM2, "N1")} × {N(s.RunoffCoefficient)} × {N(s.RainMm / 1000, "0.###")} = {N(r.RunoffVolumeM3)} m³",
-            $"Armazenamento por m²: lâmina {N(s.PondingCm, "0.#")} cm + substrato {N(s.SubstrateCm, "0.#")} cm × {N(s.SubstratePorosity)} + brita {N(s.GravelCm, "0.#")} cm × {N(s.GravelPorosity)} = {N(r.StorageDepthM, "0.###")} m³/m²",
+            $"Armazenamento por m²: lâmina {N(s.PondingCm, "0.#")} cm + substrato {N(s.SubstrateCm, "0.#")} cm × {N(s.SubstratePorosity)} + {s.GravelName.ToLowerInvariant()} {N(s.GravelCm, "0.#")} cm × {N(s.GravelPorosity)} = {N(r.StorageDepthM, "0.###")} m³/m²",
             $"Área de jardim necessária: {N(r.RequiredAreaM2, "N1")} m²" + (r.AvailableAreaM2 > 0 ? $" · área escolhida {N(r.AvailableAreaM2, "N1")} m² ({(r.AreaSufficient ? "suficiente" : "insuficiente")})" : string.Empty),
-            $"Escavação total: {N(r.ExcavationDepthM * 100, "0")} cm (borda livre, lâmina, cobertura morta, substrato e brita)",
+            $"Escavação total: {N(r.ExcavationDepthM * 100, "0")} cm (borda livre, lâmina, cobertura morta, substrato e {s.GravelName.ToLowerInvariant()})",
             r.DrainHours is double h ? $"Esvaziamento pela infiltração: cerca de {N(h, "0")} h" : "Esvaziamento: depende do ensaio de infiltração do solo",
         };
         lines.AddRange(r.Warnings.Select(w => "Atenção: " + w));
@@ -257,11 +265,12 @@ public static class RainGardenCalculator
             y -= h;
         }
 
-        Layer(mulch, new Rgb(0x9C, 0x74, 0x4E), $"COBERTURA MORTA, e = {Cm(mulch)}", -half * 0.2);
+        string mulchName = s.MulchName.Length > 0 ? $"COBERTURA MORTA ({s.MulchName.ToUpperInvariant()})" : "COBERTURA MORTA";
+        Layer(mulch, new Rgb(0x9C, 0x74, 0x4E), $"{mulchName}, e = {Cm(mulch)}", -half * 0.2);
         Layer(sub, new Rgb(0x6F, 0x55, 0x3A), $"SUBSTRATO FILTRANTE (AREIA GROSSA E COMPOSTO ORGÂNICO), e = {Cm(sub)}", half * 0.1);
         g.Line(new Point2(-half, y), new Point2(half, y), dashed: true, heavy: true);
         notes.Add((new Point2(half * 0.35, y), "MANTA GEOTÊXTIL"));
-        Layer(gravel, new Rgb(0xA8, 0x9D, 0x88), $"BRITA (RESERVATÓRIO), e = {Cm(gravel)}", half * 0.55);
+        Layer(gravel, new Rgb(0xA8, 0x9D, 0x88), $"{s.GravelName.ToUpperInvariant()} (RESERVATÓRIO), e = {Cm(gravel)}", half * 0.55);
 
         // Fundo e solo natural.
         g.Line(new Point2(-half, bottom), new Point2(half, bottom), heavy: true);

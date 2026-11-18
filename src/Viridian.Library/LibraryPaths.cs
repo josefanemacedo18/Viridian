@@ -37,6 +37,8 @@ public sealed class LibraryPaths
     /// <summary>Biblioteca de pisos e pavimentações (tipos padrão e do escritório).</summary>
     public string PavingFile => Path.Combine(DataFolder, "pisos.json");
 
+    public string StonesFile => Path.Combine(DataFolder, "pedras.json");
+
     /// <summary>Famílias 2D geradas pelo plugin, organizadas por categoria.</summary>
     public string GeneratedFolder(PlantCategory category) => Path.Combine(Root, "Familias", Labels.Folder(category));
 

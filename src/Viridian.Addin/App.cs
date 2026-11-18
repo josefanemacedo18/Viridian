@@ -175,6 +175,9 @@ public sealed class App : IExternalApplication
         Large<PavingCommand, AlwaysAvailable>(paving, assembly, "Gerador\nde Pisos", "paving",
             "Biblioteca de pisos (cimentícios, fulget, intertravados, drenantes, pedras, porcelanatos, concreto, decks, pedriscos, emborrachados e grama-concreto) com paginação, juntas, cores e camadas personalizáveis.",
             "Aplica o piso a pisos do Revit (tipo com camadas e material com a paginação em escala real), cria a hachura para plantas, o detalhe em corte e o quantitativo.");
+        Large<StoneCommand, AlwaysAvailable>(paving, assembly, "Pedras e\nCoberturas", "stones",
+            "Seixos, pedriscos, britas, cascalhos, pedras trituradas, pó de pedra, saibro, argila expandida e coberturas orgânicas, com granulometria, cor, usos e valores de referência para a compra.",
+            "Cobre canteiros, cria bordas de caminho, pisos soltos ou compactados e camadas drenantes como pisos do Revit; calcula volume, peso e sacos.");
         Large<RainGardenCommand, ProjectAvailability>(paving, assembly, "Jardim\nde Chuva", "raingarden",
             "Dimensiona o jardim de chuva pelo volume a reter, sugere plantas para fundo, taludes e bordas e cria o detalhe em corte com o memorial de cálculo.",
             "Selecione telhados ou pisos antes do comando para somar a área de contribuição.");

@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using Viridian.Core.Model;
+using Viridian.Core.Paving;
 using Viridian.Core.Water;
 
 namespace Viridian.UI.Windows;
@@ -10,11 +11,24 @@ public partial class RainGardenWindow : ViridianWindow
 {
     private bool _loading;
 
-    public RainGardenWindow(RainGardenSettings settings, double contributingAreaM2, double gardenAreaM2, IEnumerable<Species> catalog, bool hasProject)
+    public RainGardenWindow(RainGardenSettings settings, double contributingAreaM2, double gardenAreaM2, IEnumerable<Species> catalog, bool hasProject,
+        IEnumerable<LooseMaterial>? stones = null)
     {
         InitializeComponent();
         Settings = settings.Clone();
         Settings.Normalize();
+        List<LooseMaterial> materials = (stones ?? Array.Empty<LooseMaterial>()).ToList();
+        GravelMaterialBox.Items.Add(new Choice<LooseMaterial?>("Brita (porosidade digitada)", null));
+        foreach (LooseMaterial m in materials.Where(m => m.Uses.HasFlag(LooseUse.Drenagem)).OrderBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase))
+        {
+            GravelMaterialBox.Items.Add(new Choice<LooseMaterial?>($"{m.Name} ({m.GrainText}; {Num.Format(m.PorosityPercent, "0")}% de vazios)", m));
+        }
+
+        MulchMaterialBox.Items.Add(new Choice<LooseMaterial?>("Não especificar", null));
+        foreach (LooseMaterial m in materials.Where(m => m.Uses.HasFlag(LooseUse.CoberturaMorta)).OrderBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase))
+        {
+            MulchMaterialBox.Items.Add(new Choice<LooseMaterial?>(m.Name, m));
+        }
         SurfaceBox.Items.Add(new Choice<double?>("Personalizado", null));
         foreach (RunoffSurface surface in RainGardenSettings.Surfaces)
         {
@@ -66,6 +80,10 @@ public partial class RainGardenWindow : ViridianWindow
         DrainBox.Text = Num.Format(s.MaxDrainHours);
         SurfaceBox.SelectedItem = SurfaceBox.Items.Cast<Choice<double?>>().FirstOrDefault(c => c.Value is double v && Math.Abs(v - s.RunoffCoefficient) < 1e-9)
                                   ?? SurfaceBox.Items[0];
+        GravelMaterialBox.SelectedItem = GravelMaterialBox.Items.Cast<Choice<LooseMaterial?>>().FirstOrDefault(c => c.Value is not null && string.Equals(c.Value.Name, s.GravelName, StringComparison.CurrentCultureIgnoreCase))
+                                         ?? GravelMaterialBox.Items[0];
+        MulchMaterialBox.SelectedItem = MulchMaterialBox.Items.Cast<Choice<LooseMaterial?>>().FirstOrDefault(c => c.Value is not null && string.Equals(c.Value.Name, s.MulchName, StringComparison.CurrentCultureIgnoreCase))
+                                        ?? MulchMaterialBox.Items[0];
         _loading = false;
     }
 
@@ -97,6 +115,8 @@ public partial class RainGardenWindow : ViridianWindow
             GravelPorosity = Value(GravelPorosityBox, "Porosidade da brita", 0, 60) / 100,
             InfiltrationMmH = Value(InfiltrationBox, "Infiltração", 0, 2000),
             MaxDrainHours = Value(DrainBox, "Tempo de esvaziamento", 1, 240),
+            GravelName = (GravelMaterialBox.SelectedItem as Choice<LooseMaterial?>)?.Value?.Name ?? "Brita",
+            MulchName = (MulchMaterialBox.SelectedItem as Choice<LooseMaterial?>)?.Value?.Name ?? string.Empty,
         };
         double area = Value(AreaBox, "Área de contribuição", 0, 1_000_000);
         double garden = Value(GardenAreaBox, "Área do jardim", 0, 1_000_000);
@@ -124,6 +144,16 @@ public partial class RainGardenWindow : ViridianWindow
     }
 
     private void Field_Changed(object sender, RoutedEventArgs e) => Update();
+
+    private void GravelMaterial_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_loading && GravelMaterialBox.SelectedItem is Choice<LooseMaterial?> { Value: LooseMaterial m })
+        {
+            GravelPorosityBox.Text = Num.Format(Math.Min(60, m.PorosityPercent)); // porosidade útil limitada a 60%
+        }
+
+        Update();
+    }
 
     private void Surface_Changed(object sender, SelectionChangedEventArgs e)
     {

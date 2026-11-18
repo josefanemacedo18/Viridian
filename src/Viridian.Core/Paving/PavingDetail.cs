@@ -104,7 +104,7 @@ public static class PavingDetail
         double w = WidthM;
         Rgb color = type.SurfaceRgb;
         double joint = type.JointMm / 1000;
-        bool granular = type.Pattern == LayingPattern.Granular;
+        bool granular = PavingLabels.IsGranular(type.Pattern);
         if (granular)
         {
             List<Point2> layer = Box(0, -t, w, 0);
@@ -191,7 +191,8 @@ public static class PavingDetail
 
     public static string Size(PavingType t) => t.Pattern switch
     {
-        LayingPattern.Granular => $"grãos de cerca de {Mm(t.LengthMm)}",
+        LayingPattern.Granular or LayingPattern.Seixos or LayingPattern.Britas => $"grãos de cerca de {Mm(t.LengthMm)}",
+        LayingPattern.Lascas => $"lascas de cerca de {Mm(t.LengthMm)}",
         LayingPattern.Cacos or LayingPattern.Mosaico => $"peças de cerca de {Cm(t.LengthMm)}",
         LayingPattern.Hexagonal => $"hexágono de {Cm(t.LengthMm)}",
         _ when t.CastInPlace => $"quadros de {Cm(t.LengthMm)} × {Cm(t.WidthMm)}",

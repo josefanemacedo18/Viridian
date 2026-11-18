@@ -19,6 +19,7 @@ public enum PavingCategory
     GramaConcreto = 11,
     PedraPortuguesa = 12,
     Ceramico = 13,
+    Cobertura = 14,
 }
 
 /// <summary>Paginação (padrão de assentamento) das peças.</summary>
@@ -38,6 +39,9 @@ public enum LayingPattern
     Reguas = 11,
     Granular = 12,
     Vazado = 13,
+    Seixos = 14,
+    Britas = 15,
+    Lascas = 16,
 }
 
 /// <summary>Função de uma camada abaixo do revestimento.</summary>
@@ -126,6 +130,15 @@ public sealed class PavingType
     public string ServiceItemCode { get; set; } = string.Empty;
 
     public bool IsUserDefined { get; set; }
+
+    /// <summary>Densidade aparente solta do revestimento granular (t/m³); zero quando não se aplica.</summary>
+    public double DensityTM3 { get; set; }
+
+    /// <summary>Saco de venda em quilos (zero quando não se aplica).</summary>
+    public double BagKg { get; set; }
+
+    /// <summary>Saco de venda em litros, para materiais vendidos por volume (zero quando não se aplica).</summary>
+    public double BagLiters { get; set; }
 
     public double TotalThicknessMm => ThicknessMm + Layers.Sum(l => Math.Max(0, l.ThicknessMm));
 
@@ -247,6 +260,10 @@ public sealed class PavingType
         {
             Id = Guid.NewGuid().ToString("N");
         }
+
+        DensityTM3 = double.IsFinite(DensityTM3) ? Math.Clamp(DensityTM3, 0, 5) : 0;
+        BagKg = double.IsFinite(BagKg) ? Math.Clamp(BagKg, 0, 2000) : 0;
+        BagLiters = double.IsFinite(BagLiters) ? Math.Clamp(BagLiters, 0, 2000) : 0;
     }
 }
 
@@ -269,6 +286,7 @@ public static class PavingLabels
         PavingCategory.GramaConcreto => "Grama-concreto",
         PavingCategory.PedraPortuguesa => "Pedra portuguesa",
         PavingCategory.Ceramico => "Cerâmico e tijolo",
+        PavingCategory.Cobertura => "Pedras e coberturas soltas",
         _ => c.ToString(),
     };
 
@@ -288,6 +306,9 @@ public static class PavingLabels
         LayingPattern.Reguas => "Réguas (deck)",
         LayingPattern.Granular => "Granular (pedrisco, seixo)",
         LayingPattern.Vazado => "Vazado (grama-concreto)",
+        LayingPattern.Seixos => "Seixos (grãos arredondados)",
+        LayingPattern.Britas => "Britas (grãos angulosos)",
+        LayingPattern.Lascas => "Lascas (casca, cavaco)",
         _ => p.ToString(),
     };
 
@@ -318,5 +339,8 @@ public static class PavingLabels
 
     /// <summary>Paginações de peças de tamanho definido (contagem de peças faz sentido).</summary>
     public static bool IsModular(PavingType t) =>
-        !t.CastInPlace && t.Pattern is not (LayingPattern.Granular or LayingPattern.Cacos or LayingPattern.Mosaico);
+        !t.CastInPlace && !IsGranular(t.Pattern) && t.Pattern is not (LayingPattern.Cacos or LayingPattern.Mosaico);
+
+    /// <summary>Materiais soltos (pedrisco, seixos, britas, lascas): compra por volume, sem peças.</summary>
+    public static bool IsGranular(LayingPattern p) => p is LayingPattern.Granular or LayingPattern.Seixos or LayingPattern.Britas or LayingPattern.Lascas;
 }

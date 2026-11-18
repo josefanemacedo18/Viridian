@@ -50,6 +50,9 @@ public static class PavingPatterns
             LayingPattern.Cacos => Crazy(a, 3, 4, Jitter3, split: true),
             LayingPattern.Mosaico => Crazy(a, 4, 4, Jitter4, split: false),
             LayingPattern.Granular => Granular(a),
+            LayingPattern.Seixos => Scatter(a, Pebbles),
+            LayingPattern.Britas => Scatter(a, Angular),
+            LayingPattern.Lascas => Scatter(a, Chips),
             LayingPattern.Vazado => Grass(a, b),
             _ => Bond(a, b, 0),
         };
@@ -359,6 +362,63 @@ public static class PavingPatterns
                     m.Tiles.Add(new List<Point2> { p00, p10, p11, p01 });
                 }
             }
+        }
+
+        return m;
+    }
+
+    // Grãos soltos desenhados por contorno. Os vértices ficam em pontos inteiros de uma grade de 12 × 12 unidades: só
+    // assim cada lado tem direção "inteira" na malha e vira uma família de linhas da hachura. Até 40 lados por motivo,
+    // para a hachura continuar leve no Revit. (forma, posição na célula)
+    private static readonly (int[] Shape, int X, int Y)[] Pebbles =
+    {
+        (new[] { 1, 0, 3, 0, 4, 1, 4, 2, 3, 3, 1, 3, 0, 2, 0, 1 }, 0, 0),
+        (new[] { 1, 0, 3, 0, 4, 1, 3, 2, 1, 2, 0, 1 }, 6, 0),
+        (new[] { 1, 0, 3, 0, 3, 1, 2, 3, 0, 3, 0, 1 }, 1, 5),
+        (new[] { 2, 0, 3, 1, 3, 2, 1, 3, 0, 2, 0, 1 }, 6, 4),
+        (new[] { 1, 0, 2, 1, 1, 2, 0, 1 }, 10, 4),
+        (new[] { 1, 0, 3, 0, 4, 1, 3, 2, 1, 2, 0, 1 }, 5, 9),
+        (new[] { 1, 0, 2, 1, 1, 2, 0, 1 }, 10, 9),
+    };
+
+    private static readonly (int[] Shape, int X, int Y)[] Angular =
+    {
+        (new[] { 0, 0, 3, 1, 2, 3, 0, 2 }, 0, 0),
+        (new[] { 1, 0, 3, 0, 4, 2, 1, 3 }, 5, 0),
+        (new[] { 0, 1, 2, 0, 3, 2, 1, 3 }, 1, 5),
+        (new[] { 0, 0, 2, 1, 0, 2 }, 10, 1),
+        (new[] { 0, 0, 3, 0, 3, 2, 1, 3 }, 6, 5),
+        (new[] { 1, 0, 3, 1, 2, 2, 0, 2 }, 9, 9),
+        (new[] { 0, 1, 2, 0, 4, 1, 2, 2 }, 4, 9),
+        (new[] { 0, 0, 2, 1, 1, 2 }, 0, 9),
+    };
+
+    private static readonly (int[] Shape, int X, int Y)[] Chips =
+    {
+        (new[] { 0, 0, 4, 1, 4, 2, 0, 1 }, 0, 0),
+        (new[] { 0, 1, 1, 0, 2, 4, 1, 4 }, 6, 0),
+        (new[] { 0, 0, 3, 1, 4, 1, 1, 0 }, 0, 4),
+        (new[] { 1, 0, 2, 1, 1, 4, 0, 3 }, 9, 3),
+        (new[] { 0, 1, 4, 0, 5, 1, 1, 2 }, 2, 8),
+        (new[] { 0, 0, 1, 1, 1, 3, 0, 2 }, 10, 9),
+        (new[] { 0, 2, 3, 0, 4, 0, 1, 2 }, 5, 5),
+    };
+
+    /// <summary>Grãos espalhados (seixos, britas, lascas) numa célula de 12 × 12 unidades; a unidade segue o tamanho do grão.</summary>
+    private static PavingMotif Scatter(double size, (int[] Shape, int X, int Y)[] items)
+    {
+        const int units = 12;
+        double unit = size / 3.5; // um grão médio ocupa cerca de 3,5 unidades
+        var m = new PavingMotif { T1 = new Point2(units * unit, 0), T2 = new Point2(0, units * unit), IsTiling = false };
+        foreach ((int[] shape, int x, int y) in items)
+        {
+            var polygon = new List<Point2>();
+            for (int i = 0; i + 1 < shape.Length; i += 2)
+            {
+                polygon.Add(new Point2((x + shape[i]) * unit, (y + shape[i + 1]) * unit));
+            }
+
+            m.Tiles.Add(polygon);
         }
 
         return m;

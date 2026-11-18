@@ -29,6 +29,7 @@ File.WriteAllText(Path.Combine(outDir, "quadro-fotos.svg"), SvgSheets.PhotoBoard
 File.WriteAllText(Path.Combine(outDir, "maquete.svg"), MaquetePreview.Scene(Viridian.Core.Detailing.GrowthStage.Maturidade));
 File.WriteAllText(Path.Combine(outDir, "maquete-plantio.svg"), MaquetePreview.Scene(Viridian.Core.Detailing.GrowthStage.Plantio));
 File.WriteAllText(Path.Combine(outDir, "pisos.svg"), PavingPreview.Sheet());
+File.WriteAllText(Path.Combine(outDir, "pedras.svg"), PavingPreview.StonesSheet());
 foreach (string id in new[] { "vir-paver-10x20-espinha", "vir-deck-cumaru", "vir-drenante-bloco", "vir-fulget-moldado" })
 {
     var piso = Viridian.Core.Paving.PavingDefaults.Create().First(t => t.Id == id);

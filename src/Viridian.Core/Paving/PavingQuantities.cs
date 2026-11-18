@@ -23,6 +23,17 @@ public sealed class PavingQuantity
     /// <summary>Volume do revestimento (m³): concreto, fulget, pedrisco.</summary>
     public double SurfaceVolumeM3 => AreaM2 * Type.ThicknessMm / 1000;
 
+    /// <summary>Volume de compra do revestimento granular ou moldado, com a perda (m³).</summary>
+    public double PurchaseVolumeM3 => SurfaceVolumeM3 * (1 + Type.WastePercent / 100);
+
+    /// <summary>Peso de compra (t), quando a densidade é conhecida.</summary>
+    public double? WeightT => Type.DensityTM3 > 0 ? PurchaseVolumeM3 * Type.DensityTM3 : null;
+
+    /// <summary>Sacos de venda (pelo peso ou pelo volume do saco), quando informados.</summary>
+    public int? Bags => Type.BagKg > 0 && WeightT is double t ? (int)Math.Ceiling(t * 1000 / Type.BagKg - 1e-9)
+        : Type.BagLiters > 0 ? (int)Math.Ceiling(PurchaseVolumeM3 * 1000 / Type.BagLiters - 1e-9)
+        : null;
+
     /// <summary>Volume de cada camada (m³); mantas em m².</summary>
     public IReadOnlyList<(PavingLayer Layer, double Quantity, string Unit)> Layers =>
         Type.Layers.Select(l => l.Kind == PavingLayerKind.Manta
@@ -54,9 +65,23 @@ public sealed class PavingQuantity
                 return $"{area} ({pieces.ToString("N0", pt)} peças)";
             }
 
-            return Type.CastInPlace || Type.Pattern == LayingPattern.Granular
-                ? $"{area} · {(SurfaceVolumeM3 * (1 + Type.WastePercent / 100)).ToString("N2", pt)} m³"
-                : area;
+            if (!(Type.CastInPlace || PavingLabels.IsGranular(Type.Pattern) || Type.Category == PavingCategory.Cobertura))
+            {
+                return area;
+            }
+
+            string text = $"{area} · {PurchaseVolumeM3.ToString("N2", pt)} m³";
+            if (WeightT is double t)
+            {
+                text += $" · {t.ToString("N2", pt)} t";
+            }
+
+            if (Bags is int bags)
+            {
+                text += Type.BagKg > 0 ? $" · {bags.ToString("N0", pt)} sacos de {Type.BagKg.ToString("0.#", pt)} kg" : $" · {bags.ToString("N0", pt)} sacos de {Type.BagLiters.ToString("0.#", pt)} L";
+            }
+
+            return text;
         }
     }
 }
@@ -80,10 +105,20 @@ public static class PavingSheets
         });
         foreach (PavingQuantity q in rows)
         {
+            bool volume = q.Type.CastInPlace || PavingLabels.IsGranular(q.Type.Pattern) || q.Type.Category == PavingCategory.Cobertura;
             sheet.Rows.Add(new Export.XlsxRow(q.Type.Name, PavingLabels.Of(q.Type.Category), PavingDetail.Size(q.Type), q.Elements,
                 Math.Round(q.AreaM2, 2), q.Type.WastePercent, Math.Round(q.PurchaseAreaM2, 2), q.Pieces, "Revestimento: " + q.Type.Material,
-                Math.Round(q.Type.CastInPlace || q.Type.Pattern == LayingPattern.Granular ? q.SurfaceVolumeM3 : q.PurchaseAreaM2, 3),
-                q.Type.CastInPlace || q.Type.Pattern == LayingPattern.Granular ? "m³" : "m²") { Bold = true });
+                Math.Round(volume ? q.PurchaseVolumeM3 : q.PurchaseAreaM2, 3), volume ? "m³" : "m²") { Bold = true });
+            if (q.WeightT is double weight)
+            {
+                sheet.Rows.Add(new Export.XlsxRow(null, null, null, null, null, null, null, null, "Peso estimado (densidade de referência)", Math.Round(weight, 3), "t"));
+            }
+
+            if (q.Bags is int bags)
+            {
+                sheet.Rows.Add(new Export.XlsxRow(null, null, null, null, null, null, null, null,
+                    q.Type.BagKg > 0 ? $"Sacos de {q.Type.BagKg:0.#} kg" : $"Sacos de {q.Type.BagLiters:0.#} L", bags, "un"));
+            }
             foreach ((PavingLayer layer, double quantity, string unit) in q.Layers)
             {
                 sheet.Rows.Add(new Export.XlsxRow(null, null, null, null, null, null, null, null, layer.Name, Math.Round(quantity, 3), unit));

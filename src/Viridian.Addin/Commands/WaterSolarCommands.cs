@@ -58,7 +58,8 @@ public sealed class RainGardenCommand : CommandBase
             }
         }
 
-        var window = new RainGardenWindow(ctx.Settings.RainGarden, contributing, garden, ctx.Catalog.All, ctx.HasProject);
+        var window = new RainGardenWindow(ctx.Settings.RainGarden, contributing, garden, ctx.Catalog.All, ctx.HasProject,
+            new Viridian.Library.LooseMaterialLibrary(ctx.Paths).Materials);
         bool accepted = ctx.ShowDialog(window);
         if (window.SaveAsDefault)
         {

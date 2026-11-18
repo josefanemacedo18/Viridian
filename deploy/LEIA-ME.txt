@@ -1,4 +1,4 @@
-﻿VIRIDIAN 1.6 — Paisagismo 2D técnico para Autodesk Revit 2027
+﻿VIRIDIAN 1.7 — Paisagismo 2D técnico para Autodesk Revit 2027
 ==============================================================
 
 INSTALAR
@@ -36,6 +36,14 @@ PRIMEIROS PASSOS
 9. Estudo Solar (painel Composição): horas de sol com a sombra das copas e
    das edificações; Quadro de Especificação (painel Documentação); aba
    Compras nos relatórios.
+
+NOVIDADES DA 1.7
+- Pisos e Drenagem > Pedras e Coberturas: catálogo com 31 seixos, pedriscos,
+  britas, cascalhos, pedras trituradas, pó de pedra, saibro, argila expandida
+  e cascas, editável. Cobre canteiros, cria bordas de caminho, pisos soltos ou
+  compactados e camadas drenantes como pisos do Revit, com volume, peso e
+  sacos para a compra. O Jardim de Chuva usa a brita e a cobertura morta do
+  catálogo.
 
 NOVIDADES DA 1.6
 - Estudo Solar refeito: coordenadas da obra (lidas do projeto; se faltarem,

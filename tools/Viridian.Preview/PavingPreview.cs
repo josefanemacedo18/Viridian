@@ -9,11 +9,16 @@ internal static class PavingPreview
 {
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
-    public static string Sheet()
+    /// <summary>Amostras do catálogo de pedras e coberturas (cada material no seu primeiro uso).</summary>
+    public static string StonesSheet() =>
+        Sheet(LooseMaterialDefaults.Create().Select(m => LooseMaterialUse.ToPaving(m, LooseLabels.AllUses.First(u => m.Uses.HasFlag(u)))).ToList(), 1000, stones: true);
+
+    public static string Sheet() => Sheet(PavingDefaults.Create(), 1500, stones: false);
+
+    private static string Sheet(List<PavingType> all, double sizeMm, bool stones)
     {
-        List<PavingType> all = PavingDefaults.Create();
         const int cols = 6;
-        const double cell = 210, swatch = 180, sizeMm = 1500;
+        const double cell = 210, swatch = 180;
         int rows = (int)Math.Ceiling(all.Count / (double)cols);
         var sb = new StringBuilder();
         sb.Append(Inv, $"<svg xmlns='http://www.w3.org/2000/svg' width='{cols * cell + 20}' height='{rows * (cell + 40) + 20}'>");
@@ -30,8 +35,9 @@ internal static class PavingPreview
                 sb.Append(Inv, $"<line x1='{x0 + a.X * k:0.##}' y1='{y0 + swatch - a.Y * k:0.##}' x2='{x0 + b.X * k:0.##}' y2='{y0 + swatch - b.Y * k:0.##}' stroke='{t.JointRgb.Hex}' stroke-width='0.9'/>");
             }
 
-            sb.Append(Inv, $"<text x='{x0}' y='{y0 + swatch + 14}' font-family='Arial' font-size='10.5' font-weight='bold'>{System.Net.WebUtility.HtmlEncode(t.Name)}</text>");
-            sb.Append(Inv, $"<text x='{x0}' y='{y0 + swatch + 27}' font-family='Arial' font-size='9.5' fill='#555'>{System.Net.WebUtility.HtmlEncode(PavingLabels.Of(t.Pattern))} · 1,5 × 1,5 m</text>");
+            sb.Append(Inv, $"<text x='{x0}' y='{y0 + swatch + 14}' font-family='Arial' font-size='10.5' font-weight='bold'>{System.Net.WebUtility.HtmlEncode(stones ? t.Name[..t.Name.IndexOf(" — ", StringComparison.Ordinal)] : t.Name)}</text>");
+            string sub = stones ? t.Material[(t.Material.LastIndexOf(", ", StringComparison.Ordinal) + 2)..] + " · 1,0 × 1,0 m" : PavingLabels.Of(t.Pattern) + " · 1,5 × 1,5 m";
+            sb.Append(Inv, $"<text x='{x0}' y='{y0 + swatch + 27}' font-family='Arial' font-size='9.5' fill='#555'>{System.Net.WebUtility.HtmlEncode(sub)}</text>");
         }
 
         sb.Append("</svg>");

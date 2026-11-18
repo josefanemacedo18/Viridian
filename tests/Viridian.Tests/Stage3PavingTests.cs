@@ -143,7 +143,7 @@ public class PavingLibraryTests
         List<PavingType> all = PavingDefaults.Create();
         Assert.True(all.Count >= 30, all.Count.ToString());
         Assert.Equal(all.Count, all.Select(t => t.Id).Distinct().Count());
-        foreach (PavingCategory c in Enum.GetValues<PavingCategory>())
+        foreach (PavingCategory c in Enum.GetValues<PavingCategory>().Where(c => c != PavingCategory.Cobertura)) // coberturas vêm do catálogo de pedras
         {
             Assert.Contains(all, t => t.Category == c);
         }
