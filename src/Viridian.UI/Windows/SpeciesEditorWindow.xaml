@@ -103,6 +103,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <TextBlock Style="{StaticResource VirLabel}" Text="Crescimento" />
                             <ComboBox x:Name="GrowthBox" Grid.Column="1" />
@@ -124,9 +125,16 @@
                             <TextBlock Grid.Row="3" Style="{StaticResource VirLabel}" Text="Tolera encharcamento" />
                             <ComboBox x:Name="WaterloggingBox" Grid.Row="3" Grid.Column="1" AutomationProperties.Name="Tolerância ao encharcamento"
                                       ToolTip="Usada no jardim de chuva: alta para o fundo (alagamento), média para os taludes, baixa para as bordas." />
+                            <TextBlock Grid.Row="3" Grid.Column="2" Style="{StaticResource VirLabel}" Text="Folhagem" Margin="12,0,8,0" />
+                            <ComboBox x:Name="LeafHabitBox" Grid.Row="3" Grid.Column="3" AutomationProperties.Name="Folhagem ao longo do ano"
+                                      ToolTip="Decíduas e semidecíduas fazem sombra mais rala nos meses sem folhas (estudo solar)." />
 
-                            <TextBlock Grid.Row="4" Style="{StaticResource VirLabel}" Text="Observações" VerticalAlignment="Top" Margin="0,6,8,0" />
-                            <TextBox x:Name="NotesBox" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3" AcceptsReturn="True" TextWrapping="Wrap"
+                            <TextBlock Grid.Row="4" Grid.Column="2" Style="{StaticResource VirLabel}" Text="Meses sem folhas" Margin="12,0,8,0" />
+                            <TextBox x:Name="LeaflessBox" Grid.Row="4" Grid.Column="3" AutomationProperties.Name="Meses sem folhas"
+                                     ToolTip="Para decíduas e semidecíduas, por exemplo jul–set. Vazio: jun–ago (jul–set nos ipês)." />
+
+                            <TextBlock Grid.Row="5" Style="{StaticResource VirLabel}" Text="Observações" VerticalAlignment="Top" Margin="0,6,8,0" />
+                            <TextBox x:Name="NotesBox" Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="3" AcceptsReturn="True" TextWrapping="Wrap"
                                      MinHeight="48" MaxHeight="90" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" />
                         </Grid>
                     </GroupBox>

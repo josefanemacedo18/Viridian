@@ -96,6 +96,21 @@ public enum LightNeed
     Sombra = 3,
 }
 
+/// <summary>Comportamento da folhagem ao longo do ano (importa para a sombra no inverno).</summary>
+public enum LeafHabit
+{
+    NaoInformada = 0,
+
+    /// <summary>Mantém as folhas o ano todo.</summary>
+    Perenifolia = 1,
+
+    /// <summary>Perde parte das folhas na estação seca ou fria.</summary>
+    Semidecidua = 2,
+
+    /// <summary>Perde todas (ou quase todas) as folhas por alguns meses.</summary>
+    Decidua = 3,
+}
+
 /// <summary>Biomas brasileiros de ocorrência natural (combináveis).</summary>
 [Flags]
 public enum Biome
@@ -234,6 +249,14 @@ public static class Labels
         GrowthRate.Medio => "Médio",
         GrowthRate.Rapido => "Rápido",
         _ => "Não informado",
+    };
+
+    public static string Of(LeafHabit h) => h switch
+    {
+        LeafHabit.Perenifolia => "Perenifólia (folhas o ano todo)",
+        LeafHabit.Semidecidua => "Semidecídua (perde parte das folhas)",
+        LeafHabit.Decidua => "Decídua (fica sem folhas)",
+        _ => "Não informada",
     };
 
     public static string Of(WaterloggingTolerance t) => t switch

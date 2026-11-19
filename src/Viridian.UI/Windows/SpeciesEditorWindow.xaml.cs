@@ -62,6 +62,11 @@ public partial class SpeciesEditorWindow : ViridianWindow
             TextureBox.Items.Add(new Choice<Texture>(Labels.Of(texture), texture));
         }
 
+        foreach (LeafHabit h in Enum.GetValues<LeafHabit>())
+        {
+            LeafHabitBox.Items.Add(new Choice<LeafHabit>(Labels.Of(h), h));
+        }
+
         foreach (WaterloggingTolerance t in Enum.GetValues<WaterloggingTolerance>())
         {
             WaterloggingBox.Items.Add(new Choice<WaterloggingTolerance>(Labels.Of(t), t));
@@ -150,6 +155,13 @@ public partial class SpeciesEditorWindow : ViridianWindow
         }
 
         Select(WaterloggingBox, s.Waterlogging);
+        if (LeafHabitBox.Items[0] is Choice<LeafHabit>)
+        {
+            LeafHabitBox.Items[0] = new Choice<LeafHabit>($"Não informada (estimada: {Labels.Of(Viridian.Core.Solar.LeafRules.Estimate(s))})", LeafHabit.NaoInformada);
+        }
+
+        Select(LeafHabitBox, s.LeafHabit);
+        LeaflessBox.Text = s.LeaflessMonths;
         ScaleText.Text = Labels.Of(s.Scale);
         FoliageColorBox.Text = s.FoliageColor;
         FlowerColorBox.Text = s.FlowerColor;
@@ -423,6 +435,12 @@ public partial class SpeciesEditorWindow : ViridianWindow
         s.FlowerColor = NormalizeColor(FlowerColorBox.Text, "cor da flor", problems);
         s.Texture = Value(TextureBox, s.EffectiveTexture);
         s.Waterlogging = Value(WaterloggingBox, s.Waterlogging);
+        s.LeafHabit = Value(LeafHabitBox, s.LeafHabit);
+        s.LeaflessMonths = LeaflessBox.Text.Trim();
+        if (s.LeaflessMonths.Length > 0 && MonthSet.Parse(s.LeaflessMonths).IsEmpty)
+        {
+            problems.Add("Não reconheci os meses sem folhas. Use, por exemplo: jul–set.");
+        }
         if (!string.IsNullOrWhiteSpace(s.Flowering) && MonthSet.Parse(s.Flowering).IsEmpty)
         {
             problems.Add("Não reconheci os meses de floração. Use, por exemplo: ago–out, set–nov e mar–abr, ano todo.");

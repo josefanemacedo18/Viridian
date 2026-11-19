@@ -62,6 +62,21 @@ public partial class SolarStudyWindow : ViridianWindow
         }
 
         AnnualBox.IsChecked = Settings.MapAnnual;
+        ShadeSheetsBox.IsChecked = Settings.ShadeSheets;
+        FromHourBox.Text = Settings.FromHour.ToString(Num.PtBr);
+        ToHourBox.Text = Settings.ToHour.ToString(Num.PtBr);
+        PlanHoursBox.Text = string.Join(", ", Settings.PlanHours);
+        foreach ((string label, Core.Detailing.GrowthStage stage) in new[]
+                 {
+                     ("Adulto (maturidade)", Core.Detailing.GrowthStage.Maturidade), ("Aos 6 anos", Core.Detailing.GrowthStage.SeisAnos),
+                     ("Aos 3 anos", Core.Detailing.GrowthStage.TresAnos), ("No plantio (mudas)", Core.Detailing.GrowthStage.Plantio),
+                 })
+        {
+            StageBox.Items.Add(new Choice<Core.Detailing.GrowthStage>(label, stage));
+        }
+
+        StageBox.SelectedItem = StageBox.Items.Cast<Choice<Core.Detailing.GrowthStage>>().FirstOrDefault(c => c.Value == Settings.Stage) ?? StageBox.Items[0];
+        ExportBox.IsChecked = Settings.ExportImages;
         BuildingsBox.IsChecked = Settings.IncludeBuildings;
         FillBands(Settings);
         MonthlyRadio.IsChecked = Settings.Monthly;
@@ -136,7 +151,7 @@ public partial class SolarStudyWindow : ViridianWindow
         MonthsLabel.IsEnabled = monthly;
         MapsHint.Text = monthly
             ? "Cada mapa é uma cópia da planta; a planta original não muda. O calendário de luz (todos os meses) é criado sempre."
-            : "Com solstícios e equinócio, os mapas são o da média e o do solstício de inverno (pior caso). O calendário de luz mostra as três datas.";
+            : "Com solstícios e equinócio, os mapas são o da média e o do solstício de inverno (pior caso), e os quadros de sombras são das três datas. O calendário de luz mostra as três datas.";
     }
 
     private void UpdateBands()
@@ -210,6 +225,26 @@ public partial class SolarStudyWindow : ViridianWindow
 
         (SolarSettings? s, List<string> bandProblems) = ReadBands();
         problems.AddRange(bandProblems);
+        if (!int.TryParse(FromHourBox.Text.Trim(), out int fromHour) || !int.TryParse(ToHourBox.Text.Trim(), out int toHour) || fromHour is < 0 or > 23 || toHour < fromHour || toHour > 23)
+        {
+            problems.Add("Horário do quadro de sombras: use horas inteiras de 0 a 23, a primeira menor que a última (ex.: das 7 às 17).");
+            fromHour = 7;
+            toHour = 17;
+        }
+
+        var planHours = new List<int>();
+        foreach (string part in PlanHoursBox.Text.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (int.TryParse(part.Trim().TrimEnd('h', 'H'), out int h) && h is >= 0 and <= 23)
+            {
+                planHours.Add(h);
+            }
+            else
+            {
+                problems.Add($"Sombras na planta: \"{part}\" não é uma hora (use, por exemplo, 9, 12, 15).");
+                break;
+            }
+        }
         if (problems.Count > 0 || s is null)
         {
             Warn(string.Join("\n", problems));
@@ -231,6 +266,12 @@ public partial class SolarStudyWindow : ViridianWindow
         s.MapAnnual = AnnualBox.IsChecked == true;
         s.MapMonths = Enumerable.Range(1, 12).Where(m => _months[m - 1].IsChecked == true).ToList();
         s.IncludeBuildings = BuildingsBox.IsChecked == true;
+        s.ShadeSheets = ShadeSheetsBox.IsChecked == true;
+        s.FromHour = fromHour;
+        s.ToHour = toHour;
+        s.PlanHours = planHours.Distinct().OrderBy(h => h).ToList();
+        s.Stage = (StageBox.SelectedItem as Choice<Core.Detailing.GrowthStage>)?.Value ?? Core.Detailing.GrowthStage.Maturidade;
+        s.ExportImages = ExportBox.IsChecked == true;
         if (source == SiteSource.Digitado || _projectUndefined)
         {
             // Próximos projetos sem localização partem destas coordenadas.

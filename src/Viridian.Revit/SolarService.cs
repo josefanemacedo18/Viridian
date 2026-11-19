@@ -1,3 +1,4 @@
+using System.IO;
 using Autodesk.Revit.DB;
 using Viridian.Core.Colors;
 using Viridian.Core.Detailing;
@@ -29,6 +30,15 @@ public sealed class SolarReport
     public List<SolarPlant> Plants { get; } = new();
 
     public bool UsedBuildings { get; init; }
+
+    /// <summary>Copas que fazem sombra (inclusive de plantas fora da região, a até 40 m).</summary>
+    public List<CrownObstacle> Crowns { get; } = new();
+
+    /// <summary>Sombras de hora em hora por data analisada.</summary>
+    public List<(SolarDate Date, List<ShadeFrame> Frames)> Shades { get; } = new();
+
+    /// <summary>Ângulo do norte verdadeiro nas coordenadas do modelo (radianos, anti-horário).</summary>
+    public double TrueNorthRad { get; init; }
 
     public TimeSpan Duration { get; set; }
 
@@ -187,7 +197,8 @@ public static class SolarService
         IReadOnlyList<SolarDate> dates,
         SolarSettings settings,
         GrowthStage stage,
-        SolarSite site)
+        SolarSite site,
+        IReadOnlyList<SolarDate>? shadeDates = null)
     {
         DateTime started = DateTime.Now;
         double latitude = site.LatitudeDeg;
@@ -204,7 +215,7 @@ public static class SolarService
         foreach ((PlantRecord r, Species s) in shadingPlants.Where(p => near.Contains(p.Record.Location)))
         {
             double z = Ground(r.Location, PlantZ(r));
-            CrownObstacle? c = CrownObstacle.For(r.UniqueId, s, new Vec3(r.Location.X, r.Location.Y, z), stage);
+            CrownObstacle? c = CrownObstacle.For(r.UniqueId, s, new Vec3(r.Location.X, r.Location.Y, z), stage, site.South);
             if (c is not null)
             {
                 crowns.Add(c);
@@ -212,7 +223,7 @@ public static class SolarService
         }
 
         (List<Point2> grid, double cell) = SolarStudy.Grid(region, settings.GridM, settings.MaxPoints);
-        var report = new SolarReport { Site = site, Dates = dates, Cell = cell, UsedBuildings = settings.IncludeBuildings };
+        var report = new SolarReport { Site = site, Dates = dates, TrueNorthRad = toModel(new Vec3(0, 1, 0)) is Vec3 n ? Math.Atan2(-n.X, n.Y) : 0, Cell = cell, UsedBuildings = settings.IncludeBuildings };
         var points = new List<SolarPoint>();
         foreach (Point2 p in grid)
         {
@@ -250,8 +261,167 @@ public static class SolarService
         }
 
         SolarStudy.Compute(points, crowns, latitude, dates, settings, toModel, blocked);
+        report.Crowns.AddRange(crowns);
+
+        // Sombras de hora em hora (hora legal) nas datas pedidas.
+        if (shadeDates is { Count: > 0 })
+        {
+            List<Vec3> gridPositions = report.Grid.Select(g => g.Point.Position).ToList();
+            List<(Vec3, string)> plantPositions = report.Plants.Select(p => (p.Point.Position, p.Point.IgnoreId)).ToList();
+            foreach (SolarDate date in shadeDates)
+            {
+                report.Shades.Add((date, HourlyShade.Compute(gridPositions, plantPositions, crowns, site, date, settings.FromHour, settings.ToHour, toModel, blocked)));
+            }
+        }
         report.Duration = DateTime.Now - started;
         return report;
+    }
+
+    /// <summary>Quadro de sombras de hora em hora de uma data, em vista de desenho (refeito a cada estudo). Precisa de transação.</summary>
+    public static ViewDrafting ShadeSheetView(Document document, ViewPlan source, Polygon2 region, SolarReport report, SolarDate date,
+        IReadOnlyList<ShadeFrame> frames, IReadOnlyList<ShadeRow> rows, string stageText, double textMm)
+    {
+        string title = $"Sombras por horário — {date.Name}";
+        Drawing drawing = ShadeSheet.Build(title, report.Site, date, frames, report.Grid.Select(g => g.Plan).ToList(), report.Cell, region,
+            report.Crowns, rows, report.TrueNorthRad, report.UsedBuildings, stageText);
+        return new DesignService(textMm).DrawingView(document, PavingService.SafeName($"Viridian - Sombras por horário - {date.Name} - {source.Name}"), drawing, 1);
+    }
+
+    /// <summary>
+    /// Cópia da planta com as sombras de um horário: malha à sombra e à meia-luz (semitransparentes), contorno da sombra
+    /// de cada copa e a legenda com a data, a hora e a posição do sol. A planta original não muda. Precisa de transação.
+    /// </summary>
+    public static ViewPlan ShadowPlan(Document document, ViewPlan source, Polygon2 region, SolarReport report, ShadeFrame frame, double textMm)
+    {
+        if (!source.CanViewBeDuplicated(ViewDuplicateOption.Duplicate))
+        {
+            throw new ViridianException("Esta vista não pode ser duplicada para as sombras.");
+        }
+
+        var view = (ViewPlan)document.GetElement(source.Duplicate(ViewDuplicateOption.Duplicate));
+        string baseName = PavingService.SafeName($"Viridian - Sombras {frame.Date.Name} {frame.ClockHour:00}h - {source.Name}");
+        string name = baseName;
+        using (var collector = new FilteredElementCollector(document))
+        {
+            var names = new HashSet<string>(collector.OfClass(typeof(View)).Cast<View>().Select(v => v.Name), StringComparer.OrdinalIgnoreCase);
+            for (int i = 2; names.Contains(name); i++)
+            {
+                name = $"{baseName} ({i})";
+            }
+        }
+
+        view.Name = name;
+        double z = source.GenLevel?.ProjectElevation ?? 0;
+        List<Point2> grid = report.Grid.Select(g => g.Plan).ToList();
+        double gap = report.Cell * 0.02; // faixas não podem se tocar dentro da mesma região preenchida
+        foreach (IGrouping<int, (int Class, Bounds2 Box)> group in HourlyShade.Runs(grid, report.Cell, i => HourlyShade.ShadeClass(frame.Grid[i])).GroupBy(r => r.Class))
+        {
+            var loops = new List<CurveLoop>();
+            foreach ((int _, Bounds2 box) in group)
+            {
+                XYZ a = RevitUnits.ToXyz(new Point2(box.MinX + gap, box.MinY + gap), z), b = RevitUnits.ToXyz(new Point2(box.MaxX - gap, box.MinY + gap), z);
+                XYZ c = RevitUnits.ToXyz(new Point2(box.MaxX - gap, box.MaxY - gap), z), d = RevitUnits.ToXyz(new Point2(box.MinX + gap, box.MaxY - gap), z);
+                loops.Add(CurveLoop.Create(new List<Curve> { Line.CreateBound(a, b), Line.CreateBound(b, c), Line.CreateBound(c, d), Line.CreateBound(d, a) }));
+            }
+
+            if (loops.Count == 0 || HatchService.EnsureSolidRegionType(document, group.Key == 0 ? HourlyShade.ShadeColor : HourlyShade.PartialColor) is not FilledRegionType type)
+            {
+                continue;
+            }
+
+            FilledRegion shade = FilledRegion.Create(document, type.Id, view.Id, loops);
+            view.SetElementOverrides(shade.Id, new OverrideGraphicSettings().SetSurfaceTransparency(group.Key == 0 ? 35 : 55));
+        }
+
+        // Contorno da sombra de cada copa (tracejado), direção do sol e legenda.
+        double k = view.Scale / 1000.0;
+        var drawing = new Drawing();
+        foreach ((string _, IReadOnlyList<Point2> outline, double _) in frame.Shadows)
+        {
+            drawing.Polyline(outline, true); // contínuo: tracejado viraria milhares de linhas na planta
+        }
+
+        Bounds2 bounds = region.Bounds;
+        var legend = new Drawing();
+        double y = 0;
+        legend.Text(new Point2(0, y), $"SOMBRAS — {frame.Date.Name.ToUpperInvariant()}, DIA {frame.Date.Day}, {frame.HourText}", -1, 1.2);
+        y -= 7 * k;
+        legend.Text(new Point2(0, y), HourlyShade.SunText(frame.Sun) + $" · {frame.ShadedFraction:0%} da região à sombra", -1, 0.85);
+        y -= 5 * k;
+        foreach (string part in TextLayout.Wrap(report.Site.Describe() + ". Hora legal, sem horário de verão.", 60))
+        {
+            legend.Text(new Point2(0, y), part, -1, 0.8);
+            y -= 5 * k;
+        }
+
+        foreach ((Rgb color, string text) in new[] { (HourlyShade.ShadeColor, "sombra"), (HourlyShade.PartialColor, "meia-luz (copa rala ou borda)") })
+        {
+            var box = new List<Point2> { new(0, y - 4 * k), new(8 * k, y - 4 * k), new(8 * k, y + 1 * k), new(0, y + 1 * k) };
+            legend.Fills.Add(new DrawFill(box, color));
+            legend.Polyline(box, true);
+            legend.Text(new Point2(11 * k, y - 1.5 * k), text, -1, 0.85);
+            y -= 7 * k;
+        }
+
+        legend.Text(new Point2(0, y - 2 * k), "Contorno fino: sombra de cada copa no chão.", -1, 0.8);
+
+        // Seta do sol: da borda da região para o centro, do lado de onde vem a luz.
+        var dir = new Point2(frame.ToSun.X, frame.ToSun.Y);
+        if (dir.Length > 1e-6)
+        {
+            dir = dir.Normalized();
+            Point2 center = bounds.Center;
+            double reach = Math.Max(bounds.Width, bounds.Height) * 0.5 + 12 * k;
+            Point2 from = center + dir * reach, to = center + dir * (reach - 10 * k);
+            List<Point2> sun = Drawing.Ellipse(from, 2.2 * k, 2.2 * k, 16);
+            drawing.Fills.Add(new DrawFill(sun, HourlyShade.SunColor));
+            drawing.Polyline(sun, true);
+            drawing.Line(from, to, heavy: true);
+            Point2 back = (from - to).Normalized() * (1.6 * k), side = back.Perp() * 0.7;
+            drawing.Line(to, to + back + side, heavy: true);
+            drawing.Line(to, to + back - side, heavy: true);
+        }
+
+        var renderer = new DrawingRenderer(document, view, textMm) { ElevationFeet = z };
+        renderer.Render(drawing, Point2.Zero);
+        renderer.Render(legend, new Point2(bounds.MaxX + 16 * k, bounds.MaxY));
+        return view;
+    }
+
+    /// <summary>
+    /// Exporta as vistas como imagens PNG para a pasta indicada (criada se preciso). Devolve a pasta; falhas ficam no
+    /// registro e não interrompem o estudo.
+    /// </summary>
+    public static int ExportImages(Document document, IReadOnlyList<View> views, string folder)
+    {
+        Directory.CreateDirectory(folder);
+        int exported = 0;
+        foreach (View view in views)
+        {
+            try
+            {
+                using var options = new ImageExportOptions
+                {
+                    ExportRange = ExportRange.SetOfViews,
+                    FilePath = Path.Combine(folder, PavingService.SafeName(view.Name)),
+                    HLRandWFViewsFileType = ImageFileType.PNG,
+                    ShadowViewsFileType = ImageFileType.PNG,
+                    ImageResolution = ImageResolution.DPI_150,
+                    ZoomType = ZoomFitType.FitToPage,
+                    PixelSize = 2400,
+                    FitDirection = FitDirectionType.Horizontal,
+                };
+                options.SetViewsAndSheets(new List<ElementId> { view.Id });
+                document.ExportImage(options);
+                exported++;
+            }
+            catch (Exception ex) when (ex is Autodesk.Revit.Exceptions.ApplicationException or IOException or UnauthorizedAccessException)
+            {
+                ViridianLog.Warn("Estudo solar: imagem não exportada: " + view.Name, ex);
+            }
+        }
+
+        return exported;
     }
 
     /// <summary>Calendário de luz da região numa vista de desenho (refeita a cada estudo da mesma planta). Precisa de transação.</summary>

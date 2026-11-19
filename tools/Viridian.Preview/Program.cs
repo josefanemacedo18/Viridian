@@ -39,6 +39,7 @@ foreach (string id in new[] { "vir-paver-10x20-espinha", "vir-deck-cumaru", "vir
 File.WriteAllText(Path.Combine(outDir, "jardim-de-chuva.svg"), SvgSheets.DrawingSvg(WaterSolarPreview.RainGarden(), 260));
 File.WriteAllText(Path.Combine(outDir, "estudo-solar.svg"), WaterSolarPreview.Solar());
 File.WriteAllText(Path.Combine(outDir, "calendario-luz.svg"), SvgSheets.DrawingSvg(WaterSolarPreview.LastCalendar!, 5200));
+File.WriteAllText(Path.Combine(outDir, "sombras-por-horario.svg"), SvgSheets.DrawingSvg(WaterSolarPreview.LastShadeSheet!, 4200));
 File.WriteAllText(Path.Combine(outDir, "macicos.svg"), MassingPreview.Sheet());
 Console.WriteLine("Pranchas geradas em " + Path.GetFullPath(outDir));
 

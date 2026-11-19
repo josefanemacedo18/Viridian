@@ -7,6 +7,84 @@ public static class Geo
 
     public static double DegToRad(double degrees) => degrees * Math.PI / 180.0;
 
+    /// <summary>Contorno convexo (anti-horário) dos pontos (cadeia monótona).</summary>
+    public static List<Point2> ConvexHull(IEnumerable<Point2> points)
+    {
+        List<Point2> p = points.Distinct().OrderBy(q => q.X).ThenBy(q => q.Y).ToList();
+        if (p.Count < 3)
+        {
+            return p;
+        }
+
+        var hull = new Point2[2 * p.Count];
+        int k = 0;
+        for (int i = 0; i < p.Count; i++)
+        {
+            while (k >= 2 && (hull[k - 1] - hull[k - 2]).Cross(p[i] - hull[k - 2]) <= 0)
+            {
+                k--;
+            }
+
+            hull[k++] = p[i];
+        }
+
+        for (int i = p.Count - 2, t = k + 1; i >= 0; i--)
+        {
+            while (k >= t && (hull[k - 1] - hull[k - 2]).Cross(p[i] - hull[k - 2]) <= 0)
+            {
+                k--;
+            }
+
+            hull[k++] = p[i];
+        }
+
+        return hull.Take(k - 1).ToList();
+    }
+
+    /// <summary>Recorta um polígono convexo (ou qualquer polígono) por um retângulo (Sutherland–Hodgman).</summary>
+    public static List<Point2> ClipToRect(IReadOnlyList<Point2> polygon, Bounds2 rect)
+    {
+        List<Point2> output = polygon.ToList();
+        foreach ((Func<Point2, bool> inside, Func<Point2, Point2, Point2> cut) in new (Func<Point2, bool>, Func<Point2, Point2, Point2>)[]
+        {
+            (q => q.X >= rect.MinX, (a, b) => Lerp(a, b, (rect.MinX - a.X) / (b.X - a.X))),
+            (q => q.X <= rect.MaxX, (a, b) => Lerp(a, b, (rect.MaxX - a.X) / (b.X - a.X))),
+            (q => q.Y >= rect.MinY, (a, b) => Lerp(a, b, (rect.MinY - a.Y) / (b.Y - a.Y))),
+            (q => q.Y <= rect.MaxY, (a, b) => Lerp(a, b, (rect.MaxY - a.Y) / (b.Y - a.Y))),
+        })
+        {
+            if (output.Count == 0)
+            {
+                break;
+            }
+
+            var input = output;
+            output = new List<Point2>();
+            for (int i = 0; i < input.Count; i++)
+            {
+                Point2 current = input[i], previous = input[(i - 1 + input.Count) % input.Count];
+                bool ci = inside(current), pi = inside(previous);
+                if (ci)
+                {
+                    if (!pi)
+                    {
+                        output.Add(cut(previous, current));
+                    }
+
+                    output.Add(current);
+                }
+                else if (pi)
+                {
+                    output.Add(cut(previous, current));
+                }
+            }
+        }
+
+        return output;
+
+        static Point2 Lerp(Point2 a, Point2 b, double t) => Point2.Lerp(a, b, t);
+    }
+
     public static double RadToDeg(double radians) => radians * 180.0 / Math.PI;
 
     /// <summary>Área com sinal de um anel (positiva quando anti-horário).</summary>

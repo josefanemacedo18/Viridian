@@ -23,13 +23,13 @@ namespace Viridian.Addin.Commands;
 internal static class DesignFlows
 {
     /// <summary>Exemplares cadastrados (não removidos e fora de maciços) do nível da vista, opcionalmente dentro de um contorno.</summary>
-    public static List<(PlantRecord Record, Species Species)> Plants(ViridianContext ctx, View view, Polygon2? inside = null)
+    public static List<(PlantRecord Record, Species Species)> Plants(ViridianContext ctx, View view, Polygon2? inside = null, bool includeMassings = false)
     {
         string level = PlantingService.LevelOf(view)?.Name ?? string.Empty;
         var result = new List<(PlantRecord, Species)>();
         foreach (PlantRecord plant in PlantingService.ReadPlants(ctx.Doc, ctx.Lookup))
         {
-            if (!plant.IsRegistered || plant.Status == PlantStatus.Removido || plant.BelongsToMassing
+            if (!plant.IsRegistered || plant.Status == PlantStatus.Removido || (plant.BelongsToMassing && !includeMassings)
                 || (level.Length > 0 && !string.Equals(plant.LevelName, level, StringComparison.Ordinal))
                 || (inside is not null && !inside.Contains(plant.Location))
                 || ctx.Lookup(plant.SpeciesId) is not Species species)

@@ -60,6 +60,33 @@ public sealed class Species
     /// <summary>Textura considerada nas análises: a cadastrada ou a sugerida.</summary>
     public Texture EffectiveTexture => Texture != Texture.NaoInformada ? Texture : Composition.TextureRules.Suggest(this);
 
+    /// <summary>Folhagem cadastrada. Não informada = estimativa pelo gênero (ipês, paineiras, eritrinas... são decíduos).</summary>
+    public LeafHabit LeafHabit { get; set; }
+
+    /// <summary>Meses sem folhas (decíduas) ou com folhagem rala (semidecíduas), por exemplo "jul–set". Vazio = jun–ago.</summary>
+    public string LeaflessMonths { get; set; } = string.Empty;
+
+    /// <summary>Folhagem considerada nas análises: a cadastrada ou a estimada.</summary>
+    public LeafHabit EffectiveLeafHabit => LeafHabit != LeafHabit.NaoInformada ? LeafHabit : Viridian.Core.Solar.LeafRules.Estimate(this);
+
+    /// <summary>Verdadeiro quando a folhagem usada é estimada (não cadastrada).</summary>
+    public bool LeafHabitEstimated => LeafHabit == LeafHabit.NaoInformada;
+
+    /// <summary>Meses sem folhas (ou com folhagem rala) no hemisfério sul; vazio para perenifólias.</summary>
+    public MonthSet EffectiveLeaflessMonths
+    {
+        get
+        {
+            if (EffectiveLeafHabit is not (LeafHabit.Decidua or LeafHabit.Semidecidua))
+            {
+                return MonthSet.None;
+            }
+
+            MonthSet typed = MonthSet.Parse(LeaflessMonths);
+            return typed.IsEmpty ? Viridian.Core.Solar.LeafRules.DefaultLeafless(this) : typed;
+        }
+    }
+
     /// <summary>Tolerância ao encharcamento cadastrada. Não informada = estimativa pela categoria e pela necessidade de água.</summary>
     public WaterloggingTolerance Waterlogging { get; set; }
 

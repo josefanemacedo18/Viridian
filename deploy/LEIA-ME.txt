@@ -1,4 +1,4 @@
-﻿VIRIDIAN 1.7 — Paisagismo 2D técnico para Autodesk Revit 2027
+﻿VIRIDIAN 1.8 — Paisagismo 2D técnico para Autodesk Revit 2027
 ==============================================================
 
 INSTALAR
@@ -36,6 +36,15 @@ PRIMEIROS PASSOS
 9. Estudo Solar (painel Composição): horas de sol com a sombra das copas e
    das edificações; Quadro de Especificação (painel Documentação); aba
    Compras nos relatórios.
+
+NOVIDADES DA 1.8
+- Estudo Solar com sombras hora a hora: para cada mês marcado, um quadro com
+  a sombra de cada árvore em cada hora (pela altura e pela copa da espécie,
+  pela posição do sol e pelas coordenadas da obra), as áreas à sombra, a
+  direção do sol e a tabela de sol e sombra de cada espécie; cópias da planta
+  com as sombras nos horários escolhidos e imagens PNG.
+- Ficha da espécie: campo Folhagem (perenifólia, semidecídua, decídua) e
+  meses sem folhas; decíduas fazem sombra rala nesses meses.
 
 NOVIDADES DA 1.7
 - Pisos e Drenagem > Pedras e Coberturas: catálogo com 31 seixos, pedriscos,

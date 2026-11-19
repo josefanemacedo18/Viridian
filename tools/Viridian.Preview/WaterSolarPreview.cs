@@ -36,6 +36,9 @@ internal static class WaterSolarPreview
     /// <summary>Calendário de luz do último estudo simulado.</summary>
     public static Viridian.Core.Detailing.Drawing? LastCalendar { get; private set; }
 
+    /// <summary>Quadro de sombras por horário do último estudo simulado.</summary>
+    public static Viridian.Core.Detailing.Drawing? LastShadeSheet { get; private set; }
+
     public static string Solar()
     {
         List<Species> all = SeedCatalog.CreateSpecies();
@@ -93,6 +96,14 @@ internal static class WaterSolarPreview
             SolarStudy.Compute(new[] { sp }, crowns, -23.55, dates, settings, v => v, Blocked);
             rows.Add(new LightCalendarRow("XX-0 " + name, sp.Hours, PlantLight.Evaluate(need, sp.Hours, dates, settings), 1));
         }
+
+        // Quadro de sombras de julho em Brasília (copas adultas e o bloco de 9 m).
+        var site = new SolarSite(-15.78, -47.88, -3, "Brasília", SiteSource.Projeto);
+        SolarDate july = dates[6];
+        var plantPoints = samples.Select((s, i) => (new Vec3(s.At.X, s.At.Y, 0.6), "p" + i)).ToList();
+        List<ShadeFrame> frames = HourlyShade.Compute(grid.Select(p => new Vec3(p.X, p.Y, 0.3)).ToList(), plantPoints, crowns, site, july, 7, 17, v => v, Blocked);
+        var shadeRows = samples.Select((s, i) => new ShadeRow("XX-0 " + s.Name, new[] { i })).ToList();
+        LastShadeSheet = ShadeSheet.Build("Sombras por horário — Julho", site, july, frames, grid, cell, region, crowns, shadeRows, 0, true, "copas adultas");
 
         LastCalendar = LightCalendar.Build("Calendário de luz — Térreo", "Mês a mês (dia típico de cada mês)",
             new SolarSite(-23.5505, -46.6333, -3, "São Paulo", SiteSource.Projeto), dates, rows, settings, true);

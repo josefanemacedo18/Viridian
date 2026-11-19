@@ -147,10 +147,28 @@ public sealed class SolarStudyCommand : CommandBase
 
         RegionBoundary region = ctx.PickRegion("o estudo solar");
         List<(PlantRecord Record, Species Species)> inside = DesignFlows.Plants(ctx, view, region.Polygon);
-        List<(PlantRecord Record, Species Species)> shading = DesignFlows.Plants(ctx, view);
+        // Fazem sombra todas as plantas da vista, inclusive as de maciços (bosques de árvores).
+        List<(PlantRecord Record, Species Species)> shading = DesignFlows.Plants(ctx, view, includeMassings: true);
         double levelZ = RevitUnits.ToMeters(view.GenLevel!.ProjectElevation);
 
-        (List<ViewPlan> created, ViewDrafting calendar, SolarReport report, List<LightCalendarRow> rows) = ctx.Grouped("Viridian: estudo solar", () =>
+        // Datas das sombras hora a hora: os meses marcados (ou inverno e verão) ou as três datas-chave.
+        var shadeDates = new List<SolarDate>();
+        if (settings.ShadeSheets || settings.PlanHours.Count > 0)
+        {
+            shadeDates = settings.Monthly
+                ? (settings.MapMonths.Count > 0 ? settings.MapMonths : (site.South ? new List<int> { 6, 12 } : new List<int> { 12, 6 })).Select(m => dates[m - 1]).ToList()
+                : dates.ToList();
+        }
+
+        string stageText = settings.Stage switch
+        {
+            GrowthStage.Plantio => "mudas no plantio",
+            GrowthStage.TresAnos => "copas aos 3 anos",
+            GrowthStage.SeisAnos => "copas aos 6 anos",
+            _ => "copas adultas",
+        };
+
+        (List<ViewPlan> created, ViewDrafting calendar, SolarReport report, List<LightCalendarRow> rows, List<View> shadeViews) = ctx.Grouped("Viridian: estudo solar", () =>
         {
             View3D probe = Tx.Run(ctx.Doc, "Viridian: estudo solar (preparo)", () =>
             {
@@ -163,30 +181,70 @@ public sealed class SolarStudyCommand : CommandBase
                 ctx.Doc.Regenerate();
                 return v;
             });
-            SolarReport analyzed = SolarService.Analyze(ctx.Doc, probe, region.Polygon, levelZ, inside, shading, dates, settings, GrowthStage.Maturidade, site);
+            SolarReport analyzed = SolarService.Analyze(ctx.Doc, probe, region.Polygon, levelZ, inside, shading, dates, settings, settings.Stage, site, shadeDates);
             List<LightCalendarRow> calendarRows = CalendarRows(ctx, analyzed, settings);
-            (List<ViewPlan> views, ViewDrafting drafting) = Tx.Run(ctx.Doc, "Viridian: estudo solar", () =>
+            List<ShadeRow> shadeRows = ShadeRows(ctx, analyzed);
+            (List<ViewPlan> views, ViewDrafting drafting, List<View> shades) = Tx.Run(ctx.Doc, "Viridian: estudo solar", () =>
             {
-                var heatMaps = maps.Select(m => SolarService.HeatMap(ctx.Doc, view, region.Polygon, analyzed, m.Label, m.Hours, settings, ctx.Settings.Labels.TextSizeMm)).ToList();
-                ViewDrafting cal = SolarService.CalendarView(ctx.Doc, view, analyzed, period, calendarRows, settings, ctx.Settings.Labels.TextSizeMm);
+                double text = ctx.Settings.Labels.TextSizeMm;
+                var heatMaps = maps.Select(m => SolarService.HeatMap(ctx.Doc, view, region.Polygon, analyzed, m.Label, m.Hours, settings, text)).ToList();
+                ViewDrafting cal = SolarService.CalendarView(ctx.Doc, view, analyzed, period, calendarRows, settings, text);
+                var shadeViewList = new List<View>();
+                foreach ((SolarDate date, List<ShadeFrame> frames) in analyzed.Shades)
+                {
+                    if (settings.ShadeSheets)
+                    {
+                        shadeViewList.Add(SolarService.ShadeSheetView(ctx.Doc, view, region.Polygon, analyzed, date, frames, shadeRows, stageText, text));
+                    }
+
+                    foreach (ShadeFrame frame in frames.Where(f => settings.PlanHours.Contains(f.ClockHour)))
+                    {
+                        shadeViewList.Add(SolarService.ShadowPlan(ctx.Doc, view, region.Polygon, analyzed, frame, text));
+                    }
+                }
+
                 ctx.Doc.Delete(probe.Id);
-                return (heatMaps, cal);
+                return (heatMaps, cal, shadeViewList);
             }, suppressWarnings: true);
-            return (views, drafting, analyzed, calendarRows);
+            return (views, drafting, analyzed, calendarRows, shades);
         }, _ => true);
 
-        ctx.UiDocument.ActiveView = created.Count > 0 ? created[0] : calendar;
+        View opened = shadeViews.OfType<ViewDrafting>().FirstOrDefault() as View ?? (created.Count > 0 ? created[0] : calendar);
+        ctx.UiDocument.ActiveView = opened;
+
+        // Imagens (fora de transação): calendário, mapas, quadros e plantas com sombras.
+        string imagesText = string.Empty;
+        if (settings.ExportImages)
+        {
+            string folder = string.IsNullOrWhiteSpace(ctx.Doc.PathName)
+                ? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Viridian", "Estudo solar")
+                : System.IO.Path.Combine(System.IO.Path.GetDirectoryName(ctx.Doc.PathName)!, "Viridian - Estudo solar");
+            var all = new List<View> { calendar };
+            all.AddRange(created);
+            all.AddRange(shadeViews);
+            int exported = SolarService.ExportImages(ctx.Doc, all, folder);
+            imagesText = $" {exported} imagem(ns) PNG exportada(s) em {folder}.";
+        }
 
         // Resumo, critérios e plantas cuja exigência de luz não combina com o local.
         double average = report.Grid.Count == 0 ? 0 : report.Grid.Average(g => g.Point.Average);
         int full = report.Grid.Count(g => g.Point.Average >= settings.FullSunHours);
         int shade = report.Grid.Count(g => g.Point.Average < settings.ShadeHours);
         string mapsText = created.Count == 0 ? "nenhum mapa" : string.Join(", ", created.Select(v => $"\"{v.Name}\""));
+        int sheets = shadeViews.OfType<ViewDrafting>().Count(), plans = shadeViews.OfType<ViewPlan>().Count();
+        string shadesText = shadeViews.Count == 0 ? string.Empty
+            : $" Sombras hora a hora ({settings.FromHour}h às {settings.ToHour}h, {stageText}): {sheets} quadro(s) e {plans} planta(s) com as sombras nos horários escolhidos.";
+        int deciduous = shading.Select(s => s.Species)
+            .DistinctBy(s => s.Id).Count(s => s.Category == PlantCategory.Arvore && s.EffectiveLeafHabit is LeafHabit.Decidua or LeafHabit.Semidecidua);
+        if (deciduous > 0)
+        {
+            shadesText += $" {deciduous} espécie(s) de árvore decídua ou semidecídua: sombra mais rala nos meses sem folhas (confira a Folhagem na ficha).";
+        }
         string message = $"{period}. Local: {site.Describe()}. "
                          + $"Média anual de {SolarClasses.Hours(average)} h de sol direto na região ({report.Grid.Count} pontos a cada {report.Cell:0.0} m): "
                          + $"sol pleno (≥ {SolarClasses.Hours(settings.FullSunHours)} h) em {Percent(full, report.Grid.Count)}, "
                          + $"menos de {SolarClasses.Hours(settings.ShadeHours)} h em {Percent(shade, report.Grid.Count)}. "
-                         + $"Calendário de luz na vista \"{calendar.Name}\"; mapas: {mapsText}. Cálculo em {report.Duration.TotalSeconds:0} s.";
+                         + $"Calendário de luz na vista \"{calendar.Name}\"; mapas: {mapsText}.{shadesText}{imagesText} Cálculo em {report.Duration.TotalSeconds:0} s.";
         if (window.SaveToProject)
         {
             message += " As coordenadas foram gravadas na localização do projeto.";
@@ -253,6 +311,20 @@ public sealed class SolarStudyCommand : CommandBase
         ctx.ShowDialog(result);
         return Result.Succeeded;
     }
+
+    /// <summary>Linhas da tabela do quadro de sombras: cada espécie da região com os índices dos seus exemplares.</summary>
+    private static List<ShadeRow> ShadeRows(ViridianContext ctx, SolarReport report) =>
+        Enumerable.Range(0, report.Plants.Count)
+            .GroupBy(i => report.Plants[i].Species.Id)
+            .Select(g =>
+            {
+                Species species = report.Plants[g.First()].Species;
+                int count = g.Count();
+                string need = species.Light switch { LightNeed.SolPleno => " · sol", LightNeed.MeiaSombra => " · meia-sombra", LightNeed.Sombra => " · sombra", _ => string.Empty };
+                return new ShadeRow($"{ctx.ProjectCode(species)} {species.PopularName}" + (count > 1 ? $" ({count})" : string.Empty) + need, g.ToList());
+            })
+            .OrderBy(r => r.Label, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
 
     /// <summary>Linhas do calendário de luz: a região (média dos pontos) e cada espécie (média dos seus exemplares).</summary>
     private static List<LightCalendarRow> CalendarRows(ViridianContext ctx, SolarReport report, SolarSettings settings)

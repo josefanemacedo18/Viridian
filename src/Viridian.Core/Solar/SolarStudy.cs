@@ -60,10 +60,28 @@ public sealed class SolarSettings
     /// <summary>Meses (1 a 12) com mapa próprio. Vazio = inverno e verão do hemisfério.</summary>
     public List<int> MapMonths { get; set; } = new();
 
+    /// <summary>Cria o quadro de sombras de hora em hora para cada mês com mapa (ou para cada data-chave).</summary>
+    public bool ShadeSheets { get; set; } = true;
+
+    /// <summary>Primeira e última hora legal do quadro de sombras.</summary>
+    public int FromHour { get; set; } = 7;
+
+    public int ToHour { get; set; } = 17;
+
+    /// <summary>Horas com cópia da planta mostrando as sombras (vazio = nenhuma).</summary>
+    public List<int> PlanHours { get; set; } = new() { 9, 12, 15 };
+
+    /// <summary>Porte das plantas no estudo (adulto por padrão).</summary>
+    public Detailing.GrowthStage Stage { get; set; } = Detailing.GrowthStage.Maturidade;
+
+    /// <summary>Exporta imagens PNG do calendário, dos mapas e dos quadros.</summary>
+    public bool ExportImages { get; set; }
+
     public SolarSettings Clone()
     {
         var copy = (SolarSettings)MemberwiseClone();
         copy.MapMonths = new List<int>(MapMonths ?? new List<int>());
+        copy.PlanHours = new List<int>(PlanHours ?? new List<int>());
         return copy;
     }
 
@@ -82,6 +100,13 @@ public sealed class SolarSettings
         TimeZoneHours = double.IsFinite(TimeZoneHours) ? Math.Clamp(TimeZoneHours, -12, 14) : -3;
         PlaceName ??= string.Empty;
         MapMonths = (MapMonths ?? new List<int>()).Where(m => m is >= 1 and <= 12).Distinct().OrderBy(m => m).ToList();
+        FromHour = Math.Clamp(FromHour, 0, 23);
+        ToHour = Math.Clamp(ToHour, FromHour, 23);
+        PlanHours = (PlanHours ?? new List<int>()).Where(h => h is >= 0 and <= 23).Distinct().OrderBy(h => h).Take(12).ToList();
+        if (!Enum.IsDefined(Stage))
+        {
+            Stage = Detailing.GrowthStage.Maturidade;
+        }
     }
 }
 
@@ -164,6 +189,10 @@ public static class Sun
         return 229.18 * (0.000075 + 0.001868 * Math.Cos(g) - 0.032077 * Math.Sin(g) - 0.014615 * Math.Cos(2 * g) - 0.040849 * Math.Sin(2 * g));
     }
 
+    /// <summary>Hora solar correspondente à hora legal (do relógio, sem horário de verão).</summary>
+    public static double SolarHour(double clockHour, double longitudeDeg, double timeZoneHours, int dayOfYear) =>
+        clockHour + (longitudeDeg / 15.0 - timeZoneHours) + EquationOfTimeMinutes(dayOfYear) / 60.0;
+
     /// <summary>Hora legal (do relógio, sem horário de verão) correspondente à hora solar, pela longitude e pelo fuso.</summary>
     public static double ClockHour(double solarHour, double longitudeDeg, double timeZoneHours, int dayOfYear) =>
         solarHour - (longitudeDeg / 15.0 - timeZoneHours) - EquationOfTimeMinutes(dayOfYear) / 60.0;
@@ -213,9 +242,47 @@ public static class Sun
     }
 }
 
-/// <summary>Copa que faz sombra: elipsoide com opacidade (copas deixam passar parte da luz).</summary>
-public sealed record CrownObstacle(string Id, Vec3 Center, double Radius, double HalfHeight, double Opacity)
+/// <summary>
+/// Copa que faz sombra: elipsoide com opacidade (copas deixam passar parte da luz). Decíduas e semidecíduas ficam mais
+/// transparentes nos meses sem folhas (<paramref name="LeaflessMask"/>, bits de jan a dez).
+/// </summary>
+public sealed record CrownObstacle(string Id, Vec3 Center, double Radius, double HalfHeight, double Opacity, double GroundZ = double.NaN, int LeaflessMask = 0, double LeaflessFactor = 1)
 {
+    /// <summary>Opacidade da copa no mês (1 a 12).</summary>
+    public double OpacityIn(int month) =>
+        month is >= 1 and <= 12 && (LeaflessMask & (1 << (month - 1))) != 0 ? Opacity * LeaflessFactor : Opacity;
+
+    /// <summary>Base da planta (cota do terreno), para projetar a sombra no chão.</summary>
+    public double Ground => double.IsFinite(GroundZ) ? GroundZ : Center.Z - HalfHeight * 2;
+
+    /// <summary>
+    /// Sombra da copa no plano do terreno com o sol na direção <paramref name="toSun"/> (unitária, apontando para o sol):
+    /// contorno convexo da projeção do elipsoide. Vazio quando o sol está abaixo do horizonte.
+    /// </summary>
+    public IReadOnlyList<Point2> ShadowOnGround(Vec3 toSun, double? groundZ = null)
+    {
+        if (toSun.Z <= 0.01)
+        {
+            return Array.Empty<Point2>();
+        }
+
+        double g = groundZ ?? Ground;
+        var points = new List<Point2>();
+        for (int i = 0; i < 24; i++)
+        {
+            double u = Geo.TwoPi * i / 24;
+            for (int j = -5; j <= 5; j++)
+            {
+                double v = Math.PI / 2 * j / 6;
+                var p = new Vec3(Center.X + Radius * Math.Cos(v) * Math.Cos(u), Center.Y + Radius * Math.Cos(v) * Math.Sin(u), Center.Z + HalfHeight * Math.Sin(v));
+                double t = (p.Z - g) / toSun.Z;
+                points.Add(new Point2(p.X - toSun.X * t, p.Y - toSun.Y * t));
+            }
+        }
+
+        return Geo.ConvexHull(points);
+    }
+
     /// <summary>Verdadeiro quando o raio a partir de <paramref name="origin"/> na direção <paramref name="dir"/> atravessa a copa.</summary>
     public bool Blocks(Vec3 origin, Vec3 dir)
     {
@@ -233,16 +300,29 @@ public sealed record CrownObstacle(string Id, Vec3 Center, double Radius, double
         return t2 > 1e-6 && (t1 > 1e-6 || c < 0); // à frente do ponto (ou o ponto está dentro da copa)
     }
 
-    /// <summary>Copa adulta (ou na fase escolhida) da espécie plantada em <paramref name="ground"/>.</summary>
-    public static CrownObstacle? For(string id, Species species, Vec3 ground, GrowthStage stage)
+    /// <summary>
+    /// Copa adulta (ou na fase escolhida) da espécie plantada em <paramref name="ground"/>, com a folhagem da ficha
+    /// (meses sem folhas deslocados seis meses no hemisfério norte).
+    /// </summary>
+    public static CrownObstacle? For(string id, Species species, Vec3 ground, GrowthStage stage, bool southernHemisphere = true)
     {
         (double crown, double height) = GrowthModel.Size(species, stage);
         double r = Math.Max(0.1, crown / 2);
+        LeafHabit habit = species.EffectiveLeafHabit;
+        MonthSet leafless = species.EffectiveLeaflessMonths;
+        int mask = leafless.Mask & MonthSet.AllMask;
+        if (!southernHemisphere && mask != 0)
+        {
+            mask = ((mask << 6) | (mask >> 6)) & MonthSet.AllMask;
+        }
+
+        double factor = LeafRules.LeaflessFactor(habit);
+        double z = ground.Z;
         return species.Category switch
         {
-            PlantCategory.Arvore => new CrownObstacle(id, ground + new Vec3(0, 0, height * 0.66), r, Math.Max(0.2, height * 0.34), 0.85),
-            PlantCategory.Palmeira => new CrownObstacle(id, ground + new Vec3(0, 0, Math.Max(0.3, height - r * 0.2)), r, Math.Max(0.2, r * 0.4), 0.55),
-            PlantCategory.Arbusto or PlantCategory.Trepadeira when height >= 0.8 => new CrownObstacle(id, ground + new Vec3(0, 0, height / 2), r, height / 2, 0.9),
+            PlantCategory.Arvore => new CrownObstacle(id, ground + new Vec3(0, 0, height * 0.66), r, Math.Max(0.2, height * 0.34), 0.85, z, mask, factor),
+            PlantCategory.Palmeira => new CrownObstacle(id, ground + new Vec3(0, 0, Math.Max(0.3, height - r * 0.2)), r, Math.Max(0.2, r * 0.4), 0.55, z),
+            PlantCategory.Arbusto or PlantCategory.Trepadeira when height >= 0.8 => new CrownObstacle(id, ground + new Vec3(0, 0, height / 2), r, height / 2, 0.9, z, mask, factor),
             _ => null,
         };
     }
@@ -474,42 +554,61 @@ public static class SolarStudy
             for (int d = 0; d < days.Count; d++)
             {
                 double hours = 0;
+                int month = dates[d].Month;
                 foreach ((Vec3 dir, double weight, (int, int) key) in days[d])
                 {
                     cancel.ThrowIfCancellationRequested();
-                    double light = 1;
-                    foreach (CrownObstacle c in crowns)
-                    {
-                        if (c.Id != p.IgnoreId && c.Blocks(p.Position, dir))
-                        {
-                            light *= 1 - c.Opacity;
-                            if (light < 0.05)
-                            {
-                                break;
-                            }
-                        }
-                    }
-
-                    if (light > 0.05 && blockedByBuildings is not null)
-                    {
-                        if (!buildings.TryGetValue(key, out bool blocked))
-                        {
-                            blocked = blockedByBuildings(p.Position, dir);
-                            buildings[key] = blocked;
-                        }
-
-                        if (blocked)
-                        {
-                            light = 0;
-                        }
-                    }
-
-                    hours += weight * light;
+                    hours += weight * Light(p.Position, p.IgnoreId, dir, month, crowns, blockedByBuildings, buildings, key);
                 }
 
                 p.Hours[d] = hours;
             }
         }
+    }
+
+    /// <summary>
+    /// Fração da luz direta que chega ao ponto (0 a 1): as copas atravessadas filtram a luz pela opacidade do mês e as
+    /// edificações e o terreno bloqueiam. <paramref name="cache"/> evita repetir consultas às edificações.
+    /// </summary>
+    public static double Light(Vec3 position, string ignoreId, Vec3 toSun, int month, IReadOnlyList<CrownObstacle> crowns,
+        Func<Vec3, Vec3, bool>? blockedByBuildings, Dictionary<(int, int), bool>? cache = null, (int, int)? key = null)
+    {
+        double light = 1;
+        foreach (CrownObstacle c in crowns)
+        {
+            if (c.Id != ignoreId && c.Blocks(position, toSun))
+            {
+                light *= 1 - c.OpacityIn(month);
+                if (light < 0.05)
+                {
+                    return 0;
+                }
+            }
+        }
+
+        if (blockedByBuildings is not null)
+        {
+            bool blocked;
+            if (cache is not null && key is (int, int) k)
+            {
+                if (!cache.TryGetValue(k, out blocked))
+                {
+                    blocked = blockedByBuildings(position, toSun);
+                    cache[k] = blocked;
+                }
+            }
+            else
+            {
+                blocked = blockedByBuildings(position, toSun);
+            }
+
+            if (blocked)
+            {
+                return 0;
+            }
+        }
+
+        return light;
     }
 
     /// <summary>Malha de pontos dentro do contorno, com o lado aumentado para respeitar o máximo de pontos.</summary>

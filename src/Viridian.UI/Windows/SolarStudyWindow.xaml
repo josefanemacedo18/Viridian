@@ -58,9 +58,40 @@
 
                 <TextBlock Style="{StaticResource VirSection}" Text="Mapas em cópias da planta" />
                 <CheckBox x:Name="AnnualBox" Content="Média do _ano" />
-                <TextBlock x:Name="MonthsLabel" Style="{StaticResource VirLabel}" Margin="0,4,0,2" Text="Meses com mapa próprio:" />
+                <TextBlock x:Name="MonthsLabel" Style="{StaticResource VirLabel}" Margin="0,4,0,2" Text="Meses com mapa e quadro de sombras próprios:" />
                 <WrapPanel x:Name="MonthsPanel" />
                 <TextBlock x:Name="MapsHint" Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="0,2,0,0" />
+
+                <TextBlock Style="{StaticResource VirSection}" Text="Sombras hora a hora" />
+                <CheckBox x:Name="ShadeSheetsBox" Content="_Quadro de sombras de hora em hora para cada mês marcado (vista de desenho)" />
+                <Grid Margin="0,4,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="230" />
+                        <ColumnDefinition Width="60" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="60" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Label Content="Horário (hora legal): das" Target="{Binding ElementName=FromHourBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="FromHourBox" Grid.Column="1" AutomationProperties.Name="Primeira hora do quadro de sombras" />
+                    <Label Grid.Column="2" Content="às" Target="{Binding ElementName=ToHourBox}" Padding="8,0,8,0" VerticalAlignment="Center" />
+                    <TextBox x:Name="ToHourBox" Grid.Column="3" AutomationProperties.Name="Última hora do quadro de sombras" />
+                    <TextBlock Grid.Column="4" Style="{StaticResource VirHint}" Margin="8,0,0,0" VerticalAlignment="Center" Text="h (de hora em hora)" />
+                    <Label Grid.Row="1" Content="Sombras _na planta às (h)" Target="{Binding ElementName=PlanHoursBox}" Padding="0" VerticalAlignment="Center" />
+                    <TextBox x:Name="PlanHoursBox" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" AutomationProperties.Name="Horas com cópia da planta mostrando as sombras, separadas por vírgula"
+                             ToolTip="Ex.: 9, 12, 15. Uma cópia da planta por hora e por mês marcado. Vazio: nenhuma." />
+                    <TextBlock Grid.Row="1" Grid.Column="4" Style="{StaticResource VirHint}" Margin="8,0,0,0" VerticalAlignment="Center" Text="ex.: 9, 12, 15 (vazio = nenhuma)" />
+                    <Label Grid.Row="2" Content="_Porte das plantas" Target="{Binding ElementName=StageBox}" Padding="0" VerticalAlignment="Center" />
+                    <ComboBox x:Name="StageBox" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="4" AutomationProperties.Name="Porte das plantas no estudo" />
+                </Grid>
+                <TextBlock Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="0,4,0,0"
+                           Text="Altura e copa vêm da ficha de cada espécie, no porte escolhido (edite a ficha para ajustar). Decíduas e semidecíduas ficam mais transparentes nos meses sem folhas (campo Folhagem da ficha). Árvores de maciços também fazem sombra." />
+                <CheckBox x:Name="ExportBox" Margin="0,6,0,0" Content="_Exportar imagens (PNG) do calendário, dos mapas e dos quadros" />
 
                 <TextBlock Style="{StaticResource VirSection}" Text="Faixas de luz (horas de sol direto por dia)" />
                 <Grid>
