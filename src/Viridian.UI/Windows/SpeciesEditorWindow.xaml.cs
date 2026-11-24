@@ -19,6 +19,7 @@ public partial class SpeciesEditorWindow : ViridianWindow
 {
     private readonly LibraryPaths _paths;
     private readonly ViridianSettings _settings;
+    private readonly List<Viridian.Core.Model3D.Profiles.Plant3DProfile> _profiles;
     private bool _loading = true;
     private int _seed;
 
@@ -65,6 +66,13 @@ public partial class SpeciesEditorWindow : ViridianWindow
         foreach (LeafHabit h in Enum.GetValues<LeafHabit>())
         {
             LeafHabitBox.Items.Add(new Choice<LeafHabit>(Labels.Of(h), h));
+        }
+
+        _profiles = LoadProfiles(paths);
+        Profile3DBox.Items.Add(new Choice<string>("Automático", string.Empty));
+        foreach (Viridian.Core.Model3D.Profiles.Plant3DProfile profile in _profiles.OrderBy(p => p.Name, StringComparer.CurrentCulture))
+        {
+            Profile3DBox.Items.Add(new Choice<string>(profile.Name, profile.Id));
         }
 
         foreach (WaterloggingTolerance t in Enum.GetValues<WaterloggingTolerance>())
@@ -162,6 +170,7 @@ public partial class SpeciesEditorWindow : ViridianWindow
 
         Select(LeafHabitBox, s.LeafHabit);
         LeaflessBox.Text = s.LeaflessMonths;
+        Fill3D(s);
         ScaleText.Text = Labels.Of(s.Scale);
         FoliageColorBox.Text = s.FoliageColor;
         FlowerColorBox.Text = s.FlowerColor;
@@ -441,6 +450,14 @@ public partial class SpeciesEditorWindow : ViridianWindow
         {
             problems.Add("Não reconheci os meses sem folhas. Use, por exemplo: jul–set.");
         }
+        s.Plant3DProfileId = (Profile3DBox.SelectedItem as Choice<string>)?.Value ?? string.Empty;
+        s.Fruiting = FruitingBox.Text.Trim();
+        if (s.Fruiting.Length > 0 && MonthSet.Parse(s.Fruiting).IsEmpty)
+        {
+            problems.Add("Não reconheci os meses de frutificação. Use, por exemplo: nov–jan.");
+        }
+
+        s.FruitColor = NormalizeColor(FruitColorBox.Text, "cor do fruto", problems);
         if (!string.IsNullOrWhiteSpace(s.Flowering) && MonthSet.Parse(s.Flowering).IsEmpty)
         {
             problems.Add("Não reconheci os meses de floração. Use, por exemplo: ago–out, set–nov e mar–abr, ano todo.");
@@ -465,5 +482,43 @@ public partial class SpeciesEditorWindow : ViridianWindow
         }
 
         DialogResult = true;
+    }
+
+    /// <summary>Perfis 3D da biblioteca (os padrões, se o arquivo não puder ser lido).</summary>
+    private static List<Viridian.Core.Model3D.Profiles.Plant3DProfile> LoadProfiles(LibraryPaths paths)
+    {
+        try
+        {
+            return new Plant3DProfileLibrary(paths).Profiles;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            ViridianLog.Warn("Perfis 3D: usando os padrões no cadastro da espécie.", ex);
+            return Viridian.Core.Model3D.Profiles.Plant3DProfileDefaults.Create();
+        }
+    }
+
+    /// <summary>Perfil 3D, frutos e a origem das épocas usadas na maquete (da ficha, estimada pelo gênero ou sem dado).</summary>
+    private void Fill3D(Species s)
+    {
+        string automatic = Viridian.Core.Model3D.Profiles.ProfileResolver.AutomaticId(s);
+        string automaticName = _profiles.FirstOrDefault(p => string.Equals(p.Id, automatic, StringComparison.OrdinalIgnoreCase))?.Name ?? automatic;
+        Profile3DBox.Items[0] = new Choice<string>($"Automático ({automaticName})", string.Empty);
+        Profile3DBox.SelectedItem = Profile3DBox.Items.Cast<Choice<string>>()
+            .FirstOrDefault(c => c.Value.Length > 0 && string.Equals(c.Value, s.Plant3DProfileId, StringComparison.OrdinalIgnoreCase)) ?? Profile3DBox.Items[0];
+        FruitingBox.Text = s.Fruiting;
+        FruitColorBox.Text = s.FruitColor;
+
+        var flowering = Viridian.Core.Model3D.Seasonality.SeasonalityResolver.Flowering(s);
+        (var profile, _) = Viridian.Core.Model3D.Profiles.ProfileResolver.Resolve(s, _profiles);
+        var fruit = Viridian.Core.Model3D.Seasonality.SeasonalityResolver.Fruit(s, profile);
+        string Origin(Viridian.Core.Model3D.Seasonality.SeasonInfo info) => info.Source switch
+        {
+            Viridian.Core.Model3D.Seasonality.SeasonSource.Ficha => info.Months + " (da ficha)",
+            Viridian.Core.Model3D.Seasonality.SeasonSource.Estimado => info.Months + " (estimada pelo gênero)",
+            _ => "sem dado (não aparece com a estação ligada)",
+        };
+        Season3DText.Text = "Na maquete com estação — floração: " + Origin(flowering)
+                            + "; frutos: " + (fruit is null ? "sem dado (não aparecem)" : Origin(fruit.Season)) + ".";
     }
 }

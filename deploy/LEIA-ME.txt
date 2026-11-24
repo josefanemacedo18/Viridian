@@ -1,4 +1,4 @@
-﻿VIRIDIAN 1.8 — Paisagismo 2D técnico para Autodesk Revit 2027
+﻿VIRIDIAN 1.9 — Paisagismo 2D técnico para Autodesk Revit 2027
 ==============================================================
 
 INSTALAR
@@ -28,14 +28,34 @@ PRIMEIROS PASSOS
    Verificar Canteiro e Calendário de Floração.
 6. Detalhamento: Memorial Ilustrado (Word editável), Detalhe de Plantio,
    Corte Esquemático e Crescimento 2D.
-7. Maquete 3D: vista 3D com a vegetação em volume, assentada no terreno.
-   As plantas baixas não mudam. Atualizar Maquete refaz depois de mudanças;
-   Remover Maquete apaga tudo o que ela criou.
+7. Maquete 3D: vista 3D com a vegetação em volume, assentada no terreno,
+   pelo motor botânico (forma de cada tipo de planta, qualidade, estação,
+   flores e frutos). As plantas baixas não mudam. Atualizar Maquete refaz
+   depois de mudanças; Remover Maquete apaga tudo o que ela criou.
 8. Pisos e Drenagem: Gerador de Pisos (biblioteca de pisos com paginação,
    camadas, hachura, detalhe e quantitativo) e Jardim de Chuva.
 9. Estudo Solar (painel Composição): horas de sol com a sombra das copas e
    das edificações; Quadro de Especificação (painel Documentação); aba
    Compras nos relatórios.
+
+NOVIDADES DA 1.9
+- Maquete 3D com motor botânico: cada espécie ganha um perfil 3D pela
+  arquitetura da planta (árvores de copa arredondada, espalhada, colunar,
+  cônica ou irregular; palmeiras pinadas, em leque e em touceira; arbustos,
+  trepadeiras, forrações, gramíneas, rosetas, bromélias, herbáceas de folha
+  larga e aquáticas), com perfis de referência para ipê, flamboyant,
+  araucária, jerivá, palmeira-imperial, agave e estrelítzia.
+- Janela da maquete: recorte, motor, qualidade (Simplificada, Intermediária,
+  Detalhada), mês de referência (folhagem, flores e frutos da época), fase,
+  flores, frutos e arestas, com estimativa de peso e aviso de maquete pesada.
+- Ficha da espécie: Perfil 3D, Frutificação e Cor do fruto. Épocas que a
+  ficha não informa são estimadas pelo gênero e indicadas como estimadas.
+- Maquetes feitas em versões anteriores continuam no gerador simples ao
+  atualizar; gere pela janela para passar ao motor botânico.
+- Testes do Motor 3D (painel Maquete 3D): provas de conceito da família BIM
+  (Fase 0) e das texturas do ipê (T0) no seu Revit, com relatório. Rode e
+  envie a pasta gerada: ela decide a família BIM da 2.0 e as texturas da 2.2.
+  O roteiro está em docs\ROTEIRO_DE_TESTES.md (código-fonte) e no README.
 
 NOVIDADES DA 1.8
 - Estudo Solar com sombras hora a hora: para cada mês marcado, um quadro com

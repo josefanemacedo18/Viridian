@@ -109,9 +109,19 @@ internal static class RosetteBuilder
             Vec3 p1 = start0 + direction * (leafLength * 0.35);
             Vec3 p2 = start0 + direction * (leafLength * 0.7) + outward * (leafLength * curvature * 0.3);
             Vec3 p3 = start0 + direction * (leafLength * (1 - curvature * 0.25)) + outward * (leafLength * curvature * 0.45) - Up * (leafLength * curvature * 0.55);
-            List<Vec3> path = MeshBuild.Bezier(start0, p1, p2, p3, segments)
+            int leafSegments = Math.Clamp((int)(leafLength / 0.012), 2, segments); // folhas miúdas: menos trechos (sem arestas minúsculas)
+            List<Vec3> path = MeshBuild.Bezier(start0, p1, p2, p3, leafSegments)
                 .Select(v => new Vec3(v.X, v.Y, Math.Max(v.Z, Math.Min(origin.Z, 0) + 0.01))) // pontas pousam no chão
                 .ToList();
+
+            // A folha não passa da copa prevista: se a curva abrir demais, ela é recolhida na horizontal (a partir da base).
+            double allowed = Math.Max(0.05, c.R * 1.2 - Math.Sqrt(origin.X * origin.X + origin.Y * origin.Y));
+            double reach = path.Max(v => Math.Sqrt((v.X - origin.X) * (v.X - origin.X) + (v.Y - origin.Y) * (v.Y - origin.Y)));
+            if (reach > allowed)
+            {
+                double k = allowed / reach;
+                path = path.Select(v => new Vec3(origin.X + (v.X - origin.X) * k, origin.Y + (v.Y - origin.Y) * k, v.Z)).ToList();
+            }
             double width = leafLength * rosette.WidthRatio;
             // Normal da lâmina: perpendicular à folha e à direção lateral (horizontal), mesmo com a folha quase vertical.
             Vec3 normal = outward.Cross(Up).Normalized().Cross(direction).Normalized();

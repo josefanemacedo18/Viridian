@@ -93,8 +93,9 @@ public static class MeshValidator
     }
 
     /// <summary>
-    /// Limpeza segura antes do Revit: descarta peças com coordenadas inválidas e triângulos sem área das superfícies
-    /// abertas (nos sólidos, remover triângulos abriria a malha; o Revit decide e, se recusar, a peça vira malha).
+    /// Limpeza segura antes do Revit: descarta peças com coordenadas inválidas e, nas superfícies abertas (folhas),
+    /// triângulos sem área ou com aresta menor que <see cref="ShortEdge"/> (invisíveis e recusados pelo Revit). Nos sólidos,
+    /// remover triângulos abriria a malha: o Revit decide e, se recusar, a peça vira malha.
     /// </summary>
     public static int Sanitize(PlantModel model)
     {
@@ -102,7 +103,7 @@ public static class MeshValidator
         int removed = model.Pieces.RemoveAll(p => p.Vertices.Any(v => !double.IsFinite(v.X) || !double.IsFinite(v.Y) || !double.IsFinite(v.Z)));
         foreach (MeshPiece piece in model.Pieces.Where(p => !p.Closed))
         {
-            removed += piece.Triangles.RemoveAll(t => Area(piece, t) < MinArea);
+            removed += piece.Triangles.RemoveAll(t => Area(piece, t) < MinArea || Shortest(piece, t) < ShortEdge);
         }
 
         model.Pieces.RemoveAll(p => p.TriangleCount == 0);
@@ -118,6 +119,12 @@ public static class MeshValidator
         }
 
         return (new Vec3(all.Min(v => v.X), all.Min(v => v.Y), all.Min(v => v.Z)), new Vec3(all.Max(v => v.X), all.Max(v => v.Y), all.Max(v => v.Z)));
+    }
+
+    private static double Shortest(MeshPiece piece, Tri t)
+    {
+        (Vec3 a, Vec3 b, Vec3 c) = piece.Corners(t);
+        return Math.Min((a - b).Length, Math.Min((b - c).Length, (c - a).Length));
     }
 
     private static double Area(MeshPiece piece, Tri t)

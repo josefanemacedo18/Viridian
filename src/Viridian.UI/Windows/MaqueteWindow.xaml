@@ -1,0 +1,85 @@
+<ui:ViridianWindow x:Class="Viridian.UI.Windows.MaqueteWindow"
+                   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:ui="clr-namespace:Viridian.UI"
+                   Title="Viridian — Maquete 3D"
+                   Width="700" Height="760" MinWidth="600" MinHeight="560">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Style="{StaticResource VirHeader}" Text="Maquete 3D" Margin="0" />
+            <TextBlock x:Name="IntroText" Style="{StaticResource VirHint}" Margin="0,2,0,8" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,0,8,0">
+                <TextBlock Style="{StaticResource VirSection}" Margin="0,0,0,4" Text="O que a maquete mostra" />
+                <RadioButton x:Name="WholeRadio" GroupName="Scope" Content="_Projeto inteiro: toda a vegetação do catálogo, em todos os níveis" Checked="Option_Changed" />
+                <RadioButton x:Name="RegionRadio" GroupName="Scope" Margin="0,2,0,0" Content="Uma _região da planta (escolhida ou desenhada depois de confirmar)" Checked="Option_Changed" />
+                <TextBlock x:Name="RegionHint" Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="20,0,0,0" />
+
+                <TextBlock Style="{StaticResource VirSection}" Text="Como gerar" />
+                <RadioButton x:Name="BotanicalRadio" GroupName="Engine" Checked="Option_Changed"
+                             Content="Motor _botânico (recomendado): forma de cada tipo de planta, flores, frutos e estação" />
+                <RadioButton x:Name="LegacyRadio" GroupName="Engine" Margin="0,2,0,0" Checked="Option_Changed"
+                             Content="Gerador _simples (o das versões anteriores): volumes leves por categoria" />
+                <RadioButton x:Name="FamilyRadio" GroupName="Engine" Margin="0,2,0,0" IsEnabled="False"
+                             Content="Família BIM (em avaliação: depende do teste da Fase 0 no seu Revit)"
+                             ToolTip="Use Viridian > Maquete > Testes do motor 3D e envie o relatório. A opção chega na versão 2.0 se o teste for aprovado." />
+
+                <StackPanel x:Name="BotanicalPanel">
+                    <TextBlock Style="{StaticResource VirSection}" Text="Qualidade" />
+                    <RadioButton x:Name="SimpleRadio" GroupName="Quality" Checked="Option_Changed"
+                                 Content="Si_mplificada: massas e silhueta; leve para projetos grandes e estudos de implantação" />
+                    <RadioButton x:Name="MediumRadio" GroupName="Quality" Margin="0,2,0,0" Checked="Option_Changed"
+                                 Content="_Intermediária: copas em grupos, galhos, folhas de palmeira e rosetas (recomendada)" />
+                    <RadioButton x:Name="DetailedRadio" GroupName="Quality" Margin="0,2,0,0" Checked="Option_Changed"
+                                 Content="_Detalhada: placas de folha, flores individuais e frutos; para áreas menores e imagens" />
+
+                    <TextBlock Style="{StaticResource VirSection}" Text="Época do ano" />
+                    <CheckBox x:Name="SeasonBox" Content="Representar a _estação: folhagem, flores e frutos do mês escolhido" Checked="Option_Changed" Unchecked="Option_Changed" />
+                    <Grid Margin="20,4,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="140" />
+                            <ColumnDefinition Width="160" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Mês de re_ferência" Target="{Binding ElementName=MonthBox}" Padding="0" VerticalAlignment="Center" />
+                        <ComboBox x:Name="MonthBox" Grid.Column="1" AutomationProperties.Name="Mês de referência da maquete" SelectionChanged="Month_Changed" />
+                    </Grid>
+                    <TextBlock x:Name="SeasonHint" Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="20,4,0,0" />
+                    <CheckBox x:Name="FruitsBox" Margin="0,6,0,0" Content="Mostrar _frutos (época da ficha ou estimada pelo gênero)" Checked="Option_Changed" Unchecked="Option_Changed" />
+                    <CheckBox x:Name="VariationBox" Margin="0,4,0,0" Content="_Variação natural entre exemplares da mesma espécie" />
+                </StackPanel>
+
+                <TextBlock Style="{StaticResource VirSection}" Text="Porte e apresentação" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="160" />
+                        <ColumnDefinition Width="200" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Label Content="Fase de cresci_mento" Target="{Binding ElementName=StageBox}" Padding="0" VerticalAlignment="Center" />
+                    <ComboBox x:Name="StageBox" Grid.Column="1" AutomationProperties.Name="Fase de crescimento das plantas na maquete" />
+                </Grid>
+                <CheckBox x:Name="FlowersBox" Margin="0,6,0,0" Content="Mostrar f_lores das espécies de floração vistosa" Checked="Option_Changed" Unchecked="Option_Changed" />
+                <CheckBox x:Name="TerrainBox" Margin="0,4,0,0" Content="Assentar sobre o _terreno (toposólido, superfície ou lajes)" />
+                <CheckBox x:Name="EdgesBox" Margin="0,4,0,0" Content="Mostrar _arestas na vista (desligado, as copas ficam mais naturais)" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" Margin="0,10,0,0" Padding="8" BorderThickness="1" CornerRadius="4" BorderBrush="{DynamicResource VirBorder}">
+            <TextBlock x:Name="EstimateText" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+        </Border>
+
+        <DockPanel Grid.Row="3" Margin="0,10,0,0" LastChildFill="False">
+            <Button Content="Cancelar" IsCancel="True" DockPanel.Dock="Right" />
+            <Button Content="_Gerar maquete" Click="Run_Click" IsDefault="True" Style="{StaticResource VirPrimaryButton}" DockPanel.Dock="Right" />
+        </DockPanel>
+    </Grid>
+</ui:ViridianWindow>

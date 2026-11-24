@@ -28,6 +28,8 @@ SvgSheets.MemorialSample(Path.Combine(outDir, "memorial-exemplo.docx"), Path.Get
 File.WriteAllText(Path.Combine(outDir, "quadro-fotos.svg"), SvgSheets.PhotoBoardSheet(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "Viridian.Addin", "Fotos"))));
 File.WriteAllText(Path.Combine(outDir, "maquete.svg"), MaquetePreview.Scene(Viridian.Core.Detailing.GrowthStage.Maturidade));
 File.WriteAllText(Path.Combine(outDir, "maquete-plantio.svg"), MaquetePreview.Scene(Viridian.Core.Detailing.GrowthStage.Plantio));
+File.WriteAllText(Path.Combine(outDir, "maquete-botanica.svg"), MaquetePreview.Scene(Viridian.Core.Detailing.GrowthStage.Maturidade, botanical: true));
+File.WriteAllText(Path.Combine(outDir, "maquete-botanica-agosto.svg"), MaquetePreview.Scene(Viridian.Core.Detailing.GrowthStage.Maturidade, botanical: true, month: 8));
 File.WriteAllText(Path.Combine(outDir, "pisos.svg"), PavingPreview.Sheet());
 File.WriteAllText(Path.Combine(outDir, "pedras.svg"), PavingPreview.StonesSheet());
 foreach (string id in new[] { "vir-paver-10x20-espinha", "vir-deck-cumaru", "vir-drenante-bloco", "vir-fulget-moldado" })
@@ -41,6 +43,18 @@ File.WriteAllText(Path.Combine(outDir, "estudo-solar.svg"), WaterSolarPreview.So
 File.WriteAllText(Path.Combine(outDir, "calendario-luz.svg"), SvgSheets.DrawingSvg(WaterSolarPreview.LastCalendar!, 5200));
 File.WriteAllText(Path.Combine(outDir, "sombras-por-horario.svg"), SvgSheets.DrawingSvg(WaterSolarPreview.LastShadeSheet!, 4200));
 File.WriteAllText(Path.Combine(outDir, "macicos.svg"), MassingPreview.Sheet());
+{
+    // Texturas procedurais do teste T0 (ipê): folhagem com recorte, flores e casca.
+    var t0 = Path.Combine(outDir, "texturas-t0");
+    var (leafColor, leafMask) = Viridian.Core.Model3D.Textures.ProceduralTextures.Foliage(512, new Viridian.Core.Colors.Rgb(0x4E, 0x7D, 0x3A), 1);
+    Viridian.Core.Model3D.Textures.PngWriter.Save(leafColor, Path.Combine(t0, "folhagem.png"));
+    Viridian.Core.Model3D.Textures.PngWriter.Save(leafMask, Path.Combine(t0, "folhagem-recorte.png"));
+    var (flowerColor, flowerMask) = Viridian.Core.Model3D.Textures.ProceduralTextures.Flowers(512, new Viridian.Core.Colors.Rgb(0xF2, 0xC2, 0x1E), 2);
+    Viridian.Core.Model3D.Textures.PngWriter.Save(flowerColor, Path.Combine(t0, "flor.png"));
+    Viridian.Core.Model3D.Textures.PngWriter.Save(flowerMask, Path.Combine(t0, "flor-recorte.png"));
+    Viridian.Core.Model3D.Textures.PngWriter.Save(Viridian.Core.Model3D.Textures.ProceduralTextures.Bark(512, new Viridian.Core.Colors.Rgb(0x6E, 0x63, 0x58), 3), Path.Combine(t0, "casca.png"));
+}
+
 File.WriteAllText(Path.Combine(outDir, "perfis-3d.svg"), Plant3DPreview.ProfilesSheet());
 File.WriteAllText(Path.Combine(outDir, "qualidade-3d.svg"), Plant3DPreview.LodSheet());
 File.WriteAllText(Path.Combine(outDir, "formas-3d.svg"), Plant3DPreview.FocusSheet());

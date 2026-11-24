@@ -5,6 +5,8 @@ using Viridian.Core.Detailing;
 using Viridian.Core.Geometry;
 using Viridian.Core.Model;
 using Viridian.Core.Model3D;
+using Viridian.Core.Model3D.Generation;
+using Viridian.Core.Model3D.Profiles;
 using Viridian.Library;
 
 /// <summary>Render isométrico simples (pintor + sombreamento plano) das malhas da maquete, para conferência visual.</summary>
@@ -12,10 +14,12 @@ internal static class MaquetePreview
 {
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
-    private sealed record Face(Vec3 A, Vec3 B, Vec3 C, Rgb Color, bool Ground = false);
+    private sealed record Face(Vec3 A, Vec3 B, Vec3 C, Rgb Color, bool Ground = false, bool Open = false);
 
-    public static string Scene(GrowthStage stage)
+    /// <param name="botanical">Motor botânico (1.9) no lugar do gerador simples, com a estação do mês (0 = sem estação).</param>
+    public static string Scene(GrowthStage stage, bool botanical = false, int month = 0, QualityLevel quality = QualityLevel.Intermediaria)
     {
+        List<Plant3DProfile> profiles = Plant3DProfileDefaults.Create();
         var colors = new ColorSettings();
         List<Species> all = SeedCatalog.CreateSpecies();
         Species Find(string n) => all.First(s => s.ScientificName == n);
@@ -26,6 +30,22 @@ internal static class MaquetePreview
         {
             (double crown, double height) = GrowthModel.Size(s, stage);
             int seed = DeterministicRandom.StableHash(s.Id + x + y);
+            if (botanical)
+            {
+                (Plant3DProfile profile, _) = ProfileResolver.Resolve(s, profiles);
+                var options = new PlantOptions { Quality = quality, Month = month, Flowers = true, Fruits = month > 0 };
+                PlantRequest request = PlantPlanner.Request(s, profile, crown, height, seed, options);
+                PlantColors partColors = PlantPlanner.Colors(s, profile, colors, "#6B4F3A", request.Fruits);
+                foreach (MeshPiece piece in PlantGeometryGenerator.Generate(request).Model.Pieces)
+                {
+                    MeshPiece placed = piece.Transform(seed % 360 * Math.PI / 180, new Vec3(x, y, z));
+                    Rgb color = partColors.For(piece.Part);
+                    faces.AddRange(placed.Triangles.Select(t => { var c = placed.Corners(t); return new Face(c.A, c.B, c.C, color, false, !piece.Closed); }));
+                }
+
+                return;
+            }
+
             PlantModel model = PlantModels.Build(s, crown, height, seed, !string.IsNullOrWhiteSpace(s.FlowerColor));
             Rgb foliage = VegetationPalette.Foliage(s, colors);
             foreach (MeshPiece piece in model.Pieces)
@@ -93,7 +113,10 @@ internal static class MaquetePreview
         Rgb grassColor = VegetationPalette.Foliage(grass, colors);
         faces.AddRange(lawn.Triangles.Select(t => { var c = lawn.Corners(t); return new Face(c.A, c.B, c.C, grassColor); }));
 
-        return Render(faces, $"Maquete 3D — {GrowthModel.Name(stage)}");
+        string title = botanical
+            ? $"Maquete 3D — motor botânico, {ProfileLabels.Of(quality)}, {GrowthModel.Name(stage)}" + (month > 0 ? $", {MonthSet.Abbreviations[month - 1]}" : string.Empty)
+            : $"Maquete 3D — {GrowthModel.Name(stage)}";
+        return Render(faces, title);
     }
 
     private static string Render(List<Face> faces, string title)
@@ -109,6 +132,11 @@ internal static class MaquetePreview
             .Select(f =>
             {
                 Vec3 n = (f.B - f.A).Cross(f.C - f.A).Normalized();
+                if (f.Open && n.Dot(toEye) < 0)
+                {
+                    n = n * -1; // superfícies abertas (folhas) aparecem dos dois lados, como no Revit
+                }
+
                 Vec3 mid = (f.A + f.B + f.C) * (1.0 / 3);
                 return (Face: f, Normal: n, Depth: mid.Dot(forward));
             })

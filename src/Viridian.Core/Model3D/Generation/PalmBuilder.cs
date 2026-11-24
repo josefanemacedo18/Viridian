@@ -33,7 +33,7 @@ internal static class PalmBuilder
     {
         Plant3DProfile p = c.Profile;
         double h = c.H * heightFactor;
-        double frondLength = Math.Max(0.25, palm.FrondLengthRatio * c.R * (stems > 1 ? 1.05 : 1) * Math.Sqrt(heightFactor));
+        double frondLength = Math.Max(Math.Min(0.25, c.R * 0.9), palm.FrondLengthRatio * c.R * (stems > 1 ? 1.05 : 1) * Math.Sqrt(heightFactor));
         double stipeTop = Math.Max(h * 0.12, h - frondLength * (palm.Frond == LeafShape.Palmada ? 0.35 : 0.22));
         if (p.Crown.BaseRatio < 0.6)
         {

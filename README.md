@@ -151,13 +151,28 @@ Os valores de cova, camada de solo, tutoramento e crescimento são **referência
 
 | Ferramenta | O que faz |
 |---|---|
-| **Maquete 3D** | Cria a vista "Viridian - Maquete 3D" com a vegetação **em volume**: árvores com tronco e copa conforme a forma (arredondada, espalhada, colunar, cônica, irregular), palmeiras com estipe e folhas arqueadas, arbustos e touceiras, **maciços baixos e gramados como volume** que segue o contorno (inclusive recortes), e **manchas de flor** nas espécies de floração vistosa, tudo nas cores das espécies. Pode ser do **projeto inteiro** ou de **uma região** da planta (a vista é recortada em torno dela), **no plantio, aos 3 ou 6 anos ou na maturidade**. As plantas são **assentadas sobre o terreno** (toposólido ou superfície topográfica, também em vínculos); em lajes, coberturas e pisos, ficam sobre eles. A vista abre com sombreamento e sombras. |
-| **Atualizar Maquete** | Refaz a maquete com o mesmo recorte e a mesma fase, depois de mudanças no plantio. |
+| **Maquete 3D** | Cria a vista "Viridian - Maquete 3D" com a vegetação **em volume**. A janela da maquete escolhe o recorte (**projeto inteiro** ou **uma região** da planta), o **motor** (botânico ou o gerador simples das versões anteriores), a **qualidade** (Simplificada, Intermediária ou Detalhada), a **época do ano** (folhagem, flores e frutos do mês escolhido), a **fase de crescimento** (plantio, 3 anos, 6 anos ou maturidade) e se mostra flores, frutos e arestas. Uma estimativa de peso (triângulos) é atualizada a cada escolha. As plantas são **assentadas sobre o terreno** (toposólido ou superfície topográfica, também em vínculos); em lajes, coberturas e pisos, ficam sobre eles. |
+| **Atualizar Maquete** | Refaz a maquete com o mesmo recorte e as mesmas escolhas, depois de mudanças no plantio. Maquetes criadas em versões anteriores continuam no gerador simples (a aparência só muda se você gerar de novo pela janela). |
 | **Remover Maquete** | Apaga a maquete, os materiais criados para ela e a vista (quando não está em uma prancha). |
+| **Testes do Motor 3D** | Provas de conceito no seu Revit, com relatório para enviar: **Fase 0** (família BIM com símbolo 2D em planta e árvore 3D em forma livre, inserida, conferida vista a vista e por nível de detalhe, 25 exemplares e recarga) e **T0** (texturas do ipê geradas pelo Viridian — folhagem com recorte, flor e casca — aplicadas a um ipê na vista realista, com imagem exportada). Por padrão o projeto volta a ficar como estava. |
 
-A maquete é **opcional e não altera o que já existe**: as formas são geradas sem família (formas diretas, categoria Entorno), com representação vazia em planta, de modo que **as plantas baixas continuam mostrando só os símbolos 2D**, e não entram nos quantitativos nem nas tabelas. Elas aparecem nas vistas 3D, nos cortes e nas elevações; em projetos com subprojetos, ficam no subprojeto "VIR Maquete 3D", oculto por padrão nas outras vistas. A maquete não acompanha as mudanças sozinha: depois de alterar o plantio, use **Atualizar Maquete**. Os volumes são aproximações para visualização, sem parâmetros.
+**Motor botânico (1.9).** Cada espécie recebe um **perfil 3D** pela arquitetura da planta: árvores de copa arredondada, espalhada, colunar, cônica ou irregular (copa formada por grupos de folhagem sobre galhos primários e secundários, cônicas em andares), palmeiras de estipe único, em leque ou em touceira (folhas pinadas com folíolos ou leques plissados, palmito, cachos de frutos), arbustos, trepadeiras conduzidas, forrações, gramíneas e touceiras de folhas em fita, rosetas (agave, bromélias, inclusive as de tanque com o centro colorido na floração), herbáceas de folhas largas (helicônias, filodendros, estrelítzia com a flor ave-do-paraíso, árvore-do-viajante) e aquáticas. Há perfis de referência para ipê, flamboyant, araucária, jerivá, palmeira-imperial, agave e estrelítzia. O perfil é escolhido automaticamente pelo gênero, pela categoria e pela forma da copa, ou na ficha da espécie (campo **Perfil 3D**); os perfis ficam em `Dados\perfis-3d.json`.
 
-![Maquete 3D](docs/img/maquete.jpg)
+- **Qualidade:** cada nível tem um **orçamento de triângulos** por tipo de planta (por exemplo, árvore 350 / 1.500 / 4.000); quando a planta passa do orçamento, o detalhe é reduzido e o resumo informa quantas foram ajustadas. Antes de gerar, uma maquete pesada pede confirmação e sugere o nível que cabe.
+- **Estação:** com o mês de referência, decíduas ficam **sem folhas** e semidecíduas com **folhagem rala** nos meses da ficha; **flores** aparecem só na época de floração e **frutos** só na de frutificação. A época vem da ficha (campos Floração, Frutificação e Cor do fruto) ou é **estimada pelo gênero** quando a ficha não informa — o resumo diz quantas foram estimadas, e a ficha mostra a origem. Floração vistosa cobre a copa: o ipê sem folhas fica amarelo, o flamboyant ganha manchas vermelhas. No hemisfério norte (pela localização do projeto), os meses se deslocam seis meses.
+- **Variação natural:** exemplares da mesma espécie diferem um pouco (sempre para menos que o porte previsto); desligada, todos ficam iguais. A geometria é reprodutível: o mesmo exemplar gera sempre a mesma forma.
+- **Folhas** de palmeiras, rosetas e placas de folha do nível Detalhado são superfícies de face única (o Revit mostra os dois lados); troncos, galhos, grupos de folhagem, flores e frutos são sólidos. Cada parte tem material próprio: folhagem em três tons (luz, base e sombra), tronco, galho, flor e fruto.
+- A vista abre em **sombreado sem arestas** (as copas ficam mais naturais); as arestas podem ser ligadas na janela.
+
+A maquete é **opcional e não altera o que já existe**: as formas são geradas sem família (formas diretas, categoria Entorno), com representação vazia em planta, de modo que **as plantas baixas continuam mostrando só os símbolos 2D**, e não entram nos quantitativos nem nas tabelas. Elas aparecem nas vistas 3D, nos cortes e nas elevações; em projetos com subprojetos, ficam no subprojeto "VIR Maquete 3D", oculto por padrão nas outras vistas. A maquete não acompanha as mudanças sozinha: depois de alterar o plantio, use **Atualizar Maquete**. Se o Revit recusar a geometria da maioria dos exemplares, a geração é interrompida e a maquete anterior é mantida.
+
+**Limites conhecidos.** As formas diretas do Revit não guardam coordenadas de textura (UV): por isso a maquete usa cores por parte, e as texturas fotográficas dependem do teste **T0**. A **família BIM** (vegetação 3D como família, com parâmetros) depende do teste **Fase 0** no seu Revit e está prevista para a 2.0; a opção aparece desabilitada na janela até lá. As épocas estimadas pelo gênero são referências gerais e devem ser conferidas para a região da obra.
+
+![Maquete 3D — motor botânico](docs/img/maquete-botanica.jpg)
+
+![Perfis 3D](docs/img/perfis-3d.jpg)
+
+![Estações](docs/img/estacoes-3d.jpg)
 
 ### Verificação
 
@@ -236,10 +251,11 @@ Opcionalmente, o código da espécie é gravado também em **Marca de tipo** e o
 
 | Pasta | Conteúdo |
 |---|---|
-| `%APPDATA%\Viridian\Biblioteca` (configurável) | `Dados\catalogo.json`, `Dados\tabela-precos.json` (tabela importada), `Dados\pisos.json` (biblioteca de pisos), famílias geradas por categoria, `Personalizado\` (famílias, símbolos, hachuras, etiquetas) e `Fotos\` (fotos próprias do escritório) |
+| `%APPDATA%\Viridian\Biblioteca` (configurável) | `Dados\catalogo.json`, `Dados\tabela-precos.json` (tabela importada), `Dados\pisos.json` (biblioteca de pisos), `Dados\pedras.json` (pedras e coberturas), `Dados\perfis-3d.json` (perfis 3D da maquete), famílias geradas por categoria, `Personalizado\` (famílias, símbolos, hachuras, etiquetas) e `Fotos\` (fotos próprias do escritório) |
 | `%APPDATA%\Autodesk\Revit\Addins\2027\Viridian\Fotos` | fotografias do catálogo padrão e `CREDITOS.txt` |
 | `%APPDATA%\Viridian\Config` | `viridian.config.json` e o arquivo de parâmetros compartilhados |
 | `%APPDATA%\Viridian\Logs` | registro de erros |
+| `%APPDATA%\Viridian\Testes do motor 3D` | relatórios, famílias, texturas e imagens dos Testes do Motor 3D (uma pasta por execução) |
 
 Os arquivos são gravados de forma atômica. Um catálogo corrompido é copiado para backup e recriado a partir do padrão. Ao atualizar o plugin, as espécies do catálogo padrão que o escritório não editou são atualizadas, e as editadas recebem apenas os dados novos (biomas, cores e foto), preservando o que foi alterado.
 
@@ -263,16 +279,16 @@ No Windows, use `build\package.ps1`. O pacote é gerado em `dist/`.
 
 | Projeto | Responsabilidade |
 |---|---|
-| `Viridian.Core` | Regras sem dependência do Revit: geometria, símbolos e cores, distribuição e eixos de plantio, maciços, escalas, codificação, hachuras, relatórios, orçamento e leitura de tabelas de preços, cronograma de manutenção, interferências, diagramação de pranchas, verificação, composição (paletas, texturas, calendário de floração, regras de canteiro), detalhamento (detalhes de plantio, cortes, crescimento, especificações, quadro de especificação, escavação), pisos (paginações, hachuras de modelo, camadas, detalhe e quantitativo), jardim de chuva, estudo solar (posição do sol e sombras), comparativo de compras, malhas da maquete 3D (formas das plantas, triangulação dos maciços), memorial e exportação `.xlsx`, `.docx` e `.dxf` |
+| `Viridian.Core` | Regras sem dependência do Revit: geometria, símbolos e cores, distribuição e eixos de plantio, maciços, escalas, codificação, hachuras, relatórios, orçamento e leitura de tabelas de preços, cronograma de manutenção, interferências, diagramação de pranchas, verificação, composição (paletas, texturas, calendário de floração, regras de canteiro), detalhamento (detalhes de plantio, cortes, crescimento, especificações, quadro de especificação, escavação), pisos (paginações, hachuras de modelo, camadas, detalhe e quantitativo), jardim de chuva, estudo solar (posição do sol e sombras), comparativo de compras, maquete 3D (perfis botânicos, geradores procedurais por arquitetura com orçamento de triângulos, sazonalidade, validação e hash das malhas, texturas procedurais e gravação de PNG, triangulação dos maciços), memorial e exportação `.xlsx`, `.docx` e `.dxf` |
 | `Viridian.Library` | Catálogo botânico, catálogo padrão (dados e créditos das fotos), biblioteca de pisos, tabela de preços, configurações, pastas e registro de erros |
-| `Viridian.Revit` | Integração com a API: parâmetros compartilhados, Extensible Storage, famílias com copa colorida, plantio, eixos, maciços, perfis de escala, etiquetas, legenda, tabelas, pranchas, exportação DWG, leitura de redes nos vínculos, desenho das vistas de detalhamento, maquete 3D (formas diretas, materiais, terreno), tipos de piso em camadas, estudo solar (obstrução e mapa) e gravação das compras no projeto |
+| `Viridian.Revit` | Integração com a API: parâmetros compartilhados, Extensible Storage, famílias com copa colorida, plantio, eixos, maciços, perfis de escala, etiquetas, legenda, tabelas, pranchas, exportação DWG, leitura de redes nos vínculos, desenho das vistas de detalhamento, maquete 3D (formas diretas, materiais por parte, terreno) e testes do motor 3D (família em forma livre, aparências com textura), tipos de piso em camadas, estudo solar (obstrução e mapa) e gravação das compras no projeto |
 | `Viridian.UI` | Janelas WPF |
 | `Viridian.Addin` | `IExternalApplication`, faixa de opções, comandos e atualização automática de escala |
 | `tests/Viridian.Tests` | Testes automatizados (xUnit) |
-| `tools/Viridian.Preview` | Gera pranchas SVG dos símbolos, cores, distribuições, hachuras, detalhamentos, pisos, jardim de chuva, estudo solar e da maquete 3D, e um memorial de exemplo, para conferência visual |
+| `tools/Viridian.Preview` | Gera pranchas SVG dos símbolos, cores, distribuições, hachuras, detalhamentos, pisos, jardim de chuva, estudo solar e da maquete 3D (cena, perfis 3D, níveis de qualidade, estações, espécies de referência e texturas do teste T0), e um memorial de exemplo, para conferência visual |
 
 ---
 
 ## Fora do escopo
 
-Famílias 3D paramétricas de vegetação, renderização fotorrealista, levantamento arbóreo, modelagem de terrenos, projeto hidráulico de drenagem (o jardim de chuva é um pré-dimensionamento) e sistemas de tabelas paralelos ao Revit.
+Famílias 3D paramétricas de vegetação (em avaliação para a 2.0, pelo teste da Fase 0), renderização fotorrealista, levantamento arbóreo, modelagem de terrenos, projeto hidráulico de drenagem (o jardim de chuva é um pré-dimensionamento) e sistemas de tabelas paralelos ao Revit.

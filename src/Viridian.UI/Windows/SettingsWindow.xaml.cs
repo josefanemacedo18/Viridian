@@ -838,6 +838,8 @@ public partial class SettingsWindow : ViridianWindow
             RainGarden = ModuleRainBox.IsChecked == true,
             Solar = ModuleSolarBox.IsChecked == true,
         };
+        // As escolhas da janela da maquete (motor, qualidade, estação...) não aparecem aqui: são mantidas.
+        Core.Model3D.ModelSettings previous = s.Model3D ?? new Core.Model3D.ModelSettings();
         s.Model3D = new Core.Model3D.ModelSettings
         {
             MaxPlants = modelMax,
@@ -845,6 +847,14 @@ public partial class SettingsWindow : ViridianWindow
             TerrainSearchM = modelSearch,
             TrunkColor = ColorHex.Normalize(ModelTrunkBox.Text.Trim()),
             ShowFlowers = ModelFlowersBox.IsChecked == true,
+            Engine = previous.Engine,
+            Quality = previous.Quality,
+            UseSeasonality = previous.UseSeasonality,
+            ReferenceMonth = previous.ReferenceMonth,
+            ShowFruits = previous.ShowFruits,
+            Variation = previous.Variation,
+            ShowEdges = previous.ShowEdges,
+            WarnTriangles = previous.WarnTriangles,
         };
         s.Interference.Rules = rules;
         s.Interference.BuildingCrownFactor = crownFactor;

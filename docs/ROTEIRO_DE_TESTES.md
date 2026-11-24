@@ -4,6 +4,39 @@ O código foi compilado contra a API oficial do Revit 2027 e a lógica sem depen
 
 Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Viridian\Logs` (Viridian > Sobre abre a pasta).
 
+## Teste da versão 1.9 — motor 3D botânico e provas de conceito (cerca de 40 minutos)
+
+Faça num projeto de teste (ou numa cópia) com árvores, palmeiras, arbustos, herbáceas, uma bromélia, um maciço de forração e um gramado, de preferência com um toposólido. A parte **A** é a prova de conceito que decide a família BIM (versão 2.0) e as texturas (2.2): **envie a pasta que ela gera**.
+
+### A. Testes do Motor 3D (provas de conceito — prioridade)
+
+1. Abra uma **vista em planta** do térreo e clique em Maquete 3D > **Testes do Motor 3D** > **Os dois testes (recomendado)**. Deixe desmarcado "Manter no projeto os elementos de teste" na primeira vez.
+2. Aguarde (de alguns segundos a poucos minutos). No final aparece "Testes concluídos" com o resumo e a pasta: `%APPDATA%\Viridian\Testes do motor 3D\<data e hora>`. Clique em **Abrir a pasta dos testes**.
+3. **Envie a pasta inteira** (compacte em .zip): `relatorio-motor-3d.txt`, a família `Viridian-Teste-Fase0-Ipe.rfa`, a pasta `texturas` e a imagem PNG da vista realista.
+4. Confira que o projeto voltou a ficar como estava (sem a família de teste, sem materiais "VIR Teste" e sem a vista de teste).
+5. Rode de novo **marcando "Manter no projeto os elementos de teste"** e observe no Revit (envie prints):
+   - **Fase 0:** na planta, o exemplar na origem aparece **só como círculo e cruz** (símbolo 2D), sem o volume. Numa vista 3D, numa elevação e num corte, aparece **a árvore em 3D**. Mude o nível de detalhe da vista 3D (Baixo, Médio, Alto): a árvore aparece nos três. Selecione o exemplar e veja se dá para mover, copiar e etiquetar como uma vegetação comum. Há também uma grade de 25 exemplares, de 8 em 8 m.
+   - **T0:** a vista "Viridian - Teste T0 (texturas)" abre no estilo **Realista** com um ipê, um grupo de folhagem e um bloco de casca. Responda: as folhas aparecem como **folhas recortadas** (com vãos) ou como uma mancha verde lisa? A textura parece no **tamanho certo** (folhas de cerca de 10 a 15 cm) ou esticada/minúscula? A casca aparece no tronco? As flores amarelas aparecem? Se puder, faça também uma renderização rápida (Visualizar > Renderizar) e envie a imagem.
+   - Depois, desfaça com **Ctrl+Z** (um passo) ou apague os elementos de teste.
+6. Se o comando mostrar falhas, envie também o registro de erros mais recente (Viridian > Sobre).
+
+### B. Maquete 3D com o motor botânico
+
+1. **Maquete 3D**: a janela nova mostra recorte, motor (Botânico marcado; "Família BIM" desabilitada), qualidade, época do ano, fase, flores, frutos, terreno e arestas, com a estimativa de triângulos embaixo. Troque a qualidade e veja a estimativa mudar.
+2. Gere no **Intermediário, sem estação, na maturidade**. Confira: árvores com copa em grupos e galhos, ipês com copa irregular, palmeiras com folhas pinadas arqueadas (jerivá) ou em leque, bromélias e agaves em roseta, estrelítzia em leque com a flor, gramíneas em touceira, forração baixa. A vista abre sombreada **sem arestas**. O resumo traz triângulos totais e a média por exemplar.
+3. **Plantas baixas sem alteração:** as plantas continuam só com os símbolos 2D.
+4. Gere de novo com **Estação ligada, mês de agosto**: ipês **sem folhas e amarelos** (floridos), decíduas sem folhas e semidecíduas com folhagem rala. O resumo informa quantos exemplares estão sem folhas, em flor (e quantos com época estimada pelo gênero) e com frutos.
+5. Mês de **janeiro** com **Frutos** marcados: ipês com folhas e sem flores; jerivás e frutíferas com frutos apenas na época (o resumo informa).
+6. **Detalhada** numa região pequena: placas de folha nas copas e folíolos mais densos nas palmeiras. **Simplificada** no projeto inteiro: massas leves.
+7. **Maquete pesada:** em Configurações o aviso é de 3 milhões de triângulos; num projeto grande no nível Detalhado, o Viridian pede confirmação e oferece o nível que cabe. Escolha "Gerar no nível …" e confira que gerou no nível sugerido.
+8. **Atualizar Maquete** depois de mover uma árvore: refaz com as mesmas escolhas (qualidade, mês, frutos).
+9. **Maquete antiga:** abra um projeto com maquete feita na 1.8 e use **Atualizar Maquete**: ela continua com o visual antigo (gerador simples). Gerando pela janela com o motor Botânico, passa para o novo.
+10. **Ficha da espécie:** Buscar Espécie > editar um ipê: há os campos **Perfil 3D** (Automático, mostrando qual), **Frutificação** e **Cor do fruto**, e uma linha dizendo de onde vêm as épocas (ficha ou estimada pelo gênero). Mude o Perfil 3D de uma espécie (por exemplo, para Árvore colunar), gere a maquete e confira; o resumo informa as espécies com perfil escolhido.
+11. **Desfazer** (Ctrl+Z) desfaz a geração inteira; **Remover Maquete** apaga formas, materiais e vista como antes.
+12. **Gerador simples:** escolha "Gerador simples" na janela: a maquete fica igual à das versões anteriores (para comparar o desempenho).
+
+Anote o tempo de geração e a fluidez para girar a vista em cada qualidade (projeto inteiro): esses números entram no ajuste dos orçamentos da 2.1.
+
 ## Teste rápido da versão 1.5 (cerca de 20 minutos)
 
 Correções pedidas na 1.4. Faça num projeto de teste; em projetos antigos, rode antes **Atualizar Dados**.
@@ -159,11 +192,11 @@ Se algum módulo novo falhar, desligue-o nas configurações: o restante do plug
 
 Use um projeto com árvores, palmeiras, arbustos, um maciço de forração e um gramado, de preferência com um toposólido inclinado.
 
-1. **Maquete 3D** > Projeto inteiro > Na maturidade: abre a vista "Viridian - Maquete 3D" com sombreamento e sombras. Cada planta aparece em volume, nas cores das espécies, com tronco marrom e manchas de flor nas espécies floridas. O resumo informa quantos exemplares e maciços foram criados.
+1. **Maquete 3D** > na janela, Projeto inteiro, Gerador simples, Adulta (maturidade): abre a vista "Viridian - Maquete 3D" com sombreamento e sombras. (O motor botânico está no teste da versão 1.9, no início deste roteiro.) Cada planta aparece em volume, nas cores das espécies, com tronco marrom e manchas de flor nas espécies floridas. O resumo informa quantos exemplares e maciços foram criados.
 2. **Plantas baixas sem alteração:** abra as vistas em planta do projeto. Devem mostrar apenas os símbolos 2D, como antes; nenhum volume da maquete pode aparecer. Se aparecer, anote: o resumo da maquete também avisa quando o Revit não aceita ocultá-la nas plantas.
 3. **Terreno:** com o toposólido inclinado, as plantas e os maciços devem ficar apoiados no terreno, sem flutuar nem afundar. Um vaso ou jardim sobre laje (piso no nível superior) deve ficar sobre a laje.
 4. **Maciços:** o maciço de forração e o gramado aparecem como volume baixo que acompanha o contorno, inclusive recortes; maciços de árvores aparecem como árvores individuais.
-5. **Região:** em uma planta, Maquete 3D > Uma região da planta > desenhe um contorno > No plantio. A maquete anterior é substituída, só a vegetação da região aparece, menor (porte do plantio), e a vista é recortada em torno dela.
+5. **Região:** em uma planta, Maquete 3D > Uma região da planta > No plantio (mudas) > Gerar maquete > desenhe um contorno. A maquete anterior é substituída, só a vegetação da região aparece, menor (porte do plantio), e a vista é recortada em torno dela.
 6. **Atualizar Maquete:** mova uma árvore e acrescente outra na planta; Atualizar Maquete refaz com a mesma região e a mesma fase, já com as mudanças.
 7. **Cortes e elevações:** abra um corte que atravesse o jardim; as árvores aparecem em volume (em projetos com subprojetos, só depois de ligar o subprojeto "VIR Maquete 3D" na vista).
 8. **Sem efeito colateral:** rode Relatórios, Tabelas Nativas e Verificar Projeto: as quantidades devem ser as mesmas de antes da maquete.

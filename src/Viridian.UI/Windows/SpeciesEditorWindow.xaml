@@ -104,6 +104,8 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <TextBlock Style="{StaticResource VirLabel}" Text="Crescimento" />
                             <ComboBox x:Name="GrowthBox" Grid.Column="1" />
@@ -129,12 +131,24 @@
                             <ComboBox x:Name="LeafHabitBox" Grid.Row="3" Grid.Column="3" AutomationProperties.Name="Folhagem ao longo do ano"
                                       ToolTip="Decíduas e semidecíduas fazem sombra mais rala nos meses sem folhas (estudo solar)." />
 
+                            <TextBlock Grid.Row="4" Style="{StaticResource VirLabel}" Text="Perfil 3D" />
+                            <ComboBox x:Name="Profile3DBox" Grid.Row="4" Grid.Column="1" AutomationProperties.Name="Perfil 3D da maquete"
+                                      ToolTip="Forma da planta na maquete 3D (motor botânico). Automático: escolhido pelo gênero, pela categoria e pela forma da copa." />
                             <TextBlock Grid.Row="4" Grid.Column="2" Style="{StaticResource VirLabel}" Text="Meses sem folhas" Margin="12,0,8,0" />
                             <TextBox x:Name="LeaflessBox" Grid.Row="4" Grid.Column="3" AutomationProperties.Name="Meses sem folhas"
                                      ToolTip="Para decíduas e semidecíduas, por exemplo jul–set. Vazio: jun–ago (jul–set nos ipês)." />
 
-                            <TextBlock Grid.Row="5" Style="{StaticResource VirLabel}" Text="Observações" VerticalAlignment="Top" Margin="0,6,8,0" />
-                            <TextBox x:Name="NotesBox" Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="3" AcceptsReturn="True" TextWrapping="Wrap"
+                            <TextBlock Grid.Row="5" Style="{StaticResource VirLabel}" Text="Frutificação" />
+                            <TextBox x:Name="FruitingBox" Grid.Row="5" Grid.Column="1" AutomationProperties.Name="Meses de frutificação"
+                                     ToolTip="Meses com frutos maduros, por exemplo nov–jan. Vazio: estimada pelo gênero quando houver referência (maquete 3D)." />
+                            <TextBlock Grid.Row="5" Grid.Column="2" Style="{StaticResource VirLabel}" Text="Cor do fruto" Margin="12,0,8,0" />
+                            <TextBox x:Name="FruitColorBox" Grid.Row="5" Grid.Column="3" AutomationProperties.Name="Cor do fruto"
+                                     ToolTip="#RRGGBB. Vazio: cor de referência do gênero (quando houver)." />
+
+                            <TextBlock x:Name="Season3DText" Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="3" Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="0,2,0,4" />
+
+                            <TextBlock Grid.Row="7" Style="{StaticResource VirLabel}" Text="Observações" VerticalAlignment="Top" Margin="0,6,8,0" />
+                            <TextBox x:Name="NotesBox" Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="3" AcceptsReturn="True" TextWrapping="Wrap"
                                      MinHeight="48" MaxHeight="90" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" />
                         </Grid>
                     </GroupBox>

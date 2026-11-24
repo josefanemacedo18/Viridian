@@ -185,12 +185,14 @@ public sealed class App : IExternalApplication
         RibbonPanel model = app.CreateRibbonPanel(TabName, "Maquete 3D");
         Large<MaqueteCommand, ProjectAvailability>(model, assembly, "Maquete\n3D", "model3d",
             "Vista 3D do projeto com a vegetação em volume: copas, troncos, palmeiras, arbustos e maciços nas cores das espécies, assentados no terreno.",
-            "Gera do projeto inteiro ou de uma região, no plantio, aos 3 ou 6 anos ou na maturidade. A planta baixa não muda: a maquete só aparece nas vistas 3D, cortes e elevações.");
+            "Motor botânico: forma de cada tipo de planta (árvores, palmeiras, arbustos, rosetas, herbáceas), qualidade Simplificada, Intermediária ou Detalhada, folhagem, flores e frutos conforme o mês. Do projeto inteiro ou de uma região, no plantio, aos 3 ou 6 anos ou na maturidade. A planta baixa não muda: a maquete só aparece nas vistas 3D, cortes e elevações.");
         Stack(model,
             Small<MaqueteUpdateCommand, ProjectAvailability>(assembly, "Atualizar Maquete", "model3d-update",
                 "Refaz a maquete com o mesmo recorte e a mesma fase, depois de mudanças no plantio."),
             Small<MaqueteRemoveCommand, ProjectAvailability>(assembly, "Remover Maquete", "model3d-remove",
-                "Apaga a maquete 3D e os materiais criados para ela. A vegetação 2D não é alterada."));
+                "Apaga a maquete 3D e os materiais criados para ela. A vegetação 2D não é alterada."),
+            Small<Engine3DTestCommand, ProjectAvailability>(assembly, "Testes do Motor 3D", "model3d-test",
+                "Provas de conceito no seu Revit: família BIM com símbolo 2D e árvore 3D (Fase 0) e texturas do ipê na vista realista (T0). Gera um relatório para enviar; o projeto fica como estava, se preferir."));
 
         RibbonPanel check = app.CreateRibbonPanel(TabName, "Verificação");
         Large<CheckCommand, ProjectAvailability>(check, assembly, "Verificar\nProjeto", "check",

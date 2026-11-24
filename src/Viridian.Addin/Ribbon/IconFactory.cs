@@ -440,6 +440,15 @@ internal static class IconFactory
                 CircularArrows(dc, new Point(24, 23), 6, accent);
                 break;
 
+            case "model3d-test":
+                // Árvore com uma prancheta de verificação.
+                dc.DrawLine(main, new Point(11, 26), new Point(11, 17));
+                dc.DrawEllipse(light, main, new Point(11, 12), 6.5, 6.5);
+                dc.DrawRoundedRectangle(Fill(Colors.White), main, new Rect(18, 15, 11, 13), 1.5, 1.5);
+                dc.DrawLine(accent, new Point(20, 21), new Point(22.5, 24));
+                dc.DrawLine(accent, new Point(22.5, 24), new Point(27, 18));
+                break;
+
             case "model3d-remove":
                 dc.DrawLine(main, new Point(13, 26), new Point(13, 17));
                 dc.DrawEllipse(light, main, new Point(13, 12), 7, 7);

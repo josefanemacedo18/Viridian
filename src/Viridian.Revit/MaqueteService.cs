@@ -6,6 +6,9 @@ using Viridian.Core.Distribution;
 using Viridian.Core.Geometry;
 using Viridian.Core.Model;
 using Viridian.Core.Model3D;
+using Viridian.Core.Model3D.Generation;
+using Viridian.Core.Model3D.Profiles;
+using Viridian.Core.Model3D.Seasonality;
 using Viridian.Core.Reports;
 using Viridian.Library;
 
@@ -32,7 +35,32 @@ public sealed class MaqueteResult
     public bool UsedWorkset { get; set; }
 
     public bool HiddenInPlans { get; set; }
+
+    public MaqueteEngine Engine { get; set; }
+
+    /// <summary>Triângulos criados nos exemplares (motor botânico).</summary>
+    public long Triangles { get; set; }
+
+    /// <summary>Exemplares com detalhe reduzido para caber no orçamento.</summary>
+    public int Reduced { get; set; }
+
+    public int Leafless { get; set; }
+
+    public int Sparse { get; set; }
+
+    public int Flowering { get; set; }
+
+    /// <summary>Exemplares com flores cuja época de floração foi estimada pelo gênero.</summary>
+    public int FloweringEstimated { get; set; }
+
+    public int Fruiting { get; set; }
+
+    /// <summary>Espécies com perfil 3D escolhido na ficha (as demais usam o automático).</summary>
+    public int ChosenProfiles { get; set; }
 }
+
+/// <summary>Contagem prévia da maquete (antes de gerar).</summary>
+public sealed record MaqueteEstimate(int Plants, int Beds, int Skipped, long Triangles, IReadOnlyList<Species> Species);
 
 /// <summary>
 /// Maquete 3D da vegetação: formas diretas (DirectShape) sem família, na categoria Entorno, com materiais nas cores das
@@ -65,22 +93,18 @@ public static class MaqueteService
                ?? views.FirstOrDefault(v => string.Equals(v.Name, ViewName, StringComparison.OrdinalIgnoreCase));
     }
 
-    public static MaqueteState? ReadState(View3D? view) =>
-        view is not null && ElementData.TryRead(view, KindMaquete, out MaqueteState state) ? state : null;
+    /// <summary>Estado gravado na vista; maquetes de versões anteriores continuam no gerador simples.</summary>
+    public static MaqueteState? ReadState(View3D? view, bool legacyFlowers = true) =>
+        view is not null && ElementData.TryRead(view, KindMaquete, out MaqueteState state) ? state.Upgrade(legacyFlowers) : null;
 
-    /// <summary>Gera (ou refaz) a maquete. Substitui a maquete anterior por inteiro. Precisa de transação aberta.</summary>
-    public static MaqueteResult Build(Document document, MaqueteState state, Func<string, Species?> lookup, Func<Species, string> codeOf, ViridianSettings settings)
+    /// <summary>Exemplar a gerar: origem (identificador permanente), espécie, ponto e se o terreno deve ser procurado.</summary>
+    private sealed record PlannedPlant(string Source, Species Species, XYZ Base, double ZMeters, string MassingId);
+
+    /// <summary>O que entra na maquete: maciços baixos (volumes) e exemplares, já filtrados pela região e pelo nível.</summary>
+    private sealed record MaquetePlan(List<MassingInfo> Beds, List<PlannedPlant> Plants);
+
+    private static MaquetePlan Plan(Document document, MaqueteState state, Func<string, Species?> lookup, ModelSettings options)
     {
-        ArgumentNullException.ThrowIfNull(document);
-        ArgumentNullException.ThrowIfNull(state);
-        ModelSettings options = settings.Model3D;
-        View3D view = EnsureView(document);
-        PlanHiding = true;
-        DeleteShapes(document);
-        Try("caixa de corte anterior", () => view.IsSectionBoxActive = false); // a busca do terreno só enxerga o que a vista mostra
-        document.Regenerate();
-
-        var result = new MaqueteResult { View = view };
         Polygon2? region = state.RegionPolygon();
         if (region is { IsEmpty: true })
         {
@@ -88,22 +112,15 @@ public static class MaqueteService
         }
 
         string level = region is null ? string.Empty : state.LevelName;
-        var ground = new TerrainProbe(document, view, options.FollowTerrain, options.TerrainSearchM);
-        var materials = new MaterialCache(document);
-        ElementId categoryId = ShapeCategory(document);
-        WorksetId? workset = EnsureWorkset(document, view);
-        result.UsedWorkset = workset is not null;
-        var lineColors = new Dictionary<ElementId, Rgb>();
-
-        // Maciços: os baixos viram volume; os de árvores e palmeiras viram exemplares (os símbolos do maciço ou, na falta deles, uma malha).
         List<MassingInfo> massings = ReportBuilder.DistinctMassings(MassingService.ReadMassings(document))
             .Where(m => m.Boundary is { IsEmpty: false } && lookup(m.Record.SpeciesId) is not null)
             .Where(m => region is null || (region.Contains(m.Boundary!.InteriorPoint()) && LevelMatches(document, m.ViewId, level)))
             .ToList();
-        var bedMassings = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var items = new List<(string Source, Species Species, XYZ Base, double ZMeters, bool Probe)>();
-
+        var beds = new List<MassingInfo>();
+        var items = new List<PlannedPlant>();
         IReadOnlyList<PlantRecord> plants = PlantingService.ReadPlants(document, lookup);
+
+        // Maciços: os baixos viram volume; os de árvores e palmeiras viram exemplares (os símbolos do maciço ou, na falta deles, uma malha).
         foreach (MassingInfo m in massings)
         {
             Species species = lookup(m.Record.SpeciesId)!;
@@ -122,14 +139,90 @@ public static class MaqueteService
                     int index = 0;
                     foreach (Point2 p in points.Points)
                     {
-                        items.Add(($"{m.Record.Id}#{index++}", species, RevitUnits.ToXyz(p, RevitUnits.ToFeet(z)), z, true));
+                        items.Add(new PlannedPlant($"{m.Record.Id}#{index++}", species, RevitUnits.ToXyz(p, RevitUnits.ToFeet(z)), z, string.Empty));
                     }
                 }
 
                 continue;
             }
 
-            if (BuildBed(document, m, species, state.Stage, ground, materials, categoryId, workset, codeOf, settings, lineColors))
+            beds.Add(m);
+        }
+
+        foreach (PlantRecord plant in plants)
+        {
+            if (!plant.IsRegistered || plant.Status == PlantStatus.Removido || lookup(plant.SpeciesId) is not Species species)
+            {
+                continue;
+            }
+
+            if (region is not null && (!region.Contains(plant.Location) || (level.Length > 0 && !string.Equals(plant.LevelName, level, StringComparison.Ordinal))))
+            {
+                continue;
+            }
+
+            if (document.GetElement(new ElementId(plant.ElementId)) is not FamilyInstance instance || instance.Location is not LocationPoint location)
+            {
+                continue;
+            }
+
+            items.Add(new PlannedPlant(plant.UniqueId, species, location.Point, RevitUnits.ToMeters(location.Point.Z), plant.BelongsToMassing ? plant.MassingId : string.Empty));
+        }
+
+        return new MaquetePlan(beds, items);
+    }
+
+    /// <summary>Contagem e peso estimados da maquete, sem alterar o modelo (não precisa de transação).</summary>
+    public static MaqueteEstimate Estimate(Document document, MaqueteState state, Func<string, Species?> lookup, ViridianSettings settings, IReadOnlyList<Plant3DProfile> profiles)
+    {
+        MaquetePlan plan = Plan(document, state, lookup, settings.Model3D);
+        var bedIds = new HashSet<string>(plan.Beds.Select(b => b.Record.Id), StringComparer.OrdinalIgnoreCase);
+        List<Species> species = plan.Plants.Where(p => p.MassingId.Length == 0 || !bedIds.Contains(p.MassingId)).Select(p => p.Species).ToList();
+        int skipped = Math.Max(0, species.Count - settings.Model3D.MaxPlants);
+        species = species.Take(settings.Model3D.MaxPlants).ToList();
+        long triangles = state.Engine == MaqueteEngine.Botanico ? MaqueteCost.Triangles(species, profiles, state.Quality) : species.Count * 300L;
+        return new MaqueteEstimate(species.Count, plan.Beds.Count, skipped, triangles, species);
+    }
+
+    /// <summary>
+    /// Gera (ou refaz) a maquete. Substitui a maquete anterior por inteiro. Precisa de transação aberta: se o motor
+    /// botânico falhar na maioria dos exemplares, a geração é interrompida e a transação desfeita (a maquete anterior fica).
+    /// </summary>
+    public static MaqueteResult Build(Document document, MaqueteState state, Func<string, Species?> lookup, Func<Species, string> codeOf, ViridianSettings settings,
+        IReadOnlyList<Plant3DProfile>? profiles = null)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(state);
+        ModelSettings options = settings.Model3D;
+        profiles ??= Plant3DProfileDefaults.Create();
+        bool botanical = state.Engine == MaqueteEngine.Botanico;
+        View3D view = EnsureView(document);
+        PlanHiding = true;
+        DeleteShapes(document);
+        Try("caixa de corte anterior", () => view.IsSectionBoxActive = false); // a busca do terreno só enxerga o que a vista mostra
+        document.Regenerate();
+
+        var result = new MaqueteResult { View = view, Engine = state.Engine };
+        Polygon2? region = state.RegionPolygon();
+        if (region is { IsEmpty: true })
+        {
+            region = null;
+        }
+
+        MaquetePlan plan = Plan(document, state, lookup, options);
+        var ground = new TerrainProbe(document, view, options.FollowTerrain, options.TerrainSearchM);
+        var materials = new MaterialCache(document);
+        ElementId categoryId = ShapeCategory(document);
+        WorksetId? workset = EnsureWorkset(document, view);
+        result.UsedWorkset = workset is not null;
+        var lineColors = new Dictionary<ElementId, Rgb>();
+        var bedMassings = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var botanicalContext = botanical ? new BotanicalContext(state, profiles, settings, SouthernHemisphere(document, settings)) : null;
+
+        foreach (MassingInfo m in plan.Beds)
+        {
+            Species species = lookup(m.Record.SpeciesId)!;
+            if (BuildBed(document, m, species, state.Stage, ground, materials, categoryId, workset, codeOf, settings, lineColors, botanicalContext))
             {
                 result.Beds++;
                 bedMassings.Add(m.Record.Id);
@@ -144,61 +237,70 @@ public static class MaqueteService
             }
         }
 
-        foreach (PlantRecord plant in plants)
-        {
-            if (!plant.IsRegistered || plant.Status == PlantStatus.Removido || lookup(plant.SpeciesId) is not Species species)
-            {
-                continue;
-            }
-
-            if (plant.BelongsToMassing && bedMassings.Contains(plant.MassingId))
-            {
-                continue; // representado pelo volume do maciço
-            }
-
-            if (region is not null && (!region.Contains(plant.Location) || (level.Length > 0 && !string.Equals(plant.LevelName, level, StringComparison.Ordinal))))
-            {
-                continue;
-            }
-
-            if (document.GetElement(new ElementId(plant.ElementId)) is not FamilyInstance instance || instance.Location is not LocationPoint location)
-            {
-                continue;
-            }
-
-            items.Add((plant.UniqueId, species, location.Point, RevitUnits.ToMeters(location.Point.Z), true));
-        }
-
+        // Exemplares de maciços que viraram volume já estão representados.
+        List<PlannedPlant> items = plan.Plants.Where(p => p.MassingId.Length == 0 || !bedMassings.Contains(p.MassingId)).ToList();
         if (items.Count > options.MaxPlants)
         {
             result.Skipped = items.Count - options.MaxPlants;
             items = items.Take(options.MaxPlants).ToList();
         }
 
-        foreach ((string source, Species species, XYZ basePoint, double zMeters, bool probe) in items)
+        int attempted = 0, plantFailures = 0;
+        foreach (PlannedPlant item in items)
         {
-            double z = zMeters;
-            var plan = RevitUnits.ToPoint2(basePoint);
-            if (probe && ground.TryGround(plan, zMeters, out double terrain))
+            double z = item.ZMeters;
+            var planPoint = RevitUnits.ToPoint2(item.Base);
+            if (ground.TryGround(planPoint, item.ZMeters, out double terrain))
             {
                 z = terrain;
                 result.OnTerrain++;
             }
 
-            if (BuildPlant(document, source, species, new XYZ(basePoint.X, basePoint.Y, RevitUnits.ToFeet(z)), state.Stage, materials, categoryId, workset, codeOf, settings, lineColors))
+            var at = new XYZ(item.Base.X, item.Base.Y, RevitUnits.ToFeet(z));
+            attempted++;
+            bool ok = botanicalContext is not null
+                ? BuildBotanicalPlant(document, item.Source, item.Species, at, state.Stage, botanicalContext, materials, categoryId, workset, codeOf, lineColors, result)
+                : BuildPlant(document, item.Source, item.Species, at, state.Stage, materials, categoryId, workset, codeOf, settings, lineColors);
+            if (ok)
             {
                 result.Plants++;
             }
             else
             {
                 result.Failed++;
+                plantFailures++;
+            }
+
+            if (botanical && attempted >= 8 && plantFailures * 2 > attempted)
+            {
+                throw new ViridianException($"O Revit recusou a geometria de {plantFailures} de {attempted} exemplares. A geração foi interrompida e a maquete anterior foi mantida. "
+                                            + "Tente o nível Simplificado ou o gerador simples; o detalhe está no registro de erros (Viridian > Sobre).");
             }
         }
 
+        if (botanicalContext is not null)
+        {
+            result.ChosenProfiles = botanicalContext.ChosenProfiles.Count;
+        }
+
         result.HiddenInPlans = PlanHiding;
-        ConfigureView(document, view, region, lineColors);
+        ConfigureView(document, view, region, lineColors, botanical && !options.ShowEdges);
         ElementData.Write(view, KindMaquete, state);
         return result;
+    }
+
+    /// <summary>Hemisfério da obra (para os meses de folhagem, flor e fruto): latitude da localização ou das configurações.</summary>
+    public static bool SouthernHemisphere(Document document, ViridianSettings settings)
+    {
+        try
+        {
+            return SolarService.ReadSite(document, settings.Solar).Site.LatitudeDeg <= 0;
+        }
+        catch (Exception ex)
+        {
+            ViridianLog.Warn("Maquete: hemisfério da obra", ex);
+            return true;
+        }
     }
 
     /// <summary>Remove as formas da maquete, os materiais criados para ela e a vista (quando não está em uma prancha).</summary>
@@ -307,14 +409,15 @@ public static class MaqueteService
         return name + " " + DateTime.Now.ToString("yyyyMMdd-HHmmss");
     }
 
-    private static void ConfigureView(Document document, View3D view, Polygon2? region, Dictionary<ElementId, Rgb> lineColors)
+    private static void ConfigureView(Document document, View3D view, Polygon2? region, Dictionary<ElementId, Rgb> lineColors, bool withoutEdges)
     {
         bool templated = view.ViewTemplateId != ElementId.InvalidElementId;
         Try("estilo visual", () =>
         {
             if (!templated && view.CanModifyDisplayStyle())
             {
-                view.DisplayStyle = DisplayStyle.ShadingWithEdges;
+                // Motor botânico: sombreado sem arestas (as folhas e as copas ficam naturais); gerador simples: como antes.
+                view.DisplayStyle = withoutEdges ? DisplayStyle.Shading : DisplayStyle.ShadingWithEdges;
             }
         });
         Try("nível de detalhe", () =>
@@ -413,8 +516,99 @@ public static class MaqueteService
         }
     }
 
+    /// <summary>Escolhas e caches do motor botânico durante uma geração.</summary>
+    private sealed class BotanicalContext
+    {
+        public BotanicalContext(MaqueteState state, IReadOnlyList<Plant3DProfile> profiles, ViridianSettings settings, bool south)
+        {
+            Profiles = profiles;
+            Settings = settings;
+            Options = new PlantOptions
+            {
+                Quality = state.Quality,
+                Month = state.Month,
+                SouthernHemisphere = south,
+                Flowers = state.Flowers,
+                Fruits = state.Fruits,
+                Variation = state.Variation,
+            };
+        }
+
+        public IReadOnlyList<Plant3DProfile> Profiles { get; }
+
+        public ViridianSettings Settings { get; }
+
+        public PlantOptions Options { get; }
+
+        /// <summary>Geometria por hash: exemplares idênticos (sem variação) são gerados uma única vez.</summary>
+        public Dictionary<string, GeneratedPlant> Geometry { get; } = new(StringComparer.Ordinal);
+
+        public Dictionary<string, (Plant3DProfile Profile, bool FromSpecies)> BySpecies { get; } = new(StringComparer.Ordinal);
+
+        public HashSet<string> ChosenProfiles { get; } = new(StringComparer.Ordinal);
+
+        public Plant3DProfile ProfileOf(Species species)
+        {
+            if (!BySpecies.TryGetValue(species.Id, out var resolved))
+            {
+                resolved = ProfileResolver.Resolve(species, Profiles);
+                BySpecies[species.Id] = resolved;
+                if (resolved.FromSpecies)
+                {
+                    ChosenProfiles.Add(species.Id);
+                }
+            }
+
+            return resolved.Profile;
+        }
+    }
+
+    private static bool BuildBotanicalPlant(Document document, string source, Species species, XYZ basePoint, GrowthStage stage, BotanicalContext context,
+        MaterialCache materials, ElementId categoryId, WorksetId? workset, Func<Species, string> codeOf, Dictionary<ElementId, Rgb> lineColors, MaqueteResult result)
+    {
+        try
+        {
+            (double crown, double height) = GrowthModel.Size(species, stage);
+            int seed = DeterministicRandom.StableHash(source);
+            Plant3DProfile profile = context.ProfileOf(species);
+            PlantSeason season = PlantPlanner.Season(species, profile, context.Options);
+            PlantRequest request = PlantPlanner.Request(species, profile, crown, height, seed, context.Options);
+            string hash = GeometryHash.Of(request);
+            if (!context.Geometry.TryGetValue(hash, out GeneratedPlant? generated))
+            {
+                generated = PlantGeometryGenerator.Generate(request);
+                context.Geometry[hash] = generated;
+            }
+
+            PlantColors colors = PlantPlanner.Colors(species, profile, context.Settings.Colors, context.Settings.Model3D.TrunkColor, request.Fruits);
+            double rotation = seed % 3600 / 3600.0 * Geo.TwoPi;
+            var offset = new Vec3(RevitUnits.ToMeters(basePoint.X), RevitUnits.ToMeters(basePoint.Y), RevitUnits.ToMeters(basePoint.Z));
+            List<MeshPiece> pieces = generated.Model.Pieces.Select(p => p.Transform(rotation, offset)).ToList();
+            bool ok = CreateShape(document, source, species, codeOf, pieces, part => materials.For(part, colors.For(part)),
+                categoryId, workset, basePoint, colors.Foliage, lineColors);
+            if (ok)
+            {
+                result.Triangles += generated.Model.TriangleCount;
+                result.Reduced += generated.DetailFactor < 0.999 ? 1 : 0;
+                result.Leafless += request.Foliage == FoliageState.SemFolhas ? 1 : 0;
+                result.Sparse += request.Foliage == FoliageState.Rala ? 1 : 0;
+                result.Flowering += request.Flowers ? 1 : 0;
+                result.FloweringEstimated += request.Flowers && season.FloweringSource == SeasonSource.Estimado ? 1 : 0;
+                result.Fruiting += request.Fruits is not null ? 1 : 0;
+            }
+
+            return ok;
+        }
+        catch (Exception ex)
+        {
+            ViridianLog.Warn($"Maquete: exemplar {source} ({species.PopularName}) não pôde ser criado", ex);
+            return false;
+        }
+    }
+
     private static bool BuildBed(Document document, MassingInfo massing, Species species, GrowthStage stage, TerrainProbe ground, MaterialCache materials,
-        ElementId categoryId, WorksetId? workset, Func<Species, string> codeOf, ViridianSettings settings, Dictionary<ElementId, Rgb> lineColors)
+        ElementId categoryId, WorksetId? workset, Func<Species, string> codeOf, ViridianSettings settings, Dictionary<ElementId, Rgb> lineColors,
+        BotanicalContext? botanical = null)
     {
         try
         {
@@ -445,7 +639,13 @@ public static class MaqueteService
             }
 
             var pieces = new List<MeshPiece> { bed };
-            if (settings.Model3D.ShowFlowers && !string.IsNullOrWhiteSpace(species.FlowerColor))
+            // Flores do maciço: no gerador simples, conforme as configurações; no botânico, conforme a escolha e o mês.
+            bool flowers = botanical is null
+                ? settings.Model3D.ShowFlowers && !string.IsNullOrWhiteSpace(species.FlowerColor)
+                : PlantPlanner.Season(species, botanical.ProfileOf(species), botanical.Options).Flowers
+                  || (botanical.Options.Flowers && botanical.ProfileOf(species).Flowers is null && !string.IsNullOrWhiteSpace(species.FlowerColor)
+                      && (botanical.Options.Month == 0 || SeasonalityResolver.InMonth(SeasonalityResolver.Flowering(species), botanical.Options.Month, botanical.Options.SouthernHemisphere)));
+            if (flowers)
             {
                 double blob = Math.Clamp(species.CrownDiameterM * 0.15, 0.05, 0.25);
                 int seed = DeterministicRandom.StableHash(massing.Record.Id);
@@ -622,6 +822,22 @@ public static class MaqueteService
             }
         }
 
+        /// <summary>Material de uma parte no motor botânico: nome pela parte e pela cor (reaproveitado entre espécies).</summary>
+        public ElementId For(MeshPart part, Rgb color)
+        {
+            string label = part switch
+            {
+                MeshPart.Tronco => "Tronco",
+                MeshPart.Galho => "Galho",
+                MeshPart.Flor => "Flor",
+                MeshPart.Fruto => "Fruto",
+                MeshPart.FolhagemClara => "Folhagem clara",
+                MeshPart.FolhagemEscura => "Folhagem escura",
+                _ => "Folhagem",
+            };
+            return Get($"{MaterialPrefix}{label} {color.Hex}", color, part is MeshPart.Flor or MeshPart.Fruto ? 20 : 5);
+        }
+
         public ElementId For(MeshPart part, Species species, Rgb foliage, ViridianSettings settings)
         {
             (string label, Rgb color) = part switch
@@ -630,7 +846,11 @@ public static class MaqueteService
                 MeshPart.Flor => ("Flor", Rgb.Parse(species.FlowerColor, Rgb.White)),
                 _ => ("Folhagem", foliage),
             };
-            string name = $"{MaterialPrefix}{label} {color.Hex}";
+            return Get($"{MaterialPrefix}{label} {color.Hex}", color, part == MeshPart.Flor ? 20 : 5);
+        }
+
+        private ElementId Get(string name, Rgb color, int shininess)
+        {
             if (_byName.TryGetValue(name, out ElementId? id) && _document.GetElement(id) is Material)
             {
                 return id;
@@ -641,7 +861,7 @@ public static class MaqueteService
             {
                 material.Color = HatchService.ToColor(color);
                 material.UseRenderAppearanceForShading = false;
-                material.Shininess = part == MeshPart.Flor ? 20 : 5;
+                material.Shininess = shininess;
                 material.Smoothness = 30;
             }
 
