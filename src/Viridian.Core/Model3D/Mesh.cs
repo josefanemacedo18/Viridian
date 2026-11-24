@@ -9,6 +9,8 @@ public readonly record struct Vec3(double X, double Y, double Z)
 
     public static Vec3 operator -(Vec3 a, Vec3 b) => new(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
 
+    public static Vec3 operator -(Vec3 a) => new(-a.X, -a.Y, -a.Z);
+
     public static Vec3 operator *(Vec3 a, double k) => new(a.X * k, a.Y * k, a.Z * k);
 
     public static Vec3 operator *(double k, Vec3 a) => a * k;
@@ -39,6 +41,17 @@ public enum MeshPart
     Folhagem = 0,
     Tronco = 1,
     Flor = 2,
+
+    /// <summary>Madeira dos galhos (um pouco mais clara que o tronco).</summary>
+    Galho = 3,
+
+    Fruto = 4,
+
+    /// <summary>Folhagem em tom mais claro (brotações e partes de cima da copa), para variação tonal.</summary>
+    FolhagemClara = 5,
+
+    /// <summary>Folhagem em tom mais escuro (interior e partes de baixo da copa).</summary>
+    FolhagemEscura = 6,
 }
 
 /// <summary>Triângulo por índices de vértice. A ordem anti-horária, vista de fora, define a face externa.</summary>

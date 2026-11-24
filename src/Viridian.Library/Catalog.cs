@@ -297,6 +297,10 @@ public sealed class CatalogStore
             species.ServiceItemCode ??= string.Empty;
             species.FoliageColor = ValidColor(species.FoliageColor);
             species.FlowerColor = ValidColor(species.FlowerColor);
+            species.FruitColor = ValidColor(species.FruitColor);
+            species.Fruiting ??= string.Empty;
+            species.LeaflessMonths ??= string.Empty;
+            species.Plant3DProfileId = (species.Plant3DProfileId ?? string.Empty).Trim();
 
             if (!Enum.IsDefined(species.SymbolStyle))
             {

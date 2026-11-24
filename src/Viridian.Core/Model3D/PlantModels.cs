@@ -22,6 +22,9 @@ public sealed class PlantModel
 {
     public PlantShape Shape { get; init; }
 
+    /// <summary>Arquitetura do perfil botânico (nula nos modelos do gerador legado).</summary>
+    public Profiles.PlantArchitecture? Architecture { get; init; }
+
     public double HeightM { get; init; }
 
     public double CrownDiameterM { get; init; }

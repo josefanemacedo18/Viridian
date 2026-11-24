@@ -41,6 +41,11 @@ File.WriteAllText(Path.Combine(outDir, "estudo-solar.svg"), WaterSolarPreview.So
 File.WriteAllText(Path.Combine(outDir, "calendario-luz.svg"), SvgSheets.DrawingSvg(WaterSolarPreview.LastCalendar!, 5200));
 File.WriteAllText(Path.Combine(outDir, "sombras-por-horario.svg"), SvgSheets.DrawingSvg(WaterSolarPreview.LastShadeSheet!, 4200));
 File.WriteAllText(Path.Combine(outDir, "macicos.svg"), MassingPreview.Sheet());
+File.WriteAllText(Path.Combine(outDir, "perfis-3d.svg"), Plant3DPreview.ProfilesSheet());
+File.WriteAllText(Path.Combine(outDir, "qualidade-3d.svg"), Plant3DPreview.LodSheet());
+File.WriteAllText(Path.Combine(outDir, "formas-3d.svg"), Plant3DPreview.FocusSheet());
+File.WriteAllText(Path.Combine(outDir, "estacoes-3d.svg"), Plant3DPreview.SeasonSheet());
+File.WriteAllText(Path.Combine(outDir, "referencia-3d.svg"), Plant3DPreview.ReferenceSheet());
 Console.WriteLine("Pranchas geradas em " + Path.GetFullPath(outDir));
 
 internal static class SvgSheets

@@ -87,6 +87,15 @@ public sealed class Species
         }
     }
 
+    /// <summary>Perfil botânico 3D escolhido na ficha. Vazio = perfil automático pela categoria, forma e gênero.</summary>
+    public string Plant3DProfileId { get; set; } = string.Empty;
+
+    /// <summary>Meses de frutificação, por exemplo "out–dez". Vazio = estimativa pelo gênero, quando conhecida.</summary>
+    public string Fruiting { get; set; } = string.Empty;
+
+    /// <summary>Cor dos frutos (#RRGGBB). Vazio = estimativa pelo gênero, quando conhecida.</summary>
+    public string FruitColor { get; set; } = string.Empty;
+
     /// <summary>Tolerância ao encharcamento cadastrada. Não informada = estimativa pela categoria e pela necessidade de água.</summary>
     public WaterloggingTolerance Waterlogging { get; set; }
 

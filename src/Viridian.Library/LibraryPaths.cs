@@ -39,6 +39,8 @@ public sealed class LibraryPaths
 
     public string StonesFile => Path.Combine(DataFolder, "pedras.json");
 
+    public string Profiles3DFile => Path.Combine(DataFolder, "perfis-3d.json");
+
     /// <summary>Famílias 2D geradas pelo plugin, organizadas por categoria.</summary>
     public string GeneratedFolder(PlantCategory category) => Path.Combine(Root, "Familias", Labels.Folder(category));
 
