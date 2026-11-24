@@ -28,6 +28,7 @@ SvgSheets.MemorialSample(Path.Combine(outDir, "memorial-exemplo.docx"), Path.Get
 File.WriteAllText(Path.Combine(outDir, "quadro-fotos.svg"), SvgSheets.PhotoBoardSheet(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "Viridian.Addin", "Fotos"))));
 File.WriteAllText(Path.Combine(outDir, "maquete.svg"), MaquetePreview.Scene(Viridian.Core.Detailing.GrowthStage.Maturidade));
 File.WriteAllText(Path.Combine(outDir, "maquete-plantio.svg"), MaquetePreview.Scene(Viridian.Core.Detailing.GrowthStage.Plantio));
+IllustrationPreview.Write(Path.Combine(outDir, "ilustracao"));
 File.WriteAllText(Path.Combine(outDir, "maquete-botanica.svg"), MaquetePreview.Scene(Viridian.Core.Detailing.GrowthStage.Maturidade, botanical: true));
 File.WriteAllText(Path.Combine(outDir, "maquete-botanica-agosto.svg"), MaquetePreview.Scene(Viridian.Core.Detailing.GrowthStage.Maturidade, botanical: true, month: 8));
 File.WriteAllText(Path.Combine(outDir, "pisos.svg"), PavingPreview.Sheet());

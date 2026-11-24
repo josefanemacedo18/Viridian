@@ -57,6 +57,15 @@ public sealed class MaqueteResult
 
     /// <summary>Espécies com perfil 3D escolhido na ficha (as demais usam o automático).</summary>
     public int ChosenProfiles { get; set; }
+
+    /// <summary>Exemplares mostrados pela própria família (vegetação ilustrada em 3D dentro dela).</summary>
+    public int FamilyPlants { get; set; }
+
+    /// <summary>Exemplares com família ilustrada fora da cota do nível (terreno): 3D da família desligado e forma direta no terreno.</summary>
+    public int TerrainPlants { get; set; }
+
+    /// <summary>Exemplares com família ilustrada fora do terreno cuja família não permite desligar o 3D (ficam na cota do nível).</summary>
+    public int OffTerrainKept { get; set; }
 }
 
 /// <summary>Contagem prévia da maquete (antes de gerar).</summary>
@@ -98,7 +107,7 @@ public static class MaqueteService
         view is not null && ElementData.TryRead(view, KindMaquete, out MaqueteState state) ? state.Upgrade(legacyFlowers) : null;
 
     /// <summary>Exemplar a gerar: origem (identificador permanente), espécie, ponto e se o terreno deve ser procurado.</summary>
-    private sealed record PlannedPlant(string Source, Species Species, XYZ Base, double ZMeters, string MassingId);
+    private sealed record PlannedPlant(string Source, Species Species, XYZ Base, double ZMeters, string MassingId, long ElementId = 0);
 
     /// <summary>O que entra na maquete: maciços baixos (volumes) e exemplares, já filtrados pela região e pelo nível.</summary>
     private sealed record MaquetePlan(List<MassingInfo> Beds, List<PlannedPlant> Plants);
@@ -166,7 +175,7 @@ public static class MaqueteService
                 continue;
             }
 
-            items.Add(new PlannedPlant(plant.UniqueId, species, location.Point, RevitUnits.ToMeters(location.Point.Z), plant.BelongsToMassing ? plant.MassingId : string.Empty));
+            items.Add(new PlannedPlant(plant.UniqueId, species, location.Point, RevitUnits.ToMeters(location.Point.Z), plant.BelongsToMassing ? plant.MassingId : string.Empty, plant.ElementId));
         }
 
         return new MaquetePlan(beds, items);
@@ -257,6 +266,13 @@ public static class MaqueteService
             }
 
             var at = new XYZ(item.Base.X, item.Base.Y, RevitUnits.ToFeet(z));
+            // Espécies com vegetação ilustrada na família: a própria família mostra a árvore (a maquete não duplica).
+            if (item.ElementId != 0 && FamilyShows(document, item, z, result))
+            {
+                result.Plants++;
+                continue;
+            }
+
             attempted++;
             bool ok = botanicalContext is not null
                 ? BuildBotanicalPlant(document, item.Source, item.Species, at, state.Stage, botanicalContext, materials, categoryId, workset, codeOf, lineColors, result)
@@ -264,6 +280,10 @@ public static class MaqueteService
             if (ok)
             {
                 result.Plants++;
+                if (item.ElementId != 0 && HasFamilyVolume(document, item.ElementId))
+                {
+                    result.TerrainPlants++;
+                }
             }
             else
             {
@@ -287,6 +307,52 @@ public static class MaqueteService
         ConfigureView(document, view, region, lineColors, botanical && !options.ShowEdges);
         ElementData.Write(view, KindMaquete, state);
         return result;
+    }
+
+    /// <summary>Tolerância entre a cota do exemplar e o terreno para o volume da família representar a planta (m).</summary>
+    public const double FamilyTerrainTolerance = 0.15;
+
+    /// <summary>O exemplar é de uma família com a vegetação ilustrada em 3D.</summary>
+    private static bool HasFamilyVolume(Document document, long elementId) =>
+        document.GetElement(new ElementId(elementId)) is FamilyInstance { Symbol: FamilySymbol symbol }
+        && ElementData.TryRead(symbol, ElementData.KindSpecies, out SpeciesLink link) && link.Has3D;
+
+    /// <summary>
+    /// Vegetação ilustrada: decide se a própria família representa o exemplar. Exemplares no terreno (ou na cota do
+    /// nível, sem terreno) mostram o 3D da família; fora dela, o 3D da família é desligado pelo parâmetro do exemplar e
+    /// a maquete cria a forma direta no terreno. Devolve verdadeiro quando nenhuma forma direta é necessária.
+    /// </summary>
+    private static bool FamilyShows(Document document, PlannedPlant item, double groundZ, MaqueteResult result)
+    {
+        if (document.GetElement(new ElementId(item.ElementId)) is not FamilyInstance instance || !HasFamilyVolume(document, item.ElementId))
+        {
+            return false;
+        }
+
+        Parameter? visible = instance.LookupParameter(SymbolFamilyBuilder.VisibleParameter);
+        bool onGround = Math.Abs(groundZ - item.ZMeters) <= FamilyTerrainTolerance;
+        if (onGround || visible is null || visible.IsReadOnly)
+        {
+            if (visible is { IsReadOnly: false } && visible.AsInteger() != 1)
+            {
+                visible.Set(1);
+            }
+
+            if (!onGround)
+            {
+                result.OffTerrainKept++;
+            }
+
+            result.FamilyPlants++;
+            return true;
+        }
+
+        if (visible.AsInteger() != 0)
+        {
+            visible.Set(0);
+        }
+
+        return false;
     }
 
     /// <summary>Hemisfério da obra (para os meses de folhagem, flor e fruto): latitude da localização ou das configurações.</summary>

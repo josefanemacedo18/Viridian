@@ -4,25 +4,25 @@ O código foi compilado contra a API oficial do Revit 2027 e a lógica sem depen
 
 Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Viridian\Logs` (Viridian > Sobre abre a pasta).
 
-## Teste da versão 1.9 — motor 3D botânico e provas de conceito (cerca de 40 minutos)
+## Conferência da versão 2.0 — vegetação ilustrada nas famílias (piloto, cerca de 15 minutos)
 
-Faça num projeto de teste (ou numa cópia) com árvores, palmeiras, arbustos, herbáceas, uma bromélia, um maciço de forração e um gramado, de preferência com um toposólido. A parte **A** é a prova de conceito que decide a família BIM (versão 2.0) e as texturas (2.2): **envie a pasta que ela gera**.
+Nada precisa ser enviado: é só para você ver o resultado. Espécies do piloto: ipê-amarelo, flamboyant, jerivá, palmeira-azul, araucária, agave-dragão, estrelítzia e dracena-de-madagascar.
 
-### A. Testes do Motor 3D (provas de conceito — prioridade)
+1. Num projeto de teste, insira algumas espécies do piloto e algumas fora dele. Em um projeto que já tinha essas espécies, rode **Atualizar Dados** antes (Verificar Projeto mostra "símbolo ou cartões 3D" desatualizados). Na primeira vez cada espécie do piloto leva alguns segundos a mais; depois a família vem do cache.
+2. **Planta baixa:** os símbolos continuam iguais.
+3. Abra a **vista 3D padrão** (a casinha), um **corte** e uma **elevação**: as espécies do piloto aparecem desenhadas em dois planos cruzados; as outras, como antes. Gire a vista: o desenho tem quatro faces.
+4. Selecione um exemplar: é o mesmo elemento da planta. Mude **VIR Fase 3D** para 1, 2, 3 e 4 (e 5 no ipê ou flamboyant): o desenho muda de fase; a tabela continua com uma linha por espécie. Desmarque **VIR 3D visível**: o desenho some só nesse exemplar.
+5. Visibilidade/Gráficos > Vegetação > **VIR Volume 3D** liga e desliga os desenhos na vista. Se os discos coloridos da copa aparecerem no chão das vistas 3D, desligue as subcategorias de preenchimento e floração nessa vista.
+6. Gere a **Maquete 3D**: as espécies do piloto não são duplicadas (o resumo diz quantas aparecem pela própria família).
+7. Em **Configurações**, desmarque "Vegetação ilustrada em 3D nas famílias" e rode Atualizar Dados: as famílias voltam a ser só 2D.
 
-1. Abra uma **vista em planta** do térreo e clique em Maquete 3D > **Testes do Motor 3D** > **Os dois testes (recomendado)**. Deixe desmarcado "Manter no projeto os elementos de teste" na primeira vez.
-2. Aguarde (de alguns segundos a poucos minutos). No final aparece "Testes concluídos" com o resumo e a pasta: `%APPDATA%\Viridian\Testes do motor 3D\<data e hora>`. Clique em **Abrir a pasta dos testes**.
-3. **Envie a pasta inteira** (compacte em .zip): `relatorio-motor-3d.txt`, a família `Viridian-Teste-Fase0-Ipe.rfa`, a pasta `texturas` e a imagem PNG da vista realista.
-4. Confira que o projeto voltou a ficar como estava (sem a família de teste, sem materiais "VIR Teste" e sem a vista de teste).
-5. Rode de novo **marcando "Manter no projeto os elementos de teste"** e observe no Revit (envie prints):
-   - **Fase 0:** na planta, o exemplar na origem aparece **só como círculo e cruz** (símbolo 2D), sem o volume. Numa vista 3D, numa elevação e num corte, aparece **a árvore em 3D**. Mude o nível de detalhe da vista 3D (Baixo, Médio, Alto): a árvore aparece nos três. Selecione o exemplar e veja se dá para mover, copiar e etiquetar como uma vegetação comum. Há também uma grade de 25 exemplares, de 8 em 8 m.
-   - **T0:** a vista "Viridian - Teste T0 (texturas)" abre no estilo **Realista** com um ipê, um grupo de folhagem e um bloco de casca. Responda: as folhas aparecem como **folhas recortadas** (com vãos) ou como uma mancha verde lisa? A textura parece no **tamanho certo** (folhas de cerca de 10 a 15 cm) ou esticada/minúscula? A casca aparece no tronco? As flores amarelas aparecem? Se puder, faça também uma renderização rápida (Visualizar > Renderizar) e envie a imagem.
-   - Depois, desfaça com **Ctrl+Z** (um passo) ou apague os elementos de teste.
-6. Se o comando mostrar falhas, envie também o registro de erros mais recente (Viridian > Sobre).
+## Teste da versão 1.9 — motor 3D botânico (cerca de 30 minutos)
+
+Faça num projeto de teste (ou numa cópia) com árvores, palmeiras, arbustos, herbáceas, uma bromélia, um maciço de forração e um gramado, de preferência com um toposólido.
 
 ### B. Maquete 3D com o motor botânico
 
-1. **Maquete 3D**: a janela nova mostra recorte, motor (Botânico marcado; "Família BIM" desabilitada), qualidade, época do ano, fase, flores, frutos, terreno e arestas, com a estimativa de triângulos embaixo. Troque a qualidade e veja a estimativa mudar.
+1. **Maquete 3D**: a janela nova mostra recorte, motor (Botânico marcado), qualidade, época do ano, fase, flores, frutos, terreno e arestas, com a estimativa de triângulos embaixo. Troque a qualidade e veja a estimativa mudar.
 2. Gere no **Intermediário, sem estação, na maturidade**. Confira: árvores com copa em grupos e galhos, ipês com copa irregular, palmeiras com folhas pinadas arqueadas (jerivá) ou em leque, bromélias e agaves em roseta, estrelítzia em leque com a flor, gramíneas em touceira, forração baixa. A vista abre sombreada **sem arestas**. O resumo traz triângulos totais e a média por exemplar.
 3. **Plantas baixas sem alteração:** as plantas continuam só com os símbolos 2D.
 4. Gere de novo com **Estação ligada, mês de agosto**: ipês **sem folhas e amarelos** (floridos), decíduas sem folhas e semidecíduas com folhagem rala. O resumo informa quantos exemplares estão sem folhas, em flor (e quantos com época estimada pelo gênero) e com frutos.

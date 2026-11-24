@@ -53,6 +53,12 @@ public sealed class ModelSettings
     /// <summary>Arestas visíveis na vista da maquete (desligadas, as copas ficam mais naturais).</summary>
     public bool ShowEdges { get; set; }
 
+    /// <summary>
+    /// Vegetação ilustrada nas famílias: as espécies com cartões (piloto) ganham a árvore em dois planos cruzados
+    /// dentro da própria família, visível nas vistas 3D, cortes e elevações (a planta baixa continua com o símbolo).
+    /// </summary>
+    public bool IllustratedFamilies { get; set; } = true;
+
     /// <summary>Acima deste total estimado de triângulos, a maquete pede confirmação antes de gerar.</summary>
     public int WarnTriangles { get; set; } = 3_000_000;
 

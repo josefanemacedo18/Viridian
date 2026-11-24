@@ -305,6 +305,8 @@
                             <TextBox x:Name="ModelTrunkBox" Grid.Row="2" Grid.Column="1" AutomationProperties.Name="Cor dos troncos" />
                         </Grid>
                         <CheckBox x:Name="ModelFlowersBox" Content="Manchas de flor nas espécies de floração vistosa" />
+                        <CheckBox x:Name="IllustratedBox" Margin="0,4,0,0" Content="Vegetação ilustrada em 3D nas famílias (piloto: 8 espécies)"
+                                  ToolTip="As espécies do piloto ganham a árvore em dois planos cruzados dentro da própria família: aparece em qualquer vista 3D, corte e elevação; a planta baixa continua com o símbolo. Desligado, as famílias ficam só com o símbolo 2D (rode Atualizar Dados para aplicar)." />
                         <TextBlock Style="{StaticResource VirHint}" TextWrapping="Wrap" Text="Com um terreno no projeto (toposólido ou superfície, também em vínculos), as plantas são assentadas sobre ele; em lajes e coberturas, ficam sobre a laje. Motor, qualidade, estação, flores e frutos são escolhidos na janela da Maquete 3D (a última escolha fica lembrada)." />
 
                         <TextBlock Style="{StaticResource VirSection}" Text="Estudo solar" />

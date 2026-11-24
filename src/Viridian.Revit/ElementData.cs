@@ -19,6 +19,9 @@ public sealed class SpeciesLink
 
     /// <summary>Verdadeiro quando a família é personalizada (não gerada pelo plugin).</summary>
     public bool IsCustom { get; set; }
+
+    /// <summary>A família tem a vegetação ilustrada em 3D (cartões cruzados).</summary>
+    public bool Has3D { get; set; }
 }
 
 /// <summary>Vínculo entre uma etiqueta de texto e o elemento identificado.</summary>

@@ -343,6 +343,7 @@ public partial class SettingsWindow : ViridianWindow
         ModelSearchBox.Text = Num.Format(s.Model3D.TerrainSearchM);
         ModelTrunkBox.Text = s.Model3D.TrunkColor;
         ModelFlowersBox.IsChecked = s.Model3D.ShowFlowers;
+        IllustratedBox.IsChecked = s.Model3D.IllustratedFamilies;
         SolarProjectBox.IsChecked = s.Solar.UseProjectLocation;
         SolarLatBox.Text = Num.Format(s.Solar.LatitudeDeg, "0.####");
         SolarNorthBox.Text = Num.Format(s.Solar.NorthAdjustDeg);
@@ -855,6 +856,7 @@ public partial class SettingsWindow : ViridianWindow
             Variation = previous.Variation,
             ShowEdges = previous.ShowEdges,
             WarnTriangles = previous.WarnTriangles,
+            IllustratedFamilies = IllustratedBox.IsChecked == true,
         };
         s.Interference.Rules = rules;
         s.Interference.BuildingCrownFactor = crownFactor;

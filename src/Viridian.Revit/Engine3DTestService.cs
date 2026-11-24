@@ -642,7 +642,7 @@ public static class Engine3DTestService
         }
     }
 
-    private static (int Solids, int Curves) Count(Element element, Options options)
+    internal static (int Solids, int Curves) Count(Element element, Options options)
     {
         int solids = 0, curves = 0;
         void Walk(GeometryElement? geometry)

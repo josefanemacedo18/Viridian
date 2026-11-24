@@ -1,4 +1,4 @@
-﻿VIRIDIAN 1.9 — Paisagismo 2D técnico para Autodesk Revit 2027
+﻿VIRIDIAN 2.0 — Paisagismo 2D técnico para Autodesk Revit 2027
 ==============================================================
 
 INSTALAR
@@ -38,6 +38,23 @@ PRIMEIROS PASSOS
    das edificações; Quadro de Especificação (painel Documentação); aba
    Compras nos relatórios.
 
+NOVIDADES DA 2.0
+- Vegetação ilustrada nas famílias (piloto com 8 espécies: ipê-amarelo,
+  flamboyant, jerivá, palmeira-azul, araucária, agave-dragão, estrelítzia e
+  dracena-de-madagascar). A família da espécie traz, além do símbolo 2D, a
+  planta desenhada em dois planos cruzados (quatro faces), no estilo dos
+  símbolos. Planta baixa: só o símbolo. Vista 3D comum, cortes e elevações:
+  a planta ilustrada. Não precisa da Maquete 3D.
+- Parâmetro de exemplar "VIR Fase 3D": 1 Plantio, 2 Aos 3 anos, 3 Aos 6
+  anos, 4 Adulta (padrão), 5 Adulta sem folhas (decíduas). As tabelas
+  continuam com uma linha por espécie. "VIR 3D visível" desliga o desenho
+  num exemplar; a subcategoria "VIR Volume 3D" liga e desliga por vista.
+- Projetos existentes: rode Atualizar Dados para regerar as famílias do
+  piloto. Configurações > "Vegetação ilustrada em 3D nas famílias" liga e
+  desliga o recurso.
+- A Maquete 3D não duplica as espécies do piloto.
+- Testes do Motor 3D virou Diagnóstico 3D (opcional, só para consulta).
+
 NOVIDADES DA 1.9
 - Maquete 3D com motor botânico: cada espécie ganha um perfil 3D pela
   arquitetura da planta (árvores de copa arredondada, espalhada, colunar,
@@ -52,10 +69,8 @@ NOVIDADES DA 1.9
   ficha não informa são estimadas pelo gênero e indicadas como estimadas.
 - Maquetes feitas em versões anteriores continuam no gerador simples ao
   atualizar; gere pela janela para passar ao motor botânico.
-- Testes do Motor 3D (painel Maquete 3D): provas de conceito da família BIM
-  (Fase 0) e das texturas do ipê (T0) no seu Revit, com relatório. Rode e
-  envie a pasta gerada: ela decide a família BIM da 2.0 e as texturas da 2.2.
-  O roteiro está em docs\ROTEIRO_DE_TESTES.md (código-fonte) e no README.
+- Testes do Motor 3D (painel Maquete 3D): provas de conceito da família com
+  árvore 3D e das texturas do ipê no seu Revit, com relatório.
 
 NOVIDADES DA 1.8
 - Estudo Solar com sombras hora a hora: para cada mês marcado, um quadro com

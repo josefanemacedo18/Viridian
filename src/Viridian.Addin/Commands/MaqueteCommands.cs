@@ -35,9 +35,24 @@ internal static class MaqueteFlow
             $"Geração: {state.Describe()}.",
             $"{result.Plants} exemplar(es) e {result.Beds} maciço(s) em volume.",
         };
-        if (result.Engine == MaqueteEngine.Botanico && result.Plants > 0)
+        if (result.FamilyPlants > 0)
         {
-            lines.Add($"{N(result.Triangles)} triângulos nos exemplares (média de {N(result.Triangles / Math.Max(1, result.Plants))} por exemplar).");
+            lines.Add($"{result.FamilyPlants} exemplar(es) já têm a vegetação ilustrada na própria família (aparecem em qualquer vista 3D, corte ou elevação): a maquete não os duplica.");
+            if (result.TerrainPlants > 0)
+            {
+                lines.Add($"{result.TerrainPlants} deles estão fora da cota do nível: o 3D da família foi desligado nesses exemplares e a maquete os assentou no terreno.");
+            }
+
+            if (result.OffTerrainKept > 0)
+            {
+                lines.Add($"{result.OffTerrainKept} exemplar(es) fora do terreno ficaram na cota do nível (a família não permitiu desligar o 3D por exemplar).");
+            }
+        }
+
+        if (result.Engine != MaqueteEngine.Legado && result.Triangles > 0)
+        {
+            int shaped = Math.Max(1, result.Plants - result.FamilyPlants);
+            lines.Add($"{N(result.Triangles)} triângulos nas formas diretas (média de {N(result.Triangles / shaped)} por exemplar).");
             if (result.Reduced > 0)
             {
                 lines.Add($"{result.Reduced} exemplar(es) com detalhe reduzido para caber no orçamento do nível escolhido.");
@@ -292,10 +307,11 @@ public sealed class Engine3DTestCommand : CommandBase
 {
     internal override Result Run(ViridianContext ctx)
     {
-        var dialog = new TaskDialog("Viridian — Testes do motor 3D")
+        var dialog = new TaskDialog("Viridian — Diagnóstico 3D")
         {
-            MainInstruction = "Quais testes executar?",
-            MainContent = "Os testes criam elementos temporários para medir o que o seu Revit aceita. Ao final, um relatório (texto) e as imagens ficam numa pasta para você enviar.",
+            MainInstruction = "Quais verificações executar?",
+            MainContent = "O diagnóstico cria elementos temporários para conferir o que o seu Revit aceita. Ao final, um relatório (texto) e as imagens ficam numa pasta para consulta. "
+                          + "Não é preciso enviar nada: a maquete faz a verificação das famílias sozinha.",
             CommonButtons = TaskDialogCommonButtons.Cancel,
             AllowCancellation = true,
             VerificationText = "Manter no projeto os elementos de teste (para ver no Revit)",
@@ -351,10 +367,10 @@ public sealed class Engine3DTestCommand : CommandBase
 
         string reportFile = System.IO.Path.Combine(folder, "relatorio-motor-3d.txt");
         System.IO.File.WriteAllText(reportFile, report.ToText(), new System.Text.UTF8Encoding(true));
-        var done = new TaskDialog("Viridian — Testes do motor 3D")
+        var done = new TaskDialog("Viridian — Diagnóstico 3D")
         {
-            MainInstruction = report.Failed ? "Testes concluídos, com falhas" : "Testes concluídos",
-            MainContent = report.Summary() + "\n\nEnvie a pasta (ou pelo menos o relatório e as imagens):\n" + folder
+            MainInstruction = report.Failed ? "Diagnóstico concluído, com falhas" : "Diagnóstico concluído",
+            MainContent = report.Summary() + "\n\nRelatório e imagens guardados em:\n" + folder
                           + (keep ? "\n\nOs elementos de teste ficaram no projeto: família \"" + Engine3DTestService.FamilyName + "\" na origem, materiais \"VIR Teste\" e a vista \"" + Engine3DTestService.TextureViewName + "\"."
                                   : "\n\nO projeto voltou a ficar como estava."),
             ExpandedContent = report.ToText(),

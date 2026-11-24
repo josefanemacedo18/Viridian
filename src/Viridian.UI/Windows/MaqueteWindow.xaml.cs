@@ -87,7 +87,7 @@ public partial class MaqueteWindow : ViridianWindow
     public QualityLevel Quality => SimpleRadio.IsChecked == true ? QualityLevel.Simplificada : DetailedRadio.IsChecked == true ? QualityLevel.Detalhada : QualityLevel.Intermediaria;
 
     /// <summary>Mês de referência (zero = sem estação).</summary>
-    public int Month => Engine == MaqueteEngine.Botanico && SeasonBox.IsChecked == true ? (MonthBox.SelectedItem as Choice<int>)?.Value ?? 1 : 0;
+    public int Month => Engine != MaqueteEngine.Legado && SeasonBox.IsChecked == true ? (MonthBox.SelectedItem as Choice<int>)?.Value ?? 1 : 0;
 
     /// <summary>Estado da maquete com as escolhas (sem a região, escolhida depois na planta).</summary>
     public MaqueteState ToState() => new()
@@ -97,7 +97,7 @@ public partial class MaqueteWindow : ViridianWindow
         Quality = Quality,
         Month = Month,
         Flowers = FlowersBox.IsChecked == true,
-        Fruits = Engine == MaqueteEngine.Botanico && FruitsBox.IsChecked == true,
+        Fruits = Engine != MaqueteEngine.Legado && FruitsBox.IsChecked == true,
         Variation = VariationBox.IsChecked != false,
     };
 
@@ -124,7 +124,7 @@ public partial class MaqueteWindow : ViridianWindow
             return;
         }
 
-        bool botanical = Engine == MaqueteEngine.Botanico;
+        bool botanical = Engine != MaqueteEngine.Legado;
         BotanicalPanel.IsEnabled = botanical;
         BotanicalPanel.Opacity = botanical ? 1 : 0.55;
         MonthBox.IsEnabled = botanical && SeasonBox.IsChecked == true;
@@ -181,6 +181,7 @@ public partial class MaqueteWindow : ViridianWindow
             Variation = VariationBox.IsChecked != false,
             ShowEdges = EdgesBox.IsChecked == true,
             WarnTriangles = Settings.WarnTriangles,
+            IllustratedFamilies = Settings.IllustratedFamilies,
         };
         s.Normalize();
         Settings = s;

@@ -191,8 +191,8 @@ public sealed class App : IExternalApplication
                 "Refaz a maquete com o mesmo recorte e a mesma fase, depois de mudanças no plantio."),
             Small<MaqueteRemoveCommand, ProjectAvailability>(assembly, "Remover Maquete", "model3d-remove",
                 "Apaga a maquete 3D e os materiais criados para ela. A vegetação 2D não é alterada."),
-            Small<Engine3DTestCommand, ProjectAvailability>(assembly, "Testes do Motor 3D", "model3d-test",
-                "Provas de conceito no seu Revit: família BIM com símbolo 2D e árvore 3D (Fase 0) e texturas do ipê na vista realista (T0). Gera um relatório para enviar; o projeto fica como estava, se preferir."));
+            Small<Engine3DTestCommand, ProjectAvailability>(assembly, "Diagnóstico 3D", "model3d-test",
+                "Opcional: confere no seu Revit uma família com símbolo 2D e volume 3D e as texturas na vista realista, e guarda um relatório para consulta. Não é preciso enviar nada."));
 
         RibbonPanel check = app.CreateRibbonPanel(TabName, "Verificação");
         Large<CheckCommand, ProjectAvailability>(check, assembly, "Verificar\nProjeto", "check",

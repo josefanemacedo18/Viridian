@@ -28,9 +28,8 @@
                              Content="Motor _botânico (recomendado): forma de cada tipo de planta, flores, frutos e estação" />
                 <RadioButton x:Name="LegacyRadio" GroupName="Engine" Margin="0,2,0,0" Checked="Option_Changed"
                              Content="Gerador _simples (o das versões anteriores): volumes leves por categoria" />
-                <RadioButton x:Name="FamilyRadio" GroupName="Engine" Margin="0,2,0,0" IsEnabled="False"
-                             Content="Família BIM (em avaliação: depende do teste da Fase 0 no seu Revit)"
-                             ToolTip="Use Viridian > Maquete > Testes do motor 3D e envie o relatório. A opção chega na versão 2.0 se o teste for aprovado." />
+                <TextBlock Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="0,4,0,0"
+                           Text="As espécies com vegetação ilustrada (piloto: ipê-amarelo, flamboyant, jerivá, palmeira-azul, araucária, agave-dragão, estrelítzia e dracena-de-madagascar) já aparecem em 3D pela própria família, em qualquer vista 3D, corte ou elevação: a maquete não as duplica." />
 
                 <StackPanel x:Name="BotanicalPanel">
                     <TextBlock Style="{StaticResource VirSection}" Text="Qualidade" />
