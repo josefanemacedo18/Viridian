@@ -96,8 +96,14 @@ public sealed class Species
     /// <summary>Cor dos frutos (#RRGGBB). Vazio = estimativa pelo gênero, quando conhecida.</summary>
     public string FruitColor { get; set; } = string.Empty;
 
-    /// <summary>Tolerância ao encharcamento cadastrada. Não informada = estimativa pela categoria e pela necessidade de água.</summary>
+    /// <summary>
+    /// Tolerância ao encharcamento cadastrada. Não é deduzida da necessidade de água: uma planta que pede muita rega
+    /// pode não suportar solo saturado. Não informada = só as aquáticas são presumidas tolerantes.
+    /// </summary>
     public WaterloggingTolerance Waterlogging { get; set; }
+
+    /// <summary>Tolerância à seca cadastrada (independente da necessidade de água e do encharcamento).</summary>
+    public DroughtTolerance Drought { get; set; }
 
     /// <summary>Tolerância considerada nas análises: a cadastrada ou a estimada.</summary>
     public WaterloggingTolerance EffectiveWaterlogging =>

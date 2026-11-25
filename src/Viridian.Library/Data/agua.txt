@@ -1,0 +1,102 @@
+# Tolerância ao encharcamento e à seca de espécies do catálogo padrão.
+# Formato: nome científico|encharcamento|seca   (A = alta, M = média, B = baixa, - = não informada)
+# Só espécies com comportamento amplamente documentado (matas ciliares, várzeas, brejos, veredas, cerrado,
+# caatinga e plantas suculentas ou de clima seco). As demais ficam não informadas: confira e complete no cadastro.
+# Encharcamento é independente da necessidade de água: muitas plantas de rega frequente não toleram solo saturado.
+#
+# Árvores e palmeiras de áreas alagáveis (várzea, mata ciliar, brejo, vereda).
+Erythrina crista-galli|A|M
+Calophyllum brasiliense|A|B
+Cecropia pachystachya|A|M
+Croton urucurana|A|M
+Genipa americana|A|M
+Pachira aquatica|A|B
+Triplaris americana|A|M
+Mauritia flexuosa|A|B
+Euterpe oleracea|A|B
+Copernicia alba|A|A
+Tapirira guianensis|M|M
+Inga edulis|M|M
+Tabebuia aurea|M|A
+Callistemon viminalis|M|M
+Pinus elliottii|M|M
+# Herbáceas de solo úmido e brejo.
+Canna indica|A|B
+Zantedeschia aethiopica|A|B
+Hedychium coronarium|A|B
+Alocasia macrorrhizos|M|B
+Heliconia psittacorum|M|B
+Costus spiralis|M|B
+# Aquáticas de brejo (emergentes) que aguentam secar entre as chuvas: indicadas para o fundo de jardins de chuva.
+Canna glauca|A|M
+Iris pseudacorus|A|M
+Cyperus alternifolius|A|M
+Thalia geniculata|A|M
+Pontederia cordata|A|M
+Sagittaria montevidensis|A|M
+Equisetum giganteum|A|M
+Echinodorus grandiflorus|A|M
+# Aquáticas flutuantes e de água permanente: não toleram secar.
+Victoria amazonica|A|B
+Nymphoides humboldtiana|A|B
+Pontederia crassipes|A|B
+Pistia stratiotes|A|B
+Nymphaea caerulea|A|B
+Nymphaea ampla|A|B
+Nymphaea rubra|A|B
+Nelumbo nucifera|A|B
+Salvinia auriculata|A|B
+Hydrocleys nymphoides|A|B
+Myriophyllum aquaticum|A|B
+Typha domingensis|A|M
+Cyperus giganteus|A|M
+Cyperus papyrus|A|M
+Hydrocotyle bonariensis|A|M
+# Suculentas e plantas de clima seco: não toleram encharcamento (apodrecem) e resistem à seca.
+Agave attenuata|B|A
+Yucca gigantea|B|A
+Dracaena trifasciata|B|A
+Bulbine frutescens|B|A
+Portulaca grandiflora|B|A
+Sedum mexicanum|B|A
+Aptenia cordifolia|B|A
+Euphorbia milii|B|A
+Cycas revoluta|B|A
+Lavandula dentata|B|A
+Olea europaea|B|A
+Gazania rigens|B|A
+Plumeria rubra|B|A
+Plumeria pudica|B|A
+Bismarckia nobilis|B|A
+Grevillea robusta|B|M
+Juniperus chinensis|B|A
+# Espécies de cerrado e caatinga e outras resistentes à seca (encharcamento não informado).
+Sarcomphalus joazeiro|-|A
+Spondias tuberosa|-|A
+Cenostigma pyramidale|-|A
+Myracrodruon urundeuva|-|A
+Copernicia prunifera|-|A
+Syagrus coronata|-|A
+Mimosa caesalpiniifolia|-|A
+Caryocar brasiliense|-|A
+Moringa oleifera|-|A
+Leucaena leucocephala|-|A
+Schinus molle|-|A
+Bougainvillea spectabilis|-|A
+Bougainvillea glabra|-|A
+Nerium oleander|-|A
+Cascabela thevetia|-|A
+Butia capitata|-|A
+Butia odorata|-|A
+Phoenix canariensis|-|A
+Washingtonia robusta|-|A
+Tamarindus indica|-|A
+# Sensíveis à seca (pedem solo sempre úmido).
+Impatiens walleriana|-|B
+Hydrangea macrophylla|-|B
+Fittonia albivenis|-|B
+Spathiphyllum wallisii|-|B
+Nephrolepis exaltata|-|B
+Asplenium nidus|-|B
+Caladium bicolor|-|B
+Dicksonia sellowiana|-|B

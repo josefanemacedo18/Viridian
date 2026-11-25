@@ -218,7 +218,9 @@ public class RainGardenTests
     public void Waterlogging_EstimateAndSuggestions()
     {
         Assert.Equal(WaterloggingTolerance.Alta, new Species { Category = PlantCategory.Aquatica }.EffectiveWaterlogging);
-        Assert.Equal(WaterloggingTolerance.Baixa, new Species { Category = PlantCategory.Arbusto, Water = WaterNeed.Baixa }.EffectiveWaterlogging);
+        // Necessidade de água não diz nada sobre encharcamento: sem dado cadastrado, fica não informada.
+        Assert.Equal(WaterloggingTolerance.NaoInformada, new Species { Category = PlantCategory.Arbusto, Water = WaterNeed.Baixa }.EffectiveWaterlogging);
+        Assert.Equal(WaterloggingTolerance.NaoInformada, new Species { Category = PlantCategory.Arbusto, Water = WaterNeed.Alta }.EffectiveWaterlogging);
         var set = new Species { Category = PlantCategory.Arbusto, Water = WaterNeed.Baixa, Waterlogging = WaterloggingTolerance.Alta };
         Assert.Equal(WaterloggingTolerance.Alta, set.EffectiveWaterlogging);
         Assert.False(set.WaterloggingEstimated);
@@ -229,6 +231,55 @@ public class RainGardenTests
         Assert.NotEmpty(edge);
         Assert.All(bottom, s => Assert.Equal(WaterloggingTolerance.Alta, s.EffectiveWaterlogging));
         Assert.All(bottom.Concat(slope), s => Assert.NotEqual(PlantOrigin.ExoticaInvasora, s.Origin));
+        Assert.DoesNotContain(bottom, s => s.Waterlogging == WaterloggingTolerance.Baixa);
+        Assert.All(bottom.Concat(slope).Concat(edge), s => Assert.False(s.Waterlogging == WaterloggingTolerance.NaoInformada && s.Category != PlantCategory.Aquatica));
+    }
+
+    [Fact]
+    public void SeedCatalog_AppliesCuratedWaterData()
+    {
+        List<Species> seed = SeedCatalog.CreateSpecies();
+        Species Find(string name) => seed.Single(s => s.ScientificName.Equals(name, StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(WaterloggingTolerance.Alta, Find("Erythrina crista-galli").Waterlogging);
+        Species agave = Find("Agave attenuata");
+        Assert.Equal(WaterloggingTolerance.Baixa, agave.Waterlogging);
+        Assert.Equal(DroughtTolerance.Alta, agave.Drought);
+        Assert.Contains(seed, s => s.Drought == DroughtTolerance.Baixa);
+        Assert.Contains(seed, s => s.Waterlogging == WaterloggingTolerance.NaoInformada);
+    }
+
+    [Fact]
+    public void SeedCatalog_WaterDataRejectsBadLines()
+    {
+        var list = new List<Species> { new() { ScientificName = "Planta teste" } };
+        Assert.Equal(1, SeedCatalog.ApplyWater(list, "# comentário\nPlanta teste|M|A\n"));
+        Assert.Equal(WaterloggingTolerance.Media, list[0].Waterlogging);
+        Assert.Equal(DroughtTolerance.Alta, list[0].Drought);
+        Assert.Throws<FormatException>(() => SeedCatalog.ApplyWater(list, "Outra planta|A|A"));
+        Assert.Throws<FormatException>(() => SeedCatalog.ApplyWater(list, "Planta teste|X|A"));
+        Assert.Throws<FormatException>(() => SeedCatalog.ApplyWater(list, "Planta teste|A"));
+    }
+
+    [Fact]
+    public void Catalog_FillMissing_AddsWaterFieldsToEditedSpecies()
+    {
+        var seed = new Species { Id = "x", Waterlogging = WaterloggingTolerance.Alta, Drought = DroughtTolerance.Media };
+        var edited = new Species { Id = "x", IsUserDefined = true };
+        CatalogStore.FillMissing(edited, seed);
+        Assert.Equal(WaterloggingTolerance.Alta, edited.Waterlogging);
+        Assert.Equal(DroughtTolerance.Media, edited.Drought);
+        var mine = new Species { Id = "x", IsUserDefined = true, Waterlogging = WaterloggingTolerance.Baixa, Drought = DroughtTolerance.Baixa };
+        CatalogStore.FillMissing(mine, seed);
+        Assert.Equal(WaterloggingTolerance.Baixa, mine.Waterlogging);
+        Assert.Equal(DroughtTolerance.Baixa, mine.Drought);
+    }
+
+    [Fact]
+    public void Species_DroughtSurvivesJson()
+    {
+        var s = new Species { PopularName = "Teste", Drought = DroughtTolerance.Alta };
+        Species back = Viridian.Core.Config.ViridianJson.Deserialize<Species>(Viridian.Core.Config.ViridianJson.Serialize(s))!;
+        Assert.Equal(DroughtTolerance.Alta, back.Drought);
     }
 
     [Fact]

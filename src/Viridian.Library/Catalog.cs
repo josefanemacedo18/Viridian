@@ -414,7 +414,7 @@ public sealed class CatalogStore
     }
 
     /// <summary>Completa, em uma espécie alterada pelo escritório, apenas os campos que estão vazios.</summary>
-    private static void FillMissing(Species current, Species seed)
+    public static void FillMissing(Species current, Species seed)
     {
         if (current.Biomes == Biome.Nenhum)
         {
@@ -429,6 +429,16 @@ public sealed class CatalogStore
         if (string.IsNullOrWhiteSpace(current.FoliageColor))
         {
             current.FoliageColor = seed.FoliageColor;
+        }
+
+        if (current.Waterlogging == WaterloggingTolerance.NaoInformada)
+        {
+            current.Waterlogging = seed.Waterlogging;
+        }
+
+        if (current.Drought == DroughtTolerance.NaoInformada)
+        {
+            current.Drought = seed.Drought;
         }
 
         if (string.IsNullOrWhiteSpace(current.FlowerColor))

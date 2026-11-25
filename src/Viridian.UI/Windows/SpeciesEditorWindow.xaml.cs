@@ -80,6 +80,11 @@ public partial class SpeciesEditorWindow : ViridianWindow
             WaterloggingBox.Items.Add(new Choice<WaterloggingTolerance>(Labels.Of(t), t));
         }
 
+        foreach (DroughtTolerance t in Enum.GetValues<DroughtTolerance>())
+        {
+            DroughtBox.Items.Add(new Choice<DroughtTolerance>(Labels.Of(t), t));
+        }
+
         foreach (Biome biome in Labels.Biomes)
         {
             BiomePanel.Children.Add(new CheckBox { Content = Labels.Of(biome), Tag = biome, Margin = new Thickness(0, 3, 14, 3) });
@@ -158,11 +163,14 @@ public partial class SpeciesEditorWindow : ViridianWindow
         if (WaterloggingBox.Items[0] is Choice<WaterloggingTolerance>)
         {
             // Primeira opção mostra a estimativa usada enquanto a tolerância não for cadastrada.
+            WaterloggingTolerance estimate = Viridian.Core.Water.WaterloggingRules.Estimate(s);
             WaterloggingBox.Items[0] = new Choice<WaterloggingTolerance>(
-                $"Não informada (estimada: {Labels.Of(Viridian.Core.Water.WaterloggingRules.Estimate(s))})", WaterloggingTolerance.NaoInformada);
+                estimate == WaterloggingTolerance.NaoInformada ? "Não informada (fica fora das sugestões do jardim de chuva)" : $"Não informada (estimada: {Labels.Of(estimate)})",
+                WaterloggingTolerance.NaoInformada);
         }
 
         Select(WaterloggingBox, s.Waterlogging);
+        Select(DroughtBox, s.Drought);
         if (LeafHabitBox.Items[0] is Choice<LeafHabit>)
         {
             LeafHabitBox.Items[0] = new Choice<LeafHabit>($"Não informada (estimada: {Labels.Of(Viridian.Core.Solar.LeafRules.Estimate(s))})", LeafHabit.NaoInformada);
@@ -465,6 +473,7 @@ public partial class SpeciesEditorWindow : ViridianWindow
         s.FlowerColor = NormalizeColor(FlowerColorBox.Text, "cor da flor", problems);
         s.Texture = Value(TextureBox, s.EffectiveTexture);
         s.Waterlogging = Value(WaterloggingBox, s.Waterlogging);
+        s.Drought = Value(DroughtBox, s.Drought);
         s.LeafHabit = Value(LeafHabitBox, s.LeafHabit);
         s.LeaflessMonths = LeaflessBox.Text.Trim();
         if (s.LeaflessMonths.Length > 0 && MonthSet.Parse(s.LeaflessMonths).IsEmpty)

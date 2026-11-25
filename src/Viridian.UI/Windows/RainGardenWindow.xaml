@@ -130,7 +130,7 @@
                 <ListBox x:Name="SlopeList" Grid.Row="1" Grid.Column="1" Margin="6,0,0,0" AutomationProperties.Name="Espécies para os taludes" />
                 <ListBox x:Name="EdgeList" Grid.Row="1" Grid.Column="2" Margin="6,0,0,0" AutomationProperties.Name="Espécies para as bordas" />
                 <TextBlock Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="0,4,0,0"
-                           Text="Nativas primeiro. * = tolerância estimada pela necessidade de água (cadastre a tolerância na ficha da espécie para confirmar). Invasoras não são sugeridas." />
+                           Text="Nativas primeiro. Só entram espécies com tolerância ao encharcamento cadastrada (* = aquática presumida tolerante; confirme na ficha). Invasoras não são sugeridas." />
             </Grid>
         </Grid>
 

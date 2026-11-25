@@ -72,6 +72,24 @@ public enum WaterloggingTolerance
     Alta = 3,
 }
 
+/// <summary>
+/// Tolerância à falta de água (estiagem, solo seco, pouca rega depois de estabelecida). Independente da necessidade
+/// de água (o quanto a planta gosta de rega) e da tolerância ao encharcamento.
+/// </summary>
+public enum DroughtTolerance
+{
+    NaoInformada = 0,
+
+    /// <summary>Sofre com estiagem: precisa de rega ou solo sempre úmido.</summary>
+    Baixa = 1,
+
+    /// <summary>Aguenta estiagens curtas depois de estabelecida.</summary>
+    Media = 2,
+
+    /// <summary>Resistente à seca (cerrado, caatinga, suculentas, plantas de clima seco).</summary>
+    Alta = 3,
+}
+
 public enum GrowthRate
 {
     NaoInformado = 0,
@@ -264,6 +282,14 @@ public static class Labels
         WaterloggingTolerance.Baixa => "Baixa",
         WaterloggingTolerance.Media => "Média",
         WaterloggingTolerance.Alta => "Alta",
+        _ => "Não informada",
+    };
+
+    public static string Of(DroughtTolerance t) => t switch
+    {
+        DroughtTolerance.Baixa => "Baixa",
+        DroughtTolerance.Media => "Média",
+        DroughtTolerance.Alta => "Alta",
         _ => "Não informada",
     };
 

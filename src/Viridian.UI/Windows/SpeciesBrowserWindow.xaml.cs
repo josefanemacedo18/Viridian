@@ -233,6 +233,7 @@ public partial class SpeciesBrowserWindow : ViridianWindow
             new("Floração", string.IsNullOrWhiteSpace(species.Flowering) ? "—" : species.Flowering),
             new("Textura", Labels.Of(species.EffectiveTexture) + (species.Texture == Texture.NaoInformada ? " (sugerida)" : string.Empty)),
             new("Tolera encharcamento", Labels.Of(species.EffectiveWaterlogging) + (species.WaterloggingEstimated ? " (estimativa)" : string.Empty)),
+            new("Tolera seca", Labels.Of(species.Drought)),
             new("Folhagem", Labels.Of(species.EffectiveLeafHabit) + (species.LeafHabitEstimated ? " (estimativa)" : string.Empty)
                             + (species.EffectiveLeaflessMonths.IsEmpty ? string.Empty : $"; sem folhas em {species.EffectiveLeaflessMonths}")),
             new("Escala visual", Labels.Of(species.Scale)),

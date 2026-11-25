@@ -31,12 +31,13 @@ public sealed class PhotoInfo
 public static class SeedCatalog
 {
     /// <summary>Versão do catálogo padrão. Ao aumentá-la, os catálogos existentes são atualizados.</summary>
-    public const int Version = 4;
+    public const int Version = 5;
 
     public const string IdPrefix = "sp-";
 
     private const string CatalogResource = "Viridian.Library.Data.catalogo-padrao.txt";
     private const string PhotosResource = "Viridian.Library.Data.fotos.json";
+    private const string WaterResource = "Viridian.Library.Data.agua.txt";
 
     private static readonly Lazy<IReadOnlyDictionary<string, PhotoInfo>> Photos = new(LoadPhotos);
 
@@ -49,6 +50,7 @@ public static class SeedCatalog
     public static List<Species> CreateSpecies()
     {
         List<Species> list = Parse(ReadResource(CatalogResource));
+        ApplyWater(list, ReadResource(WaterResource));
 
         // Códigos sequenciais por categoria, na ordem do arquivo.
         var codes = new List<string>();
@@ -59,6 +61,56 @@ public static class SeedCatalog
         }
 
         return list;
+    }
+
+    /// <summary>
+    /// Tolerância ao encharcamento e à seca (arquivo <c>Data/agua.txt</c>): só espécies de comportamento amplamente
+    /// documentado; as demais ficam não informadas. Linhas inválidas geram exceção com o número da linha.
+    /// </summary>
+    public static int ApplyWater(IList<Species> species, string text)
+    {
+        var byName = species.ToDictionary(s => s.ScientificName.Trim(), StringComparer.OrdinalIgnoreCase);
+        int applied = 0, lineNumber = 0;
+        foreach (string raw in text.Split('\n'))
+        {
+            lineNumber++;
+            string line = raw.TrimEnd('\r');
+            if (line.Trim().Length == 0 || line.StartsWith('#'))
+            {
+                continue;
+            }
+
+            string[] f = line.Split('|');
+            if (f.Length != 3)
+            {
+                throw new FormatException($"Tolerâncias de água, linha {lineNumber}: esperados 3 campos.");
+            }
+
+            if (!byName.TryGetValue(f[0].Trim(), out Species? s))
+            {
+                throw new FormatException($"Tolerâncias de água, linha {lineNumber}: espécie fora do catálogo ({f[0].Trim()}).");
+            }
+
+            s.Waterlogging = f[1].Trim() switch
+            {
+                "A" => WaterloggingTolerance.Alta,
+                "M" => WaterloggingTolerance.Media,
+                "B" => WaterloggingTolerance.Baixa,
+                "-" => WaterloggingTolerance.NaoInformada,
+                _ => throw new FormatException($"Tolerâncias de água, linha {lineNumber}: encharcamento inválido."),
+            };
+            s.Drought = f[2].Trim() switch
+            {
+                "A" => DroughtTolerance.Alta,
+                "M" => DroughtTolerance.Media,
+                "B" => DroughtTolerance.Baixa,
+                "-" => DroughtTolerance.NaoInformada,
+                _ => throw new FormatException($"Tolerâncias de água, linha {lineNumber}: seca inválida."),
+            };
+            applied++;
+        }
+
+        return applied;
     }
 
     /// <summary>Créditos das fotografias do catálogo padrão, por identificador de espécie.</summary>

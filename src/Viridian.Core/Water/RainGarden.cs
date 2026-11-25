@@ -10,20 +10,12 @@ namespace Viridian.Core.Water;
 public static class WaterloggingRules
 {
     /// <summary>
-    /// Regra de estimativa: aquáticas toleram alagamento; plantas de alta necessidade de água toleram encharcamento;
-    /// as de necessidade média toleram encharcamento curto; as de baixa necessidade (secas, suculentas) não toleram.
+    /// Estimativa quando a ficha não informa: só as aquáticas são presumidas tolerantes ao alagamento. A necessidade de
+    /// água NÃO indica tolerância ao encharcamento (muitas plantas que pedem rega frequente apodrecem em solo
+    /// saturado); sem dado, a tolerância fica não informada.
     /// </summary>
-    public static WaterloggingTolerance Estimate(Species species) => species.Category switch
-    {
-        PlantCategory.Aquatica => WaterloggingTolerance.Alta,
-        _ => species.Water switch
-        {
-            WaterNeed.Alta => WaterloggingTolerance.Alta,
-            WaterNeed.Media => WaterloggingTolerance.Media,
-            WaterNeed.Baixa => WaterloggingTolerance.Baixa,
-            _ => WaterloggingTolerance.NaoInformada,
-        },
-    };
+    public static WaterloggingTolerance Estimate(Species species) =>
+        species.Category == PlantCategory.Aquatica ? WaterloggingTolerance.Alta : WaterloggingTolerance.NaoInformada;
 }
 
 /// <summary>Superfície que escoa para o jardim de chuva, com o coeficiente de escoamento usual.</summary>
@@ -217,7 +209,9 @@ public static class RainGardenCalculator
             list.OrderByDescending(s => s.Origin == PlantOrigin.Nativa).ThenBy(s => s.WaterloggingEstimated).ThenBy(s => s.PopularName, StringComparer.CurrentCultureIgnoreCase);
         var all = catalog.Where(Low).ToList();
         return (
-            Order(all.Where(s => s.EffectiveWaterlogging == WaterloggingTolerance.Alta && s.Category != PlantCategory.Aquatica)).Take(max).ToList(),
+            // Fundo: alaga e seca. Aquáticas só as de brejo que aguentam secar entre as chuvas (tolerância à seca cadastrada).
+            Order(all.Where(s => s.EffectiveWaterlogging == WaterloggingTolerance.Alta
+                                 && (s.Category != PlantCategory.Aquatica || s.Drought is DroughtTolerance.Media or DroughtTolerance.Alta))).Take(max).ToList(),
             Order(all.Where(s => s.EffectiveWaterlogging == WaterloggingTolerance.Media)).Take(max).ToList(),
             Order(catalog.Where(s => s.EffectiveWaterlogging is WaterloggingTolerance.Media or WaterloggingTolerance.Baixa
                                      && s.Category is PlantCategory.Arbusto or PlantCategory.Arvore && s.Origin != PlantOrigin.ExoticaInvasora)).Take(max).ToList());
