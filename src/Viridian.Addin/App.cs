@@ -123,6 +123,16 @@ public sealed class App : IExternalApplication
             Small<MassingAdjustCommand, ProjectAvailability>(assembly, "Ajustar Contorno", "massing-edit",
                 "Depois de editar o limite do maciço: mantém os exemplares que continuam dentro (posição, código e dados), planta só a parte acrescentada e indica ou remove os que ficaram fora."));
 
+        RibbonPanel beds = app.CreateRibbonPanel(TabName, "Canteiros");
+        Large<ComposeBedCommand, ProjectAvailability>(beds, assembly, "Compor\nCanteiro", "composition",
+            "Várias espécies em uma única operação: destaques, faixas de fundo, meio e frente por proporção da área e forração de base, com prévia.",
+            "Escolha a região, clique no lado do fundo (ou ESC para canteiro em ilha) e monte a receita ou use um modelo do escritório. Um único Desfazer volta tudo.");
+        Stack(beds,
+            Small<SaveBedTemplateCommand, ProjectAvailability>(assembly, "Salvar Canteiro", "palette",
+                "Grava um canteiro pronto (exemplares, maciços e contorno) como modelo do escritório, para reusar o desenho em outros projetos ou como receita em outro contorno."),
+            Small<InsertBedTemplateCommand, ProjectAvailability>(assembly, "Inserir Modelo", "insert",
+                "Insere um canteiro salvo, igual ao original, girado e posicionado com um clique; serve para qualquer projeto."));
+
         RibbonPanel identification = app.CreateRibbonPanel(TabName, "Identificação");
         Large<LabelCommand, ProjectAvailability>(identification, assembly, "Etiquetar", "label",
             "Identifica exemplares e maciços com código, nome popular, nome científico, área e quantidade.");

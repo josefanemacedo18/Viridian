@@ -39,6 +39,9 @@ public sealed class LibraryPaths
 
     public string StonesFile => Path.Combine(DataFolder, "pedras.json");
 
+    /// <summary>Modelos de canteiro (receitas e desenhos) do escritório, reutilizáveis em qualquer projeto.</summary>
+    public string BedTemplatesFile => Path.Combine(DataFolder, "modelos-canteiro.json");
+
     public string Profiles3DFile => Path.Combine(DataFolder, "perfis-3d.json");
 
     /// <summary>Texturas geradas das pedras e coberturas (uma imagem por material, refeita quando ele muda).</summary>
