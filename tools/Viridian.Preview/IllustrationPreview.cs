@@ -101,7 +101,7 @@ internal static class IllustrationPreview
         Directory.CreateDirectory(folder);
         List<Species> catalog = SeedCatalog.CreateSpecies();
         List<Plant3DProfile> profiles = Plant3DProfileDefaults.Create();
-        var lines = new List<string> { "categoria;codigo;nome;cientifico;ms;triangulos;topo;erro" };
+        var lines = new List<string> { "categoria;codigo;nome;cientifico;ms;triangulos;topo;erro;alturaFicha;alturaDesenho;copaFicha;copaDesenho" };
         foreach (Species s in catalog.OrderBy(x => x.Category).ThenBy(x => x.Code))
         {
             var watch = Stopwatch.StartNew();
@@ -113,7 +113,10 @@ internal static class IllustrationPreview
                 SpriteMesh top = plant.Get(adult.Code, PlantSprites.TopView);
                 double size = Math.Max(adult.HeightM, adult.CrownM);
                 File.WriteAllText(Path.Combine(folder, $"{(int)s.Category}-{s.Code}.svg"), CardSvg.Mesh(side, size));
-                lines.Add(string.Join(";", s.Category, s.Code, s.PopularName, s.ScientificName, watch.ElapsedMilliseconds, side.TriangleCount, top.TriangleCount, ""));
+                // Conferência com a ficha: altura e copa da planta adulta x o desenho (sem contorno e flores soltas).
+                lines.Add(string.Join(";", s.Category, s.Code, s.PopularName, s.ScientificName, watch.ElapsedMilliseconds, side.TriangleCount, top.TriangleCount, "",
+                    s.AdultHeightM.ToString("0.00", CultureInfo.InvariantCulture), side.MaxY.ToString("0.00", CultureInfo.InvariantCulture),
+                    s.CrownDiameterM.ToString("0.00", CultureInfo.InvariantCulture), (top.MaxX - top.MinX).ToString("0.00", CultureInfo.InvariantCulture)));
             }
             catch (Exception ex)
             {
@@ -122,7 +125,7 @@ internal static class IllustrationPreview
         }
 
         File.WriteAllLines(Path.Combine(folder, "catalogo.csv"), lines);
-        Console.WriteLine($"{lines.Count - 1} espécies; erros: {lines.Count(l => l.EndsWith(";", StringComparison.Ordinal) == false) - 1}");
+        Console.WriteLine($"{lines.Count - 1} espécies; erros: {lines.Skip(1).Count(l => l.Split(';')[7].Length > 0)}");
     }
 
     private static string Scene(List<(string Name, double X, double Y, double Rot, int Stage)> layout, Dictionary<string, PlantSprites> sprites,

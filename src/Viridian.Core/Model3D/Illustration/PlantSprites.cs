@@ -118,10 +118,10 @@ public sealed class PlantSprites
 public static class PlantSpritesPlanner
 {
     /// <summary>Versão do desenho: aumente quando o traço mudar.</summary>
-    public const int Version = 3;
+    public const int Version = 4;
 
     /// <summary>Parâmetros do traço (entram na assinatura).</summary>
-    public const string Style = "rpc16-topo-volume3-fundo-vizinhos-massas-na-forma-nervuras-tapete-baixas-suaves-grade600-dp0.95-escala-geom0.4-tom0.3";
+    public const string Style = "rpc16-topo-nivel1-folhas-por-especie-luz-profundidade-contorno-casca-chao-idade-traco-flores-fase-grade600-dp0.95-escala-geom0.4-tom0.3";
 
     /// <summary>Fase mostrada quando o exemplar não escolhe outra.</summary>
     public const int DefaultStage = 4;
@@ -144,6 +144,93 @@ public static class PlantSpritesPlanner
     /// uma família de plantio própria do escritório.
     /// </summary>
     public static bool IsIllustrated(Species species) => species is not null && !species.HasCustomPlantingFamily;
+
+    /// <summary>Gêneros de casca lisa e de tronco com acúleos (o restante das árvores tem casca com sulcos).</summary>
+    private static readonly string[] SmoothBark = { "Libidibia", "Caesalpinia", "Psidium", "Plinia", "Myrciaria", "Eucalyptus", "Corymbia", "Lagerstroemia", "Eugenia", "Ficus", "Schinus", "Cassia" };
+
+    private static readonly string[] SpinyBark = { "Ceiba", "Chorisia", "Erythrina", "Hura" };
+
+    /// <summary>
+    /// Estilo do desenho detalhado da espécie: formato e tamanho das folhas (pelo perfil 3D e pela textura), casca
+    /// (anéis nas palmeiras, lisa ou com acúleos pelos gêneros conhecidos, sulcos nas demais) e flores mais ralas nas
+    /// fases jovens.
+    /// </summary>
+    public static CardStyle StyleFor(Species species, Plant3DProfile profile, int stageCode)
+    {
+        ArgumentNullException.ThrowIfNull(species);
+        ArgumentNullException.ThrowIfNull(profile);
+        bool palm = profile.Architecture is PlantArchitecture.PalmeiraEstipeUnico or PlantArchitecture.PalmeiraTouceira;
+        LeafShape leaf = palm && profile.Palm is not null ? profile.Palm.Frond : profile.Foliage.Shape;
+        double scale = species.EffectiveTexture switch
+        {
+            Texture.Fina => 0.8,
+            Texture.Grossa => 1.3,
+            _ => 1.0,
+        };
+        string genus = (species.ScientificName ?? string.Empty).Trim().Split(' ')[0];
+        BarkKind bark = palm || profile.Architecture == PlantArchitecture.TufosEmCaule ? BarkKind.Aneis
+            : SpinyBark.Contains(genus, StringComparer.OrdinalIgnoreCase) ? BarkKind.Espinhos
+            : SmoothBark.Contains(genus, StringComparer.OrdinalIgnoreCase) || species.Category == PlantCategory.Arbusto ? BarkKind.Lisa
+            : BarkKind.Fissurada;
+        double flowers = stageCode switch
+        {
+            1 => 0.3,
+            2 => 0.6,
+            3 => 0.85,
+            _ => 1.0,
+        };
+        return new CardStyle(leaf, scale, bark, false, flowers, true);
+    }
+
+    /// <summary>
+    /// Fidelidade à ficha: quando a planta gerada sai bem mais baixa ou mais estreita que a altura e a copa da
+    /// espécie (acontece com rosetas, herbáceas de folhas eretas e aquáticas emergentes), ela é esticada até as
+    /// medidas da ficha. O esticamento é limitado (4,5 vezes na altura, 1,5 vez na largura) e não vale para as
+    /// flutuantes, que são rentes à água por natureza.
+    /// </summary>
+    internal static List<MeshPiece> FitToData(IReadOnlyList<MeshPiece> pieces, double heightM, double crownM, PlantCategory category, PlantArchitecture architecture)
+    {
+        double maxZ = 0, reach = 0;
+        foreach (MeshPiece piece in pieces)
+        {
+            foreach (Vec3 v in piece.Vertices)
+            {
+                maxZ = Math.Max(maxZ, v.Z);
+                reach = Math.Max(reach, Math.Sqrt(v.X * v.X + v.Y * v.Y));
+            }
+        }
+
+        bool floating = category == PlantCategory.Aquatica && maxZ < 0.12;
+        // Rosetas rígidas (agaves, iúcas baixas) têm folhas grossas: esticadas demais virariam uma bola; a altura da ficha
+        // costuma incluir a haste floral.
+        double limit = architecture == PlantArchitecture.RosetaRigida ? 1.35 : 4.5;
+        double fz = !floating && heightM > 0 && maxZ > 1e-6 && maxZ < 0.82 * heightM ? Math.Min(heightM / maxZ, limit) : 1;
+        double width = 2 * reach;
+        double fxy = crownM > 0 && width > 1e-6 && width < 0.7 * crownM ? Math.Min(crownM / width, 1.5) : 1;
+        if (fz == 1 && fxy == 1)
+        {
+            return pieces.ToList();
+        }
+
+        var result = new List<MeshPiece>(pieces.Count);
+        foreach (MeshPiece piece in pieces)
+        {
+            var copy = new MeshPiece(piece.Part, piece.Closed);
+            foreach (Vec3 v in piece.Vertices)
+            {
+                copy.Add(new Vec3(v.X * fxy, v.Y * fxy, v.Z * fz));
+            }
+
+            foreach (Tri t in piece.Triangles)
+            {
+                copy.Triangle(t.A, t.B, t.C);
+            }
+
+            result.Add(copy);
+        }
+
+        return result;
+    }
 
     public static PlantSprites Build(Species species, int variant, IReadOnlyList<Plant3DProfile> profiles, ColorSettings colors, string trunkColor, bool southernHemisphere = true)
     {
@@ -205,16 +292,18 @@ public static class PlantSpritesPlanner
         {
             (PlantRequest request, PlantColors partColors) = requests[c];
             GeneratedPlant plant = PlantGeometryGenerator.Generate(request);
-            return plant.Model.Pieces.Select(p => new IllustratedPart(p, partColors.For(p.Part))).ToList();
+            List<MeshPiece> pieces = FitToData(plant.Model.Pieces, request.HeightM, request.CrownDiameterM, species.Category, profile.Architecture);
+            return pieces.Select(p => new IllustratedPart(p, partColors.For(p.Part))).ToList();
         }, LazyThreadSafetyMode.ExecutionAndPublication)).Value;
 
         SpriteMesh Draw(int code, int view)
         {
             List<IllustratedPart> stageParts = PartsOf(code);
             int artSeed = (int)(seed % int.MaxValue) + code * 31;
+            CardStyle style = StyleFor(species, profile, code);
             CardArt art = view == PlantSprites.TopView
-                ? CardArtist.DrawTop(stageParts, Tone, artSeed, reference)
-                : CardArtist.Draw(stageParts, PlantSprites.ViewAzimuth(view), Tone, artSeed, reference);
+                ? CardArtist.DrawTop(stageParts, Tone, artSeed, reference, style)
+                : CardArtist.Draw(stageParts, PlantSprites.ViewAzimuth(view), Tone, artSeed, reference, style);
             return SpriteMesh.From(CardRaster.Flatten(art, referenceSize: reference), art);
         }
 

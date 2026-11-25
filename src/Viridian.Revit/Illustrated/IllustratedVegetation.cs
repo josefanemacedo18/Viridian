@@ -526,7 +526,9 @@ public static class IllustratedVegetation
             for (int i = 0; i < visual.Points.Count; i++)
             {
                 PlantSprites sprites = SpritesFor(species, i % Math.Max(1, species.EffectiveVariants), sources, south);
-                SpriteStage stage = sprites.StageFor(PlantSpritesPlanner.DefaultStage);
+                // Variação natural no maciço: cerca de um quarto das plantas ainda não chegou ao porte adulto.
+                int code = (int)(DeterministicRandom.StableHash(record.Id + "#" + i) % 4) == 0 ? 3 : PlantSpritesPlanner.DefaultStage;
+                SpriteStage stage = sprites.StageFor(code);
                 Point2 p = visual.Points[i];
                 double height = RevitUnits.ToFeet(stage.HeightM);
                 tallest = Math.Max(tallest, height);

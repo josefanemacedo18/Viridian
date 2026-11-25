@@ -102,8 +102,15 @@ public class SpriteTests
         {
             SpriteMesh mesh = sprites.Get(PlantSpritesPlanner.DefaultStage, view);
             Assert.True(mesh.TriangleCount > 20, $"{name} v{view}: {mesh.TriangleCount} triângulos");
-            Assert.NotEmpty(mesh.OutlineTriangles);
-            Assert.True(mesh.TriangleCount < 16000, $"{name} v{view}: {mesh.TriangleCount} triângulos");
+
+            // Plantas baixas (rosetas, forrações) têm contorno no tom da folhagem, não preto.
+            if (sprites.Get(PlantSpritesPlanner.DefaultStage, 2).MaxY >= 0.6)
+            {
+                Assert.NotEmpty(mesh.OutlineTriangles);
+            }
+
+            // Orçamento do nível de detalhe: até 30 mil triângulos por imagem.
+            Assert.True(mesh.TriangleCount < 30000, $"{name} v{view}: {mesh.TriangleCount} triângulos");
 
             // A malha cobre a mesma área das regiões de cor (contornos externos menos os furos).
             double regions = mesh.Regions.Regions.Sum(r => r.Loops.Sum(l => Geo.SignedArea(l)));
@@ -111,8 +118,11 @@ public class SpriteTests
             Assert.True(Math.Abs(covered - regions) <= regions * 0.02, $"{name} v{view}: malha {covered:0.###} m² × regiões {regions:0.###} m²");
 
             // O contorno preto fica na frente de todas as cores.
-            double blackZ = mesh.Vertices.Where(v => v.Outline).Max(v => v.Z);
-            Assert.All(mesh.Vertices.Where(v => !v.Outline), v => Assert.True(v.Z < blackZ));
+            if (mesh.OutlineTriangles.Count > 0)
+            {
+                double blackZ = mesh.Vertices.Where(v => v.Outline).Max(v => v.Z);
+                Assert.All(mesh.Vertices.Where(v => !v.Outline), v => Assert.True(v.Z < blackZ));
+            }
         }
     }
 
@@ -214,6 +224,27 @@ public class SpriteTests
         SpriteFrame right = SpriteBillboard.Place(new Vec3(8, 0, 0), 0, 3.4, eye, direction, up, true, 0);
         Assert.True(left.Normal.X > 0.2 && right.Normal.X < -0.2);
         Assert.Equal(1, left.Normal.Dot((eye - new Vec3(-8, 0, 1.7)).Normalized()), 6);
+    }
+
+    [Fact]
+    public void Drawing_FollowsTheSpeciesData_HeightAndStyle()
+    {
+        // Altura do desenho adulto próxima da ficha (as rosetas rígidas incluem a haste floral na ficha).
+        foreach (string name in new[] { "Handroanthus chrysotrichus", "Syagrus romanzoffiana", "Strelitzia reginae", "Dracaena marginata" })
+        {
+            Species s = Catalog.First(x => x.ScientificName == name);
+            SpriteMesh side = Sprites(name).Get(PlantSpritesPlanner.DefaultStage, 2);
+            Assert.InRange(side.MaxY, s.AdultHeightM * 0.7, s.AdultHeightM * 1.35);
+        }
+
+        // Estilo pela espécie: folhas em leque no ipê, pinadas no flamboyant, anéis no estipe das palmeiras, sem chão.
+        (Plant3DProfile ipeProfile, _) = ProfileResolver.Resolve(Catalog.First(x => x.ScientificName == "Handroanthus chrysotrichus"), Profiles);
+        CardStyle ipe = PlantSpritesPlanner.StyleFor(Catalog.First(x => x.ScientificName == "Handroanthus chrysotrichus"), ipeProfile, 4);
+        Assert.Equal(LeafShape.Palmada, ipe.Leaf);
+        Assert.False(ipe.Ground);
+        Species jeriva = Catalog.First(x => x.ScientificName == "Syagrus romanzoffiana");
+        Assert.Equal(BarkKind.Aneis, PlantSpritesPlanner.StyleFor(jeriva, ProfileResolver.Resolve(jeriva, Profiles).Profile, 4).Bark);
+        Assert.True(PlantSpritesPlanner.StyleFor(jeriva, ProfileResolver.Resolve(jeriva, Profiles).Profile, 1).FlowerDensity < 1);
     }
 
     [Fact]

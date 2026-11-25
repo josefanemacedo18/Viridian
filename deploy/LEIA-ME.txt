@@ -1,4 +1,4 @@
-﻿VIRIDIAN 2.1 — Paisagismo 2D técnico para Autodesk Revit 2027
+﻿VIRIDIAN 2.2 — Paisagismo 2D técnico para Autodesk Revit 2027
 ==============================================================
 
 INSTALAR
@@ -37,6 +37,17 @@ PRIMEIROS PASSOS
 9. Estudo Solar (painel Composição): horas de sol com a sombra das copas e
    das edificações; Quadro de Especificação (painel Documentação); aba
    Compras nos relatórios.
+
+NOVIDADES DA 2.2
+- Vegetação ilustrada com muito mais detalhe, em todas as espécies: folhas
+  no formato de cada espécie, luz em camadas, profundidade na copa, folhas
+  novas no alto, luz de contorno, traço à mão, flores em cachos (mais
+  ralas nas fases jovens) e casca do tronco por tipo (sulcos, lisa,
+  acúleos, anéis nas palmeiras).
+- O desenho segue a altura e a copa da ficha de cada espécie.
+- Maciços com variação natural de porte entre as plantas.
+- Projetos existentes: as imagens são refeitas sozinhas (não é preciso
+  Atualizar Dados).
 
 NOVIDADES DA 2.1
 - Vegetação ilustrada (RPC) para todo o catálogo: as 382 espécies (e as
