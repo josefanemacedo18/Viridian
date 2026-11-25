@@ -29,7 +29,7 @@
                 <RadioButton x:Name="LegacyRadio" GroupName="Engine" Margin="0,2,0,0" Checked="Option_Changed"
                              Content="Gerador _simples (o das versões anteriores): volumes leves por categoria" />
                 <TextBlock Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="0,4,0,0"
-                           Text="As espécies com vegetação ilustrada (piloto: ipê-amarelo, flamboyant, jerivá, palmeira-azul, araucária, agave-dragão, estrelítzia e dracena-de-madagascar) já aparecem como imagem ilustrada (RPC) em qualquer vista 3D, corte ou elevação: a maquete não as duplica." />
+                           Text="Com a vegetação ilustrada ligada (Configurações), as espécies e os maciços já aparecem como imagem ilustrada (RPC) em qualquer vista 3D, corte ou elevação: a maquete não os duplica. Ela continua útil para volumes sólidos sobre o terreno e para folhas impressas." />
 
                 <StackPanel x:Name="BotanicalPanel">
                     <TextBlock Style="{StaticResource VirSection}" Text="Qualidade" />

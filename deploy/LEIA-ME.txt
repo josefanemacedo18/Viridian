@@ -1,4 +1,4 @@
-﻿VIRIDIAN 2.0 — Paisagismo 2D técnico para Autodesk Revit 2027
+﻿VIRIDIAN 2.1 — Paisagismo 2D técnico para Autodesk Revit 2027
 ==============================================================
 
 INSTALAR
@@ -37,6 +37,21 @@ PRIMEIROS PASSOS
 9. Estudo Solar (painel Composição): horas de sol com a sombra das copas e
    das edificações; Quadro de Especificação (painel Documentação); aba
    Compras nos relatórios.
+
+NOVIDADES DA 2.1
+- Vegetação ilustrada (RPC) para todo o catálogo: as 382 espécies (e as
+  criadas pelo escritório) aparecem nas vistas 3D, cortes e elevações como
+  imagens sempre de frente para a câmera. Desenho refinado por tipo de
+  planta: coníferas em cone, palmeiras com coroa recortada e nervuras,
+  forrações com contorno suave, gramados em tufos de grama.
+- Maciços nas vistas 3D: tapete na cor da espécie, com textura de folhas ou
+  de grama, e plantas ilustradas nos pontos de plantio (com limite por
+  maciço para não pesar a vista). A Maquete 3D não os duplica.
+- Pedras e coberturas com textura própria, gerada para cada material (forma,
+  tamanho, cores, luz e sombra). Vai para a aparência do material no
+  Revit, na escala real (Realista e renderização); a janela de pedras mostra
+  a amostra. Reaplique a pedra aos pisos para atualizar o material.
+- Projetos existentes: rode Atualizar Dados uma vez.
 
 NOVIDADES DA 2.0
 - Vegetação ilustrada como RPC (piloto com 8 espécies: ipê-amarelo,

@@ -4,6 +4,13 @@ O código foi compilado contra a API oficial do Revit 2027 e a lógica sem depen
 
 Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Viridian\Logs` (Viridian > Sobre abre a pasta).
 
+## Conferência da versão 2.1 — catálogo inteiro, maciços e pedras (cerca de 20 minutos)
+
+1. Num projeto com várias espécies (árvores, palmeiras, arbustos, herbáceas, forrações, trepadeiras), rode **Atualizar Dados** uma vez. Abra a **vista 3D padrão**: todas aparecem ilustradas, sempre de frente para a câmera. Na primeira vez cada espécie pode levar um ou dois segundos para aparecer.
+2. **Maciços:** desenhe (ou use) um maciço de gramado, um de forração e um de arbustos em modo hachura. Na vista 3D aparecem um tapete na cor da espécie com textura e, nos de forração e arbustos, plantas ilustradas. Um maciço em modo símbolos aparece pelos próprios exemplares. Ative a caixa de corte e confira que os maciços fora dela somem.
+3. **Pedras:** abra Pedras e coberturas, escolha seixo de rio, brita 1 e casca de pinus: a janela mostra a amostra da textura de cada um. Cubra uma região com cada um. Na vista 3D em **Realista**, os pisos mostram a textura na escala real; em Sombreado, a cor média.
+4. Gere a **Maquete 3D**: plantas e maciços ilustrados não são duplicados.
+
 ## Conferência da versão 2.0 — vegetação ilustrada como RPC (piloto, cerca de 15 minutos)
 
 Nada precisa ser enviado: é só para você ver o resultado. Espécies do piloto: ipê-amarelo, flamboyant, jerivá, palmeira-azul, araucária, agave-dragão, estrelítzia e dracena-de-madagascar.

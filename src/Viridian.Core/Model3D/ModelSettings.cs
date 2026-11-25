@@ -54,7 +54,7 @@ public sealed class ModelSettings
     public bool ShowEdges { get; set; }
 
     /// <summary>
-    /// Vegetação ilustrada como RPC: as espécies do piloto aparecem nas vistas 3D, cortes e elevações como uma imagem
+    /// Vegetação ilustrada como RPC: as espécies do catálogo e os maciços aparecem nas vistas 3D, cortes e elevações como imagens
     /// sempre de frente para a câmera (a planta baixa continua com o símbolo).
     /// </summary>
     public bool IllustratedFamilies { get; set; } = true;
