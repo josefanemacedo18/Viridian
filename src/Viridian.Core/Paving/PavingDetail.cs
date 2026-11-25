@@ -2,6 +2,7 @@ using System.Globalization;
 using Viridian.Core.Colors;
 using Viridian.Core.Detailing;
 using Viridian.Core.Geometry;
+using Viridian.Core.Hatch;
 
 namespace Viridian.Core.Paving;
 
@@ -58,10 +59,14 @@ public static class PavingDetail
             }
             else
             {
-                List<Point2> box = Box(0, y - h, w, y);
-                g.Fills.Add(new DrawFill(box, color));
-                g.Polyline(box, true);
-                Texture(g, layer.Kind, y - h, y, w);
+                string? pattern = layer.Kind switch
+                {
+                    PavingLayerKind.Base or PavingLayerKind.SubBase => MaterialHatches.Gravel,
+                    PavingLayerKind.Assentamento => MaterialHatches.Sand,
+                    PavingLayerKind.Contrapiso or PavingLayerKind.Argamassa => MaterialHatches.Concrete,
+                    _ => null,
+                };
+                g.Box(0, y - h, w, y, color, pattern, DrawingStyle.HatchInk(color), LinePen.Fina);
                 notes.Add((new Point2(w * (0.3 + 0.08 * (notes.Count % 3)), y - h / 2), $"{layer.Name.ToUpperInvariant()}, e = {Cm(layer.ThicknessMm)}"));
             }
 
@@ -70,33 +75,102 @@ public static class PavingDetail
         }
 
         // Solo compactado.
-        g.Line(new Point2(0, y), new Point2(w, y), heavy: true);
-        for (double x = 0.02; x < w; x += 0.06)
-        {
-            g.Line(new Point2(x, y), new Point2(x - 0.03, y - 0.03));
-        }
-
-        notes.Add((new Point2(w * 0.8, y - 0.015), "SOLO COMPACTADO"));
-        g.Line(new Point2(0, 0), new Point2(0, y));
-        g.Line(new Point2(w, 0), new Point2(w, y));
+        g.Box(0, y - 0.06, w, y, DrawingStyle.Compacted(), MaterialHatches.Compacted, DrawingStyle.HatchInk(DrawingStyle.Compacted()));
+        g.Stroke(new Point2(0, y), new Point2(w, y), LinePen.Grossa);
+        notes.Add((new Point2(w * 0.8, y - 0.03), "SOLO COMPACTADO"));
+        g.Stroke(new Point2(0, 0), new Point2(0, y), LinePen.Media);
+        g.Stroke(new Point2(w, 0), new Point2(w, y), LinePen.Media);
 
         g.Notes(notes, w + 0.12, Math.Max(0.045, -y / Math.Max(4, notes.Count) * 1.15));
-        double top = 0.12;
-        g.Text(new Point2(0, top + 0.06), ("Detalhe de piso — " + type.Name).ToUpperInvariant(), -1, 1.4);
-        g.Text(new Point2(0, top), $"Paginação: {PavingLabels.Of(type.Pattern)} · espessura total {Cm(type.TotalThicknessMm)}"
-                                   + (type.SlopePercent > 0 ? $" · caimento mínimo {type.SlopePercent.ToString("0.#", Pt)}%" : string.Empty), -1, 0.95);
-        double bottom = y - 0.12;
+
+        // Amostra da paginação em planta, acima do corte.
+        PlanSample(g, type, new Point2(0, 0.10), w, 0.40);
+        g.Text(new Point2(0, 0.10 + 0.40 + 0.035), $"PAGINAÇÃO EM PLANTA — {PavingLabels.Of(type.Pattern).ToUpperInvariant()} (amostra 1,00 × 0,40 m)", TextStyle.Subtitulo, -1, 1.0);
+        g.Text(new Point2(0, 0.06), "CORTE", TextStyle.Subtitulo, -1, 1.0);
+
+        double bottom = y - 0.13;
+        g.Text(new Point2(0, bottom), $"Espessura total {Cm(type.TotalThicknessMm)}" + (type.SlopePercent > 0 ? $" · caimento mínimo {type.SlopePercent.ToString("0.#", Pt)}%" : string.Empty),
+            TextStyle.Subtitulo, -1, 0.95);
+        bottom -= 0.035;
         if (!string.IsNullOrWhiteSpace(type.Notes))
         {
             foreach (string line in TextLayout.Wrap(type.Notes, 110))
             {
                 g.Text(new Point2(0, bottom), line, -1, 0.9);
-                bottom -= 0.035;
+                bottom -= 0.03;
             }
         }
 
-        g.Text(new Point2(0, bottom - 0.01), "Medidas de referência: confira com o fornecedor, com as normas aplicáveis e com o responsável técnico.", -1, 0.8);
+        g.Text(new Point2(0, bottom - 0.01), "Medidas de referência: confira com o fornecedor, com as normas aplicáveis e com o responsável técnico.", TextStyle.Nota, -1, 0.8);
         return g;
+    }
+
+    /// <summary>
+    /// Amostra em planta da paginação: o motivo repetido na malha dentro de um retângulo, peças com leve variação de
+    /// tom (como o lote real) e a moldura.
+    /// </summary>
+    private static void PlanSample(Drawing g, PavingType type, Point2 origin, double width, double height)
+    {
+        PavingMotif motif = PavingPatterns.Motif(type);
+        Rgb color = type.SurfaceRgb;
+        g.Box(origin.X, origin.Y, origin.X + width, origin.Y + height, PavingLabels.IsGranular(type.Pattern) ? color.Tint(0.35) : color.Shade(0.25));
+        double k = 0.001; // mm → m
+        Point2 t1 = motif.T1 * k, t2 = motif.T2 * k;
+        double det = t1.Cross(t2);
+        if (Math.Abs(det) < 1e-12 || (motif.Tiles.Count == 0 && motif.Extra.Count == 0))
+        {
+            g.Strokes(new List<Point2> { origin, origin + new Point2(width, 0), origin + new Point2(width, height), origin + new Point2(0, height) }, true, LinePen.Grossa);
+            return;
+        }
+
+        // Índices da malha que cobrem o retângulo.
+        var corners = new[] { new Point2(0, 0), new Point2(width, 0), new Point2(width, height), new Point2(0, height) };
+        double Si(Point2 p) => p.Cross(t2) / det;
+        double Tj(Point2 p) => t1.Cross(p) / det;
+        // Folga pelo tamanho do motivo: as peças podem estar longe da origem da malha.
+        double reach = motif.Tiles.SelectMany(t => t).Concat(motif.Extra.SelectMany(e => new[] { e.A, e.B })).Select(p => (p * k).Length).DefaultIfEmpty(0).Max();
+        int extra = (int)Math.Ceiling(reach / Math.Max(1e-6, Math.Min(t1.Length, t2.Length))) + 2;
+        int i0 = (int)Math.Floor(corners.Min(Si)) - extra, i1 = (int)Math.Ceiling(corners.Max(Si)) + extra;
+        int j0 = (int)Math.Floor(corners.Min(Tj)) - extra, j1 = (int)Math.Ceiling(corners.Max(Tj)) + extra;
+        if ((long)(i1 - i0) * (j1 - j0) * Math.Max(1, motif.Tiles.Count) > 6000)
+        {
+            g.Strokes(new List<Point2> { origin, origin + new Point2(width, 0), origin + new Point2(width, height), origin + new Point2(0, height) }, true, LinePen.Grossa);
+            return;
+        }
+
+        var random = new DeterministicRandom(type.Id.Length + 17);
+        bool Inside(Point2 p) => p.X >= -1e-9 && p.X <= width + 1e-9 && p.Y >= -1e-9 && p.Y <= height + 1e-9;
+        for (int i = i0; i <= i1; i++)
+        {
+            for (int j = j0; j <= j1; j++)
+            {
+                Point2 move = t1 * i + t2 * j;
+                foreach (IReadOnlyList<Point2> tile in motif.Tiles)
+                {
+                    // Peças da borda recortadas no limite da amostra, como na obra.
+                    List<Point2> points = ClipToRect(tile.Select(p => p * k + move).ToList(), width, height);
+                    if (points.Count < 3)
+                    {
+                        continue;
+                    }
+
+                    double shade = random.Range(-0.06, 0.08);
+                    g.Fill(points.Select(p => p + origin).ToList(), shade >= 0 ? color.Shade(shade) : color.Tint(-shade));
+                    g.Strokes(points.Select(p => p + origin).ToList(), true, LinePen.Fina);
+                }
+
+                foreach ((Point2 a, Point2 b) in motif.Extra)
+                {
+                    Point2 pa = a * k + move, pb = b * k + move;
+                    if (Inside(pa) && Inside(pb))
+                    {
+                        g.Stroke(pa + origin, pb + origin, LinePen.Media);
+                    }
+                }
+            }
+        }
+
+        g.Strokes(new List<Point2> { origin, origin + new Point2(width, 0), origin + new Point2(width, height), origin + new Point2(0, height) }, true, LinePen.Grossa);
     }
 
     private static void DrawSurface(Drawing g, PavingType type, double t)
@@ -140,46 +214,34 @@ public static class PavingDetail
         }
     }
 
-    /// <summary>Textura simples de cada camada: pontos para areias e britas, traços para argamassas e concretos.</summary>
-    private static void Texture(Drawing g, PavingLayerKind kind, double bottom, double top, double w)
+    /// <summary>Recorte de um polígono pelo retângulo [0, w] × [0, h] (Sutherland–Hodgman).</summary>
+    private static List<Point2> ClipToRect(List<Point2> polygon, double w, double h)
     {
-        double h = top - bottom;
-        if (h < 0.008)
+        List<Point2> Clip(List<Point2> poly, Func<Point2, double> inside)
         {
-            return;
+            var result = new List<Point2>();
+            for (int i = 0; i < poly.Count; i++)
+            {
+                Point2 a = poly[i], b = poly[(i + 1) % poly.Count];
+                double da = inside(a), db = inside(b);
+                if (da >= 0)
+                {
+                    result.Add(a);
+                }
+
+                if ((da >= 0) != (db >= 0))
+                {
+                    result.Add(Point2.Lerp(a, b, da / (da - db)));
+                }
+            }
+
+            return result;
         }
 
-        var random = new DeterministicRandom((int)kind + 3);
-        switch (kind)
-        {
-            case PavingLayerKind.Base or PavingLayerKind.SubBase:
-                for (int i = 0; i < (int)(w * h * 900); i++)
-                {
-                    var c = new Point2(random.Range(0.01, w - 0.01), random.Range(bottom + 0.006, top - 0.006));
-                    double r = random.Range(0.003, 0.006);
-                    g.Polyline(Drawing.Ellipse(c, r, r * 0.8, 6), true);
-                }
-
-                break;
-
-            case PavingLayerKind.Assentamento:
-                for (int i = 0; i < (int)(w * h * 2500); i++)
-                {
-                    var c = new Point2(random.Range(0.01, w - 0.01), random.Range(bottom + 0.002, top - 0.002));
-                    g.Line(c, c + new Point2(0.0015, 0));
-                }
-
-                break;
-
-            case PavingLayerKind.Contrapiso or PavingLayerKind.Argamassa:
-                for (double x = 0.015; x < w; x += 0.05)
-                {
-                    double yy = bottom + h * (0.3 + 0.4 * random.NextDouble());
-                    g.Line(new Point2(x, yy), new Point2(x + 0.012, yy + Math.Min(0.006, h * 0.2)));
-                }
-
-                break;
-        }
+        List<Point2> r = Clip(polygon, p => p.X);
+        r = Clip(r, p => w - p.X);
+        r = Clip(r, p => p.Y);
+        return Clip(r, p => h - p.Y);
     }
 
     private static List<Point2> Box(double x0, double y0, double x1, double y1) =>

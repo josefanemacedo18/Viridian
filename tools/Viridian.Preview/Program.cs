@@ -44,7 +44,7 @@ if (args.Contains("--desenhos"))
     // Só os desenhos técnicos (detalhes, cortes, quadros), para conferência rápida.
     foreach ((string name, Viridian.Core.Detailing.Drawing drawing, double k) in SvgSheets.Stage1Drawings())
     {
-        File.WriteAllText(Path.Combine(outDir, name + ".svg"), SvgSheets.DrawingSvg(drawing, k, name.StartsWith("detalhe", StringComparison.Ordinal) ? 20 : name == "corte" ? 100 : name == "crescimento" ? 200 : 0));
+        File.WriteAllText(Path.Combine(outDir, name + ".svg"), SvgSheets.DrawingSvg(drawing, k, name.StartsWith("detalhe", StringComparison.Ordinal) ? 20 : name == "corte" ? 100 : name == "crescimento" ? 200 : name == "quadro-especificacao" ? 1 : 0));
     }
 
     foreach ((string name, Viridian.Core.Detailing.Drawing drawing, double k, double scale) in SvgSheets.ExtraDrawings())
@@ -301,7 +301,9 @@ internal static class SvgSheets
         foreach (string id in new[] { "vir-paver-10x20-espinha", "vir-deck-cumaru", "vir-drenante-bloco", "vir-fulget-moldado" })
         {
             var piso = Viridian.Core.Paving.PavingDefaults.Create().First(t => t.Id == id);
-            yield return ("detalhe-" + id, Viridian.Core.Paving.PavingDetail.Draw(piso), 1100, 10);
+            var pd = Viridian.Core.Paving.PavingDetail.Draw(piso);
+            Viridian.Core.Detailing.DrawingFrame.Compose(pd, 10, 2.0, "P", "Detalhe de piso — " + piso.Name, Viridian.Core.Paving.PavingLabels.Of(piso.Pattern));
+            yield return ("detalhe-" + id, pd, 1300, 10);
         }
 
         yield return ("jardim-de-chuva", WaterSolarPreview.RainGarden(), 260, 25);

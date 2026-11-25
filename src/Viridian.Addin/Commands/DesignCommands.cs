@@ -537,7 +537,7 @@ public sealed class SpecificationBoardCommand : CommandBase
         }
 
         var items = species.Select(s => new SpecificationItem(s.Species, s.Row.Code, s.Row.Total, s.Row.Unit)).ToList();
-        Drawing drawing = SpecificationBoard.Build(items, ctx.Settings.Specifications, ctx.Settings.Labels.TextSizeMm);
+        Drawing drawing = SpecificationBoard.Build(items, ctx.Settings.Specifications, ctx.Settings.Labels.TextSizeMm, colors: ctx.Settings.Colors);
         var design = new DesignService(ctx.Settings.Labels.TextSizeMm);
         ViewSheet? sheet = ctx.UiDocument.ActiveView as ViewSheet;
         (ViewDrafting view, bool placed) = ctx.Grouped("Viridian: quadro de especificação", () =>

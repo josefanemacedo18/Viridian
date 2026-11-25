@@ -143,13 +143,27 @@ public class ExcavationAndBoardTests
 
         // Textos dentro de cada coluna cabem na largura dela (a nota geral ocupa a largura toda).
         double charWidth = 2.0 * 0.6 / 1000;
-        double specStart = SpecificationBoard.Columns.Take(5).Sum();
+        double specStart = SpecificationBoard.Columns.Take(SpecificationBoard.Columns.Length - 1).Sum();
         foreach (DrawText t in board.Texts.Where(t => t.At.X >= specStart && t.At.Y < 0))
         {
             Assert.True(t.Text.Length <= (SpecificationBoard.Columns[^1] - 0.003) / charWidth + 1, t.Text);
         }
 
         Assert.All(board.Texts, t => Assert.True(t.Text.Length <= SpecificationBoard.Width / charWidth + 1, t.Text));
+    }
+
+    [Fact]
+    public void Board_TotalsByUnit()
+    {
+        var s = new Species { PopularName = "A", SupplyUnit = "muda" };
+        var g = new Species { PopularName = "G", SupplyUnit = "m²" };
+        var items = new[] { new SpecificationItem(s, "A1", 3, "muda"), new SpecificationItem(s, "A2", 4, "muda"), new SpecificationItem(g, "G1", 120.5, "m²") };
+        string totals = SpecificationBoard.Totals(items);
+        Assert.Contains("7 mudas", totals);
+        Assert.Contains("120,5 m²", totals);
+        Drawing board = SpecificationBoard.Build(items, new SpecificationSettings(), 2.0);
+        Assert.Contains(board.Texts, t => t.Text == totals);
+        Assert.Contains(board.Texts, t => t.Style == TextStyle.Cientifico);
     }
 
     [Fact]

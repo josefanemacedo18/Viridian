@@ -1,6 +1,7 @@
 using System.Globalization;
 using Viridian.Core.Colors;
 using Viridian.Core.Detailing;
+using Viridian.Core.Hatch;
 using Viridian.Core.Geometry;
 using Viridian.Core.Model;
 
@@ -232,88 +233,95 @@ public static class RainGardenCalculator
         double half = widthM / 2;
         var notes = new List<(Point2, string)>();
 
-        // Terreno e escavação com taludes.
-        g.Line(new Point2(-half - 0.6, top), new Point2(-half - slope, top), heavy: true);
-        g.Line(new Point2(half + slope, top), new Point2(half + 0.6, top), heavy: true);
-        g.Line(new Point2(-half - slope, top), new Point2(-half, soilTop), heavy: true);
-        g.Line(new Point2(half + slope, top), new Point2(half, soilTop), heavy: true);
-        for (double x = -half - 0.55; x < -half - slope; x += 0.08)
-        {
-            g.Line(new Point2(x, top), new Point2(x - 0.04, top - 0.04));
-        }
+        double outer = half + slope + 0.6;
+        double depthBelow = bottom - 0.25;
 
-        // Camadas (de cima para baixo).
+        // Terreno natural em corte (hachura de solo) ao redor e abaixo da escavação.
+        g.Box(-outer, depthBelow, outer, top, DrawingStyle.NaturalSoil, MaterialHatches.NaturalSoil, DrawingStyle.HatchInk(DrawingStyle.NaturalSoil));
+
+        // Vazio da escavação acima do canteiro (entre os taludes) e a lâmina d'água.
+        g.Fill(new List<Point2> { new(-half - slope, top), new(-half, soilTop), new(half, soilTop), new(half + slope, top) }, Rgb.White);
+        double water = soilTop + pond;
+        double waterHalf = half + pond * 1.5;
+        g.Fill(new List<Point2> { new(-half, soilTop), new(half, soilTop), new(waterHalf, water), new(-waterHalf, water) }, DrawingStyle.Water, MaterialHatches.Water, DrawingStyle.WaterInk);
+
+        // Camadas (de cima para baixo), com hachura de material.
         double y = soilTop;
-        void Layer(double h, Rgb color, string name, double targetX)
+        void Layer(double h, Rgb color, string pattern, string name, double targetX)
         {
             if (h <= 0)
             {
                 return;
             }
 
-            var box = new List<Point2> { new(-half, y - h), new(half, y - h), new(half, y), new(-half, y) };
-            g.Fills.Add(new DrawFill(box, color));
-            g.Polyline(box, true);
+            g.Box(-half, y - h, half, y, color, pattern, DrawingStyle.HatchInk(color));
+            g.Stroke(new Point2(-half, y - h), new Point2(half, y - h), LinePen.Fina);
             g.Dimension(new Point2(-half, y), new Point2(-half, y - h), 0.12, Cm(h));
             notes.Add((new Point2(targetX, y - h / 2), name));
             y -= h;
         }
 
         string mulchName = s.MulchName.Length > 0 ? $"COBERTURA MORTA ({s.MulchName.ToUpperInvariant()})" : "COBERTURA MORTA";
-        Layer(mulch, new Rgb(0x9C, 0x74, 0x4E), $"{mulchName}, e = {Cm(mulch)}", -half * 0.2);
-        Layer(sub, new Rgb(0x6F, 0x55, 0x3A), $"SUBSTRATO FILTRANTE (AREIA GROSSA E COMPOSTO ORGÂNICO), e = {Cm(sub)}", half * 0.1);
-        g.Line(new Point2(-half, y), new Point2(half, y), dashed: true, heavy: true);
+        Layer(mulch, DrawingStyle.Mulch, MaterialHatches.Mulch, $"{mulchName}, e = {Cm(mulch)}", -half * 0.2);
+        Layer(sub, new Rgb(0xC8, 0xAE, 0x86), MaterialHatches.Sand, $"SUBSTRATO FILTRANTE (AREIA GROSSA E COMPOSTO ORGÂNICO), e = {Cm(sub)}", half * 0.1);
+        g.Stroke(new Point2(-half, y), new Point2(half, y), LinePen.Media, dashed: true);
         notes.Add((new Point2(half * 0.35, y), "MANTA GEOTÊXTIL"));
-        Layer(gravel, new Rgb(0xA8, 0x9D, 0x88), $"{s.GravelName.ToUpperInvariant()} (RESERVATÓRIO), e = {Cm(gravel)}", half * 0.55);
+        Layer(gravel, DrawingStyle.Gravel, MaterialHatches.Gravel, $"{s.GravelName.ToUpperInvariant()} (RESERVATÓRIO), e = {Cm(gravel)}", half * 0.55);
 
-        // Fundo e solo natural.
-        g.Line(new Point2(-half, bottom), new Point2(half, bottom), heavy: true);
-        for (double x = -half + 0.05; x < half; x += 0.1)
+        // Contorno da escavação (taludes, paredes e fundo) e o terreno.
+        g.Strokes(new List<Point2> { new(-outer, top), new(-half - slope, top), new(-half, soilTop), new(-half, bottom), new(half, bottom), new(half, soilTop), new(half + slope, top), new(outer, top) }, false, LinePen.Grossa);
+        notes.Add((new Point2(half * 0.8, bottom - 0.08), "SOLO NATURAL (ENSAIO DE INFILTRAÇÃO)"));
+
+        // Lâmina d'água: ondas e cotas.
+        g.Stroke(new Point2(-waterHalf, water), new Point2(waterHalf, water), LinePen.Agua);
+        for (double wx = -half * 0.8; wx < half * 0.8; wx += Math.Max(0.25, half / 4))
         {
-            g.Line(new Point2(x, bottom), new Point2(x - 0.05, bottom - 0.05));
+            g.Stroke(new Point2(wx, water - pond * 0.35), new Point2(wx + 0.12, water - pond * 0.35), LinePen.Agua);
         }
 
-        notes.Add((new Point2(half * 0.8, bottom - 0.02), "SOLO NATURAL (ENSAIO DE INFILTRAÇÃO)"));
-
-        // Lâmina d'água e extravasor.
-        double water = soilTop + pond;
-        double waterHalf = half + pond * 1.5;
-        g.Fills.Add(new DrawFill(new List<Point2> { new(-half, soilTop), new(half, soilTop), new(waterHalf, water), new(-waterHalf, water) }, new Rgb(0xBF, 0xDC, 0xF0)));
-        g.Line(new Point2(-waterHalf, water), new Point2(waterHalf, water), dashed: true);
         g.Dimension(new Point2(half + 0.05, soilTop), new Point2(half + 0.05, water), -0.35, Cm(pond));
         notes.Add((new Point2(0, water), $"LÂMINA MÁXIMA DE {Cm(pond)} · BORDA LIVRE DE {Cm(free)}"));
+
+        // Extravasor (tubo) na cota da lâmina, saindo pelo talude.
         double pipeX = half + slope * 0.55;
-        g.Polyline(new List<Point2> { new(pipeX, water), new(pipeX + 0.12, water), new(pipeX + 0.12, water - 0.06), new(pipeX, water - 0.06) }, true, heavy: true);
-        notes.Add((new Point2(pipeX + 0.06, water - 0.03), "EXTRAVASOR NA COTA DA LÂMINA, LIGADO À REDE"));
+        g.Box(pipeX, water - 0.06, pipeX + 0.5, water, DrawingStyle.Concrete, edge: LinePen.Media);
+        g.Arrow(new Point2(pipeX + 0.5, water - 0.03), new Point2(pipeX + 0.85, water - 0.03), LinePen.Agua, 0.06, DrawingStyle.WaterInk);
+        notes.Add((new Point2(pipeX + 0.25, water - 0.03), "EXTRAVASOR NA COTA DA LÂMINA, LIGADO À REDE"));
+
+        // Escoamento chegando pelo terreno e infiltração no solo.
+        g.Arrow(new Point2(-outer + 0.05, top + 0.08), new Point2(-half - slope * 0.25, top - (top - soilTop) * 0.2 + 0.08), LinePen.Agua, 0.07, DrawingStyle.WaterInk);
+        g.Text(new Point2(-outer + 0.05, top + 0.2), "ESCOAMENTO DA ÁREA DE CONTRIBUIÇÃO", TextStyle.Nota, -1, 0.85);
+        foreach (double ax in new[] { -half * 0.6, 0.0, half * 0.6 })
+        {
+            g.Arrow(new Point2(ax, bottom + Math.Min(0.1, gravel * 0.5)), new Point2(ax, bottom - 0.18), LinePen.Agua, 0.05, DrawingStyle.WaterInk);
+        }
 
         if (r.NeedsUnderdrain && gravel > 0.06)
         {
-            var c = new Point2(0, bottom + Math.Min(0.08, gravel / 3));
-            g.Polyline(Drawing.Ellipse(c, 0.05, 0.05, 20), true, heavy: true);
+            var c = new Point2(0.25 * half, bottom + Math.Min(0.08, gravel / 3));
+            g.Fill(Drawing.Ellipse(c, 0.05, 0.05, 24), DrawingStyle.Concrete);
+            g.Circle(c, 0.05, LinePen.Media, 24);
+            g.Circle(c, 0.035, LinePen.Textura, 18);
             notes.Add((c, "DRENO DE FUNDO: TUBO PERFURADO Ø 100 mm ENVOLTO EM MANTA"));
         }
 
-        // Plantas por zona (silhuetas simples): fundo tolerante a alagamento, taludes e bordas.
-        void Tuft(double x, double baseY, double h)
+        // Plantas por zona: touceiras tolerantes a alagamento no fundo; arbustos baixos nos taludes e bordas.
+        var green = new Rgb(0x5E, 0x8A, 0x46);
+        for (int i = 0; i < 5; i++)
         {
-            for (int i = -2; i <= 2; i++)
-            {
-                g.Line(new Point2(x, baseY), new Point2(x + i * h * 0.12, baseY + h * (1 - Math.Abs(i) * 0.12)));
-            }
+            double px = -half * 0.8 + i * half * 0.4;
+            Sketch.Tuft(g, new Point2(px, soilTop + mulch * 0), 0.55 + 0.08 * (i % 2), 0.32, 100 + i, LinePen.Media);
         }
 
-        Tuft(-half * 0.5, soilTop, 0.5);
-        Tuft(0, soilTop, 0.6);
-        Tuft(half * 0.5, soilTop, 0.5);
-        Tuft(-half - slope * 0.5, soilTop * 0.5, 0.4);
-        Tuft(half + slope * 0.5, soilTop * 0.5, 0.4);
-        notes.Add((new Point2(-half * 0.5, soilTop + 0.4), "FUNDO: ESPÉCIES TOLERANTES A ALAGAMENTO"));
-        notes.Add((new Point2(-half - slope * 0.5, soilTop * 0.5 + 0.3), "TALUDES E BORDAS: TOLERÂNCIA MÉDIA OU BAIXA"));
+        Sketch.Shrub(g, new Point2(-half - slope * 0.55, top - (top - soilTop) * 0.45), 0.26, 0.26, green.Tint(0.1), 7);
+        Sketch.Shrub(g, new Point2(half + slope * 0.3, top - (top - soilTop) * 0.7), 0.26, 0.26, green.Tint(0.1), 9);
+        Sketch.Shrub(g, new Point2(half + slope + 0.9, top), 0.45, 0.55, green, 11);
+        notes.Add((new Point2(-half * 0.4, soilTop + 0.45), "FUNDO: ESPÉCIES TOLERANTES A ALAGAMENTO"));
+        notes.Add((new Point2(-half - slope * 0.5, (top + soilTop) / 2 + 0.3), "TALUDES E BORDAS: TOLERÂNCIA MÉDIA OU BAIXA"));
 
-        g.Notes(notes, half + slope + 0.9, 0.09);
-        g.Text(new Point2(-half - 0.6, 0.85), "JARDIM DE CHUVA — CORTE ESQUEMÁTICO", -1, 1.4);
-        g.Text(new Point2(-half - 0.6, 0.72), $"Escavação total {Cm(r.ExcavationDepthM)} · armazenamento {r.StorageDepthM.ToString("0.###", Pt)} m³/m² · volume a reter {r.RunoffVolumeM3.ToString("N2", Pt)} m³", -1, 0.95);
-        g.Text(new Point2(-half - 0.6, bottom - 0.25), "Valores de referência: confirme com o manual de drenagem do município, o ensaio de infiltração e o responsável técnico.", -1, 0.8);
+        g.Notes(notes, half + slope + 1.2, 0.09);
+        g.Text(new Point2(-outer, depthBelow - 0.12), $"Escavação total {Cm(r.ExcavationDepthM)} · armazenamento {r.StorageDepthM.ToString("0.###", Pt)} m³/m² · volume a reter {r.RunoffVolumeM3.ToString("N2", Pt)} m³", TextStyle.Subtitulo, -1, 0.95);
+        g.Text(new Point2(-outer, depthBelow - 0.24), "Valores de referência: confirme com o manual de drenagem do município, o ensaio de infiltração e o responsável técnico.", TextStyle.Nota, -1, 0.85);
         return g;
     }
 

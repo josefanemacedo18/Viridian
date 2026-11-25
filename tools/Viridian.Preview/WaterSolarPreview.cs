@@ -18,17 +18,8 @@ internal static class WaterSolarPreview
         var s = new RainGardenSettings();
         RainGardenResult r = RainGardenCalculator.Calculate(120, 0, s);
         Drawing d = RainGardenCalculator.Detail(s, r, 2.2);
-        Bounds2 e = d.Extent();
-        double y = e.MinY - 0.25;
-        foreach (string line in RainGardenCalculator.Report(120, r, s))
-        {
-            foreach (string part in TextLayout.Wrap(line, 120))
-            {
-                d.Text(new Point2(e.MinX, y), part, -1, 0.9);
-                y -= 0.11;
-            }
-        }
-
+        DrawingFrame.Compose(d, 25, 2.0, "J", "Jardim de chuva — corte esquemático", "área de contribuição 120,0 m²",
+            new[] { new NoteBlock("Memória de cálculo", RainGardenCalculator.Report(120, r, s).ToList()) });
         return d;
     }
 

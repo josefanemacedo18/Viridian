@@ -78,20 +78,10 @@ public sealed class RainGardenCommand : CommandBase
         }
 
         Drawing drawing = RainGardenCalculator.Detail(window.Settings, result, width);
-        Bounds2 extent = drawing.Extent();
-        double y = extent.MinY - 0.25;
-        drawing.Text(new Point2(extent.MinX, y), "MEMORIAL DE CÁLCULO", -1, 1.15);
-        y -= 0.16;
-        foreach (string line in RainGardenCalculator.Report(window.ContributingAreaM2, result, window.Settings))
-        {
-            foreach (string part in TextLayout.Wrap(line, 120))
-            {
-                drawing.Text(new Point2(extent.MinX, y), part, -1, 0.9);
-                y -= 0.11;
-            }
-        }
-
         int scale = DesignService.FitScale(drawing, 0.45);
+        DrawingFrame.Compose(drawing, scale, ctx.Settings.Labels.TextSizeMm, "J", "Jardim de chuva — corte esquemático",
+            $"área de contribuição {window.ContributingAreaM2.ToString("0.0", System.Globalization.CultureInfo.GetCultureInfo("pt-BR"))} m²",
+            new[] { new NoteBlock("Memória de cálculo", RainGardenCalculator.Report(window.ContributingAreaM2, result, window.Settings).ToList()) });
         var design = new DesignService(ctx.Settings.Labels.TextSizeMm);
         ViewDrafting view = ctx.Grouped("Viridian: jardim de chuva", () =>
             Tx.Run(ctx.Doc, "Viridian: jardim de chuva", () =>

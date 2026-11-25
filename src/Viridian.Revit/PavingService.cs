@@ -212,6 +212,14 @@ public static class PavingService
         PavingPatterns.Build(type, SafeName($"VIR Piso {type.Name} {type.Signature[..6]}"));
 
     /// <summary>Remove os caracteres que o Revit não aceita em nomes de tipos, materiais e padrões.</summary>
+    /// <summary>Detalhe do piso com a faixa de título.</summary>
+    private static Drawing Framed(PavingType type, double textMm)
+    {
+        Drawing drawing = PavingDetail.Draw(type);
+        DrawingFrame.Compose(drawing, 10, textMm, "P", "Detalhe de piso — " + type.Name, PavingLabels.Of(type.Pattern));
+        return drawing;
+    }
+
     public static string SafeName(string name)
     {
         const string forbidden = "{}[]|;<>?`~\\:";
@@ -222,7 +230,7 @@ public static class PavingService
 
     /// <summary>Detalhe em corte do piso numa vista de desenho (1:10). Precisa de transação.</summary>
     public static ViewDrafting DetailView(Document document, PavingType type, double textMm) =>
-        new DesignService(textMm).DrawingView(document, SafeName("Viridian - Detalhe de piso - " + type.Name), PavingDetail.Draw(type), 10);
+        new DesignService(textMm).DrawingView(document, SafeName("Viridian - Detalhe de piso - " + type.Name), Framed(type, textMm), 10);
 
     /// <summary>Áreas dos pisos do projeto por tipo da biblioteca (pelo vínculo gravado no tipo ou pelo nome).</summary>
     public static List<PavingQuantity> Quantities(Document document, IReadOnlyList<PavingType> library)
