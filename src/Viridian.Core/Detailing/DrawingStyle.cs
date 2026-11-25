@@ -77,7 +77,10 @@ public static class Sketch
             points.Add(new Point2(center.X + rx * k * Math.Cos(t), center.Y + ry * k * flatten * Math.Sin(t)));
         }
 
-        return points;
+        // Os lóbulos não podem passar da copa real: a largura e a altura desenhadas são as da espécie.
+        double maxX = points.Max(p => Math.Abs(p.X - center.X)), maxY = points.Max(p => Math.Abs(p.Y - center.Y));
+        double sx = maxX > 1e-9 ? rx / maxX : 1, sy = maxY > 1e-9 ? ry / maxY : 1;
+        return points.Select(p => new Point2(center.X + (p.X - center.X) * sx, center.Y + (p.Y - center.Y) * sy)).ToList();
     }
 
     /// <summary>

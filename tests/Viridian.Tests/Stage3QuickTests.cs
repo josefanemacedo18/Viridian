@@ -155,8 +155,8 @@ public class ExcavationAndBoardTests
     [Fact]
     public void Board_TotalsByUnit()
     {
-        var s = new Species { PopularName = "A", SupplyUnit = "muda" };
-        var g = new Species { PopularName = "G", SupplyUnit = "m²" };
+        var s = new Species { PopularName = "A", ScientificName = "Aus bus", SupplyUnit = "muda" };
+        var g = new Species { PopularName = "G", ScientificName = "Gus dus", SupplyUnit = "m²" };
         var items = new[] { new SpecificationItem(s, "A1", 3, "muda"), new SpecificationItem(s, "A2", 4, "muda"), new SpecificationItem(g, "G1", 120.5, "m²") };
         string totals = SpecificationBoard.Totals(items);
         Assert.Contains("7 mudas", totals);

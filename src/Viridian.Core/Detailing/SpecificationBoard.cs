@@ -68,7 +68,11 @@ public static class SpecificationBoard
         double x = 0;
         for (int c = 0; c < headers.Length; c++)
         {
-            g.Text(new Point2(x + 0.0015, top - headerHeight / 2), headers[c], TextStyle.Claro, -1, 0.9);
+            if (headers[c].Length > 0)
+            {
+                g.Text(new Point2(x + 0.0015, top - headerHeight / 2), headers[c], TextStyle.Claro, -1, 0.9);
+            }
+
             x += Columns[c];
         }
 
