@@ -128,7 +128,10 @@ public sealed class PaletteCommand : CommandBase
 [Regeneration(RegenerationOption.Manual)]
 public sealed class FloweringCalendarCommand : CommandBase
 {
-    internal override Result Run(ViridianContext ctx)
+    internal override Result Run(ViridianContext ctx) => Create(ctx);
+
+    /// <summary>Cria o quadro de calendário de floração como vista de desenho (usado também pelo painel de floração).</summary>
+    internal static Result Create(ViridianContext ctx)
     {
         ProjectSnapshot snapshot = ProjectReader.Read(ctx.Doc, ctx.Lookup);
         List<(Species Species, SpeciesReportRow Row)> species = DesignFlows.ProjectSpecies(ctx, snapshot);
@@ -175,7 +178,17 @@ public sealed class FloweringPanelCommand : CommandBase
         }
 
         var window = new FloweringPanelWindow(view.Name, groups, DateTime.Now.Month);
-        if (!ctx.ShowDialog(window) || window.ElementIds.Count == 0)
+        if (!ctx.ShowDialog(window))
+        {
+            return Result.Cancelled;
+        }
+
+        if (window.Action == FloweringPanelAction.Calendario)
+        {
+            return FloweringCalendarCommand.Create(ctx);
+        }
+
+        if (window.ElementIds.Count == 0)
         {
             return Result.Cancelled;
         }

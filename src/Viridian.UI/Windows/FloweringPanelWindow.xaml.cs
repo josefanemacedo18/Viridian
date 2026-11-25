@@ -14,6 +14,7 @@ public enum FloweringPanelAction
     Nenhuma,
     Isolar,
     Selecionar,
+    Calendario,
 }
 
 /// <summary>
@@ -85,6 +86,13 @@ public partial class FloweringPanelWindow : ViridianWindow
         {
             Finish(FloweringPanelAction.Selecionar, group.AllElements);
         }
+    }
+
+    private void Calendar_Click(object sender, RoutedEventArgs e)
+    {
+        Action = FloweringPanelAction.Calendario;
+        ElementIds = Array.Empty<long>();
+        DialogResult = true;
     }
 
     private void Isolate_Click(object sender, RoutedEventArgs e)

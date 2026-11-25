@@ -133,6 +133,34 @@ public sealed class App : IExternalApplication
             Small<InsertBedTemplateCommand, ProjectAvailability>(assembly, "Inserir Modelo", "insert",
                 "Insere um canteiro salvo, igual ao original, girado e posicionado com um clique; serve para qualquer projeto."));
 
+        RibbonPanel composition = app.CreateRibbonPanel(TabName, "Composição");
+        Large<PaletteCommand, AlwaysAvailable>(composition, assembly, "Ateliê de\nPaletas", "palette",
+            "Escolha espécies por harmonia de cores (monocromática, análoga, complementar, tríade ou paletas prontas) e pela época de floração.",
+            "As espécies aparecem em ordem de afinidade pela cor da flor e da folhagem; dali é possível inserir ou distribuir.");
+        Stack(composition,
+            Small<BedCheckCommand, ProjectAvailability>(assembly, "Verificar Canteiro", "composition",
+                "Avalia a composição de um canteiro: equilíbrio entre espécies, diversidade, contraste de texturas, escala, sub-bosque de palmeiras e floração ao longo do ano."),
+            Small<SolarStudyCommand, ProjectAvailability>(assembly, "Estudo Solar", "solar",
+                "Horas de sol direto mês a mês numa região, com a sombra das copas adultas, das edificações e do terreno, pelas coordenadas da obra: calendário de luz, mapas coloridos em cópias da planta e plantas que não recebem a luz que pedem, com sugestões de espécies."));
+
+        Large<FloweringPanelCommand, ProjectAvailability>(composition, assembly, "Floração\nna Planta", "calendar",
+            "Painel de consulta da floração: por maciço e por espécie isolada da vista, os meses floridos nas cores das flores e os meses sem flor. Também cria o quadro de calendário para a prancha.",
+            "Escolha um mês para ver o que está florido e isolar temporariamente na vista só o que floresce nele (Redefinir ocultar/isolar temporário volta ao normal). Na mesma janela, Criar calendário na prancha gera o quadro de janeiro a dezembro.");
+        Large<IndicateNorthCommand, ProjectAvailability>(composition, assembly, "Indicar\nNorte", "solar",
+            "Indique o norte verdadeiro clicando na planta: um ponto qualquer e depois a direção do norte. O estudo solar e as sombras seguem essa direção, mesmo com o projeto desenhado girado.",
+            "Fica gravado no projeto (só no Viridian) ou, se preferir, gira também o norte verdadeiro do Revit (Gerenciar > Posição).");
+
+        RibbonPanel paving = app.CreateRibbonPanel(TabName, "Pisos e Drenagem");
+        Large<PavingCommand, AlwaysAvailable>(paving, assembly, "Gerador\nde Pisos", "paving",
+            "Biblioteca de pisos (cimentícios, fulget, intertravados, drenantes, pedras, porcelanatos, concreto, decks, pedriscos, emborrachados e grama-concreto) com paginação, juntas, cores e camadas personalizáveis.",
+            "Aplica o piso a pisos do Revit (tipo com camadas e material com a paginação em escala real), cria a hachura para plantas, o detalhe em corte e o quantitativo.");
+        Large<StoneCommand, AlwaysAvailable>(paving, assembly, "Pedras e\nCoberturas", "stones",
+            "Seixos, pedriscos, britas, cascalhos, pedras trituradas, pó de pedra, saibro, argila expandida e coberturas orgânicas, com granulometria, cor, usos e valores de referência para a compra.",
+            "Cobre canteiros, cria bordas de caminho, pisos soltos ou compactados e camadas drenantes como pisos do Revit; calcula volume, peso e sacos.");
+        Large<RainGardenCommand, ProjectAvailability>(paving, assembly, "Jardim\nde Chuva", "raingarden",
+            "Dimensiona o jardim de chuva pelo volume a reter, sugere plantas para fundo, taludes e bordas e cria o detalhe em corte com o memorial de cálculo.",
+            "Selecione telhados ou pisos antes do comando para somar a área de contribuição.");
+
         RibbonPanel identification = app.CreateRibbonPanel(TabName, "Identificação");
         Large<LabelCommand, ProjectAvailability>(identification, assembly, "Etiquetar", "label",
             "Identifica exemplares e maciços com código, nome popular, nome científico, área e quantidade.");
@@ -147,17 +175,6 @@ public sealed class App : IExternalApplication
             Small<LegendCommand, ProjectAvailability>(assembly, "Legenda", "legend",
                 "Cria a vista de legenda com símbolos coloridos, fotografias, códigos, nomes e quantidades."));
 
-        RibbonPanel quantities = app.CreateRibbonPanel(TabName, "Quantitativos");
-        Large<ReportsCommand, ProjectAvailability>(quantities, assembly, "Relatórios", "reports",
-            "Relatórios por espécie, por maciço e de aquisição, com exportação para Excel.");
-        Stack(quantities,
-            Small<AcquisitionCommand, ProjectAvailability>(assembly, "Aquisição", "excel",
-                "Lista de compra com reserva de reposição, unidade comercial e preço cadastrado."),
-            Small<BudgetCommand, ProjectAvailability>(assembly, "Orçamento", "budget",
-                "Orçamento de fornecimento e plantio com tabela de preços importada (SINAPI ou própria) e BDI."),
-            Small<MaintenanceCommand, ProjectAvailability>(assembly, "Manutenção", "maintenance",
-                "Cronograma de manutenção por espécie e época: rega, adubação, podas, cortes e reposição de falhas."));
-
         RibbonPanel documentation = app.CreateRibbonPanel(TabName, "Documentação");
         Large<SheetCommand, ProjectAvailability>(documentation, assembly, "Prancha\nAutomática", "sheet",
             "Cria a prancha de paisagismo com a planta ativa, a legenda e a tabela de quantitativos diagramadas sobre o carimbo.",
@@ -169,25 +186,6 @@ public sealed class App : IExternalApplication
                 "Cria as tabelas de vegetação do Revit (por espécie e por exemplar)."),
             Small<SpecificationBoardCommand, ProjectAvailability>(assembly, "Quadro de Especificação", "spec",
                 "Tabela com código, espécie, quantidade, muda, escavação em centímetros e a especificação de cada espécie, para a prancha. Com uma prancha aberta, o quadro é colocado nela."));
-
-        RibbonPanel composition = app.CreateRibbonPanel(TabName, "Composição");
-        Large<PaletteCommand, AlwaysAvailable>(composition, assembly, "Ateliê de\nPaletas", "palette",
-            "Escolha espécies por harmonia de cores (monocromática, análoga, complementar, tríade ou paletas prontas) e pela época de floração.",
-            "As espécies aparecem em ordem de afinidade pela cor da flor e da folhagem; dali é possível inserir ou distribuir.");
-        Stack(composition,
-            Small<BedCheckCommand, ProjectAvailability>(assembly, "Verificar Canteiro", "composition",
-                "Avalia a composição de um canteiro: equilíbrio entre espécies, diversidade, contraste de texturas, escala, sub-bosque de palmeiras e floração ao longo do ano."),
-            Small<FloweringCalendarCommand, ProjectAvailability>(assembly, "Calendário de Floração", "calendar",
-                "Quadro com o que está florido em cada mês do ano no projeto, nas cores das flores, e os meses sem floração."),
-            Small<SolarStudyCommand, ProjectAvailability>(assembly, "Estudo Solar", "solar",
-                "Horas de sol direto mês a mês numa região, com a sombra das copas adultas, das edificações e do terreno, pelas coordenadas da obra: calendário de luz, mapas coloridos em cópias da planta e plantas que não recebem a luz que pedem, com sugestões de espécies."));
-
-        Large<FloweringPanelCommand, ProjectAvailability>(composition, assembly, "Floração\nna Planta", "calendar",
-            "Painel de consulta: por maciço e por espécie isolada da vista, os meses floridos nas cores das flores e os meses sem flor. Nada é desenhado na planta.",
-            "Escolha um mês para ver o que está florido e, se quiser, isolar temporariamente na vista só o que floresce nele (Redefinir ocultar/isolar temporário volta ao normal).");
-        Large<IndicateNorthCommand, ProjectAvailability>(composition, assembly, "Indicar\nNorte", "solar",
-            "Indique o norte verdadeiro clicando na planta: um ponto qualquer e depois a direção do norte. O estudo solar e as sombras seguem essa direção, mesmo com o projeto desenhado girado.",
-            "Fica gravado no projeto (só no Viridian) ou, se preferir, gira também o norte verdadeiro do Revit (Gerenciar > Posição).");
 
         RibbonPanel detailing = app.CreateRibbonPanel(TabName, "Detalhamento");
         Large<MemorialCommand, ProjectAvailability>(detailing, assembly, "Memorial\nIlustrado", "memorial",
@@ -201,16 +199,16 @@ public sealed class App : IExternalApplication
             Small<GrowthCommand, ProjectAvailability>(assembly, "Crescimento 2D", "growth",
                 "O mesmo canteiro no plantio, aos 3 e 6 anos e na maturidade, com as copas estimadas pela taxa de crescimento."));
 
-        RibbonPanel paving = app.CreateRibbonPanel(TabName, "Pisos e Drenagem");
-        Large<PavingCommand, AlwaysAvailable>(paving, assembly, "Gerador\nde Pisos", "paving",
-            "Biblioteca de pisos (cimentícios, fulget, intertravados, drenantes, pedras, porcelanatos, concreto, decks, pedriscos, emborrachados e grama-concreto) com paginação, juntas, cores e camadas personalizáveis.",
-            "Aplica o piso a pisos do Revit (tipo com camadas e material com a paginação em escala real), cria a hachura para plantas, o detalhe em corte e o quantitativo.");
-        Large<StoneCommand, AlwaysAvailable>(paving, assembly, "Pedras e\nCoberturas", "stones",
-            "Seixos, pedriscos, britas, cascalhos, pedras trituradas, pó de pedra, saibro, argila expandida e coberturas orgânicas, com granulometria, cor, usos e valores de referência para a compra.",
-            "Cobre canteiros, cria bordas de caminho, pisos soltos ou compactados e camadas drenantes como pisos do Revit; calcula volume, peso e sacos.");
-        Large<RainGardenCommand, ProjectAvailability>(paving, assembly, "Jardim\nde Chuva", "raingarden",
-            "Dimensiona o jardim de chuva pelo volume a reter, sugere plantas para fundo, taludes e bordas e cria o detalhe em corte com o memorial de cálculo.",
-            "Selecione telhados ou pisos antes do comando para somar a área de contribuição.");
+        RibbonPanel quantities = app.CreateRibbonPanel(TabName, "Quantitativos");
+        Large<ReportsCommand, ProjectAvailability>(quantities, assembly, "Relatórios", "reports",
+            "Relatórios por espécie, por maciço e de aquisição, com exportação para Excel.");
+        Stack(quantities,
+            Small<AcquisitionCommand, ProjectAvailability>(assembly, "Aquisição", "excel",
+                "Lista de compra com reserva de reposição, unidade comercial e preço cadastrado."),
+            Small<BudgetCommand, ProjectAvailability>(assembly, "Orçamento", "budget",
+                "Orçamento de fornecimento e plantio com tabela de preços importada (SINAPI ou própria) e BDI."),
+            Small<MaintenanceCommand, ProjectAvailability>(assembly, "Manutenção", "maintenance",
+                "Cronograma de manutenção por espécie e época: rega, adubação, podas, cortes e reposição de falhas."));
 
         RibbonPanel model = app.CreateRibbonPanel(TabName, "Maquete 3D");
         Large<MaqueteCommand, ProjectAvailability>(model, assembly, "Maquete\n3D", "model3d",
@@ -220,9 +218,7 @@ public sealed class App : IExternalApplication
             Small<MaqueteUpdateCommand, ProjectAvailability>(assembly, "Atualizar Maquete", "model3d-update",
                 "Refaz a maquete com o mesmo recorte e a mesma fase, depois de mudanças no plantio."),
             Small<MaqueteRemoveCommand, ProjectAvailability>(assembly, "Remover Maquete", "model3d-remove",
-                "Apaga a maquete 3D e os materiais criados para ela. A vegetação 2D não é alterada."),
-            Small<Engine3DTestCommand, ProjectAvailability>(assembly, "Diagnóstico 3D", "model3d-test",
-                "Opcional: confere no seu Revit uma família com símbolo 2D e volume 3D e as texturas na vista realista, e guarda um relatório para consulta. Não é preciso enviar nada."));
+                "Apaga a maquete 3D e os materiais criados para ela. A vegetação 2D não é alterada."));
 
         Large<FixVegetationCommand, ProjectAvailability>(model, assembly, "Vegetação\nnas Pranchas", "model3d-update",
             "Fixa a vegetação ilustrada como formas reais nas vistas 3D das pranchas (ou na vista 3D ativa): sai na impressão, no PDF, nas imagens, no estilo Realista e na renderização.",
@@ -244,7 +240,9 @@ public sealed class App : IExternalApplication
             Small<SettingsCommand, AlwaysAvailable>(assembly, "Configurações", "settings",
                 "Biblioteca, escalas, padrão gráfico, maciços, codificação, análise, etiquetas e hachuras do escritório."),
             Small<AboutCommand, AlwaysAvailable>(assembly, "Sobre", "about",
-                "Versão do Viridian e atalhos para as pastas da biblioteca e de configurações."));
+                "Versão do Viridian e atalhos para as pastas da biblioteca e de configurações."),
+            Small<Engine3DTestCommand, ProjectAvailability>(assembly, "Diagnóstico 3D", "model3d-test",
+                "Opcional, para suporte: confere no seu Revit uma família com símbolo 2D e volume 3D e as texturas na vista realista, e guarda um relatório para consulta."));
     }
 
     private static void Large<TCommand, TAvailability>(RibbonPanel panel, string assembly, string text, string icon, string tooltip, string? longDescription = null)

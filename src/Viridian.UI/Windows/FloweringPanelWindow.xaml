@@ -94,6 +94,8 @@
             <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="12,0,0,0">
                 <Button x:Name="IsolateButton" Content="_Isolar na vista" Click="Isolate_Click" Style="{StaticResource VirPrimaryButton}"
                         ToolTip="Mostra na vista ativa só o que floresce no mês escolhido (da linha selecionada), sem alterar o projeto." />
+                <Button Content="Criar _calendário na prancha" Click="Calendar_Click"
+                        ToolTip="Cria o quadro de janeiro a dezembro com o que floresce no projeto, pronto para a prancha (vista de desenho)." />
                 <Button x:Name="SelectButton" Content="_Selecionar" Click="Select_Click"
                         ToolTip="Seleciona os elementos da linha que florescem no mês escolhido." />
                 <Button Content="Fechar" IsCancel="True" />
