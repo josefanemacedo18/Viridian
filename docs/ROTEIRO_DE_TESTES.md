@@ -4,6 +4,21 @@ O código foi compilado contra a API oficial do Revit 2027 e a lógica sem depen
 
 Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Viridian\Logs` (Viridian > Sobre abre a pasta).
 
+## Conferência da versão 2.3.0 — canteiros, contorno, lista do projeto e floração (cerca de 25 minutos)
+
+1. **Compor Canteiro:** numa planta, escolha uma região de uns 10 × 3 m e clique no lado do muro. Adicione uma palmeira (sugerida como Destaque, 2 un.), um arbusto alto (Fundo), uma herbácea florida (Meio), uma forração em muda (Frente) e uma grama vendida em m² (Base). Confira a prévia: palmeiras espalhadas, faixas na ordem fundo → frente a partir do lado clicado. Mude as porcentagens e o papel de uma espécie e use *Sortear de novo*. Clique em **Plantar**: os exemplares saem com código, a forração vira maciço em hachura e um único Ctrl+Z desfaz tudo.
+2. Repita numa região mais arredondada apertando **ESC** no clique do fundo: arranjo em ilha, com o fundo no centro.
+3. Na janela de composição, **Salvar como modelo**; feche e abra de novo: o modelo aparece na lista e carrega a receita.
+4. **Salvar Canteiro** num canteiro pronto; em **outro projeto**, **Inserir Modelo**: confira a prévia, gire 90° e clique: exemplares, maciços e contorno (linhas de detalhe) aparecem iguais e girados.
+5. **Ajustar Contorno:** num maciço em modo símbolos, mova à mão dois exemplares, depois edite o limite da região aumentando um lado e rode o comando: os exemplares movidos continuam onde estavam e só a parte nova recebeu plantas. Diminua o limite e rode de novo: a janela pergunta o que fazer com os de fora; com "Manter e selecionar", eles ficam selecionados.
+6. **Substituir** sem nada selecionado > "Trocar uma espécie em todo o projeto": a primeira lista mostra só as espécies do projeto. Troque a espécie de um maciço: os exemplares continuam nas mesmas posições, com os mesmos códigos.
+7. **Inserir:** marque **Só do projeto** e confira a coluna **No projeto** (unidades e maciços). Feche o Revit e abra de novo: a escolha fica lembrada.
+8. **Floração na Planta** numa planta com maciços e plantas isoladas: cada linha mostra os meses na cor da flor e os meses sem flor. Escolha um mês e **Isolar na vista**: só o que floresce nele fica visível; os óculos da barra da vista voltam ao normal.
+9. **Indicar Norte:** num projeto desenhado girado, clique um ponto e a direção do norte; gere o **Estudo Solar** e o quadro de sombras: o sol nasce do lado certo. Rode de novo e apague a indicação.
+10. **Cores:** na ficha de uma espécie, clique na amostra da flor: escolha na paleta, use o conta-gotas na foto e confira as cores recentes. Faça o mesmo com a cor de uma pedra.
+11. **Planilha:** Buscar Espécie > Planilha > Exportar; no Excel mude um preço e uma cor e acrescente uma linha sem identificador; Importar mostra o resumo antes de gravar e a espécie nova entra com código.
+12. **Água:** na ficha, os campos **Tolera seca** e **Tolera encharcamento** são independentes da necessidade de água; o **Jardim de Chuva** sugere para o fundo só plantas com tolerância cadastrada.
+
 ## Conferência da versão 2.2.1 — pranchas, impressão e Realista (cerca de 10 minutos)
 
 1. Abra uma vista 3D com vegetação e mude para **Realista**: as plantas continuam aparecendo, com as mesmas cores.

@@ -1,4 +1,4 @@
-﻿VIRIDIAN 2.2.1 — Paisagismo 2D técnico para Autodesk Revit 2027
+﻿VIRIDIAN 2.3.0 — Paisagismo 2D técnico para Autodesk Revit 2027
 ==============================================================
 
 INSTALAR
@@ -25,7 +25,9 @@ PRIMEIROS PASSOS
    Viridian > Exportar CAD gera DWG e a biblioteca de blocos DXF.
 4. Viridian > Escalas: o detalhamento dos símbolos acompanha a escala da vista.
 5. Composição: Ateliê de Paletas (espécies por harmonia de cores e floração),
-   Verificar Canteiro e Calendário de Floração.
+   Verificar Canteiro, Floração na Planta e Calendário de Floração.
+   Canteiros: Compor Canteiro (várias espécies de uma vez), Salvar Canteiro
+   e Inserir Modelo (modelos do escritório para qualquer projeto).
 6. Detalhamento: Memorial Ilustrado (Word editável), Detalhe de Plantio,
    Corte Esquemático e Crescimento 2D.
 7. Maquete 3D: vista 3D com a vegetação em volume, assentada no terreno,
@@ -37,6 +39,36 @@ PRIMEIROS PASSOS
 9. Estudo Solar (painel Composição): horas de sol com a sombra das copas e
    das edificações; Quadro de Especificação (painel Documentação); aba
    Compras nos relatórios.
+
+NOVIDADES DA 2.3
+- Canteiros (painel novo): Compor Canteiro planta várias espécies numa só
+  operação: destaques, faixas de fundo, meio e frente por porcentagem da
+  área e forração de base, encostado no lado que você clicar ou em ilha,
+  com prévia. Salvar Canteiro grava um canteiro pronto como modelo do
+  escritório; Inserir Modelo copia o desenho em qualquer projeto, girado e
+  posicionado com um clique. Os modelos ficam em
+  Biblioteca\Dados\modelos-canteiro.json.
+- Maciços > Ajustar Contorno: depois de editar o limite de um maciço, as
+  plantas que continuam dentro ficam onde estão (com código e dados), só a
+  parte nova recebe plantas e as que ficaram fora são selecionadas para
+  você decidir (ou removidas, se preferir).
+- Substituir: sem seleção, troca uma espécie em lote, em todo o projeto ou
+  só na vista. Nos maciços, as plantas trocam de espécie no lugar.
+- Seletor de espécies com "Só do projeto" e a coluna "No projeto": a lista
+  curta das espécies já usadas.
+- Floração na Planta (painel Composição): meses floridos por maciço e por
+  espécie da vista, nas cores das flores, e os meses sem flor. Isola
+  temporariamente na vista o que floresce no mês escolhido.
+- Indicar Norte (painel Composição): clique na planta para indicar o norte
+  verdadeiro; o estudo solar e as sombras passam a segui-lo.
+- Cores da flor, da folhagem, do fruto e das pedras com poucos cliques:
+  paleta com nomes, cores recentes e conta-gotas na foto da espécie.
+- Gráficos do estudo solar e do quadro de sombras redesenhados.
+- Água: tolerância à seca e ao encharcamento separadas da necessidade de
+  rega, cadastradas para as espécies de comportamento conhecido. O jardim de
+  chuva só sugere para o fundo espécies com a tolerância cadastrada.
+- Buscar Espécie > Planilha: exporta o catálogo para o Excel e importa a
+  planilha editada, mostrando o que muda antes de gravar.
 
 NOVIDADES DA 2.2.1
 - Vegetação no estilo Realista: o desenho ao vivo agora aparece também no
