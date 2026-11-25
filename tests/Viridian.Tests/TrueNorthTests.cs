@@ -37,3 +37,32 @@ public class TrueNorthTests
         Assert.Throws<ArgumentException>(() => TrueNorth.FromPoints(new Point2(1, 1), new Point2(1, 1)));
     }
 }
+
+public class ColorChoicesTests
+{
+    [Fact]
+    public void Palettes_HaveNamedDistinctColors()
+    {
+        foreach (Viridian.Core.Colors.ColorPurpose purpose in Enum.GetValues<Viridian.Core.Colors.ColorPurpose>())
+        {
+            var list = Viridian.Core.Colors.ColorChoices.For(purpose);
+            Assert.True(list.Count >= 10);
+            Assert.All(list, c => Assert.False(string.IsNullOrWhiteSpace(c.Name)));
+            Assert.Equal(list.Count, list.Select(c => c.Color).Distinct().Count());
+            Assert.Equal(list.Count, list.Select(c => c.Name).Distinct().Count());
+        }
+    }
+
+    [Fact]
+    public void Sample_UsesTheMedian_AndIgnoresTransparentPixels()
+    {
+        var pixels = new List<(byte, byte, byte, byte)>
+        {
+            (240, 200, 30, 255), (242, 198, 28, 255), (238, 202, 32, 255), (255, 255, 255, 255), (0, 0, 0, 0),
+        };
+        Viridian.Core.Colors.Rgb? c = Viridian.Core.Colors.ColorChoices.Sample(pixels);
+        Assert.NotNull(c);
+        Assert.Equal(242, c!.Value.R);
+        Assert.Null(Viridian.Core.Colors.ColorChoices.Sample(new List<(byte, byte, byte, byte)> { (1, 2, 3, 0) }));
+    }
+}

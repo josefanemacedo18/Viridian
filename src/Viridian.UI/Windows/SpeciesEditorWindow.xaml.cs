@@ -245,6 +245,7 @@ public partial class SpeciesEditorWindow : ViridianWindow
             : Core.Geometry.DeterministicRandom.StableHash(string.IsNullOrWhiteSpace(ScientificBox.Text) ? Species.Id : ScientificBox.Text.Trim());
         ShowSwatch(FoliageSwatch, FoliageColorBox.Text);
         ShowSwatch(FlowerSwatch, FlowerColorBox.Text);
+        ShowSwatch(FruitSwatch, FruitColorBox.Text);
         var draft = new Species
         {
             Category = Value(CategoryBox, Species.Category),
@@ -364,6 +365,26 @@ public partial class SpeciesEditorWindow : ViridianWindow
 
         problems.Add($"A {label} deve estar no formato #RRGGBB (ou ficar vazia).");
         return text.Trim();
+    }
+
+    /// <summary>Seletor de cor: paleta com nomes, conta-gotas na foto da espécie e código.</summary>
+    private void PickColor_Click(object sender, RoutedEventArgs e)
+    {
+        (TextBox box, ColorPurpose purpose, string title, bool allowEmpty) = ((sender as FrameworkElement)?.Tag as string) switch
+        {
+            "flor" => (FlowerColorBox, ColorPurpose.Flor, "Cor da flor", true),
+            "fruto" => (FruitColorBox, ColorPurpose.Fruto, "Cor do fruto", true),
+            _ => (FoliageColorBox, ColorPurpose.Folhagem, "Cor da folhagem", true),
+        };
+        string? photo = string.IsNullOrWhiteSpace(Species.PhotoFile) ? null : _paths.ResolvePhoto(Species.PhotoFile);
+        var picker = new ColorPickerWindow(title + (string.IsNullOrWhiteSpace(PopularBox.Text.Trim()) ? string.Empty : " — " + PopularBox.Text.Trim()), purpose, box.Text, photo, allowEmpty)
+        {
+            Owner = this,
+        };
+        if (picker.ShowDialog() == true)
+        {
+            box.Text = picker.Result;
+        }
     }
 
     private static void ShowSwatch(Border swatch, string text)

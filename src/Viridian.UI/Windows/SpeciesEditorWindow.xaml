@@ -142,8 +142,18 @@
                             <TextBox x:Name="FruitingBox" Grid.Row="5" Grid.Column="1" AutomationProperties.Name="Meses de frutificação"
                                      ToolTip="Meses com frutos maduros, por exemplo nov–jan. Vazio: estimada pelo gênero quando houver referência (maquete 3D)." />
                             <TextBlock Grid.Row="5" Grid.Column="2" Style="{StaticResource VirLabel}" Text="Cor do fruto" Margin="12,0,8,0" />
-                            <TextBox x:Name="FruitColorBox" Grid.Row="5" Grid.Column="3" AutomationProperties.Name="Cor do fruto"
-                                     ToolTip="#RRGGBB. Vazio: cor de referência do gênero (quando houver)." />
+                            <Grid Grid.Row="5" Grid.Column="3">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="40" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="FruitColorBox" TextChanged="Symbol_Changed" AutomationProperties.Name="Cor do fruto"
+                                         ToolTip="#RRGGBB. Vazio: cor de referência do gênero (quando houver)." />
+                                <Button Grid.Column="1" Margin="4,0,0,0" Padding="0" Tag="fruto" Click="PickColor_Click" Cursor="Hand"
+                                        ToolTip="Clique para escolher a cor (paleta, conta-gotas na foto ou código)" AutomationProperties.Name="Escolher a cor do fruto">
+                                    <Border x:Name="FruitSwatch" Width="26" Height="18" BorderBrush="#999" BorderThickness="1" />
+                                </Button>
+                            </Grid>
 
                             <TextBlock x:Name="Season3DText" Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="3" Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="0,2,0,4" />
 
@@ -173,21 +183,27 @@
                             <Grid Grid.Row="1" Grid.Column="1">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="24" />
+                                    <ColumnDefinition Width="40" />
                                 </Grid.ColumnDefinitions>
                                 <TextBox x:Name="FoliageColorBox" TextChanged="Symbol_Changed" AutomationProperties.Name="Cor da folhagem"
-                                         ToolTip="#RRGGBB. Vazio = variação da cor da categoria (Configurações, aba Cores)." />
-                                <Border x:Name="FoliageSwatch" Grid.Column="1" Margin="4,4,0,4" BorderBrush="#999" BorderThickness="1" />
+                                         ToolTip="Clique no quadrado ao lado para escolher. Vazio = variação da cor da categoria (Configurações, aba Cores)." />
+                                <Button Grid.Column="1" Margin="4,0,0,0" Padding="0" Tag="folhagem" Click="PickColor_Click" Cursor="Hand"
+                                        ToolTip="Clique para escolher a cor (paleta, conta-gotas na foto ou código)" AutomationProperties.Name="Escolher a cor">
+                                    <Border x:Name="FoliageSwatch" Width="26" Height="18" BorderBrush="#999" BorderThickness="1" />
+                                </Button>
                             </Grid>
                             <TextBlock Grid.Row="1" Grid.Column="2" Style="{StaticResource VirLabel}" Text="Cor da flor" Margin="12,0,8,0" />
                             <Grid Grid.Row="1" Grid.Column="3">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="24" />
+                                    <ColumnDefinition Width="40" />
                                 </Grid.ColumnDefinitions>
                                 <TextBox x:Name="FlowerColorBox" TextChanged="Symbol_Changed" AutomationProperties.Name="Cor da flor"
-                                         ToolTip="#RRGGBB. Vazio = espécie sem floração vistosa." />
-                                <Border x:Name="FlowerSwatch" Grid.Column="1" Margin="4,4,0,4" BorderBrush="#999" BorderThickness="1" />
+                                         ToolTip="Clique no quadrado ao lado para escolher. Vazio = espécie sem floração vistosa." />
+                                <Button Grid.Column="1" Margin="4,0,0,0" Padding="0" Tag="flor" Click="PickColor_Click" Cursor="Hand"
+                                        ToolTip="Clique para escolher a cor (paleta, conta-gotas na foto ou código)" AutomationProperties.Name="Escolher a cor">
+                                    <Border x:Name="FlowerSwatch" Width="26" Height="18" BorderBrush="#999" BorderThickness="1" />
+                                </Button>
                             </Grid>
 
                             <TextBlock Grid.Row="2" Style="{StaticResource VirLabel}" Text="Código do insumo" />

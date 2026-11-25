@@ -74,12 +74,18 @@
                     <TextBox x:Name="GrainMaxBox" Grid.Row="3" Grid.Column="3" TextChanged="Field_Changed" AutomationProperties.Name="Maior grão em milímetros" />
                     <Label Grid.Row="4" Content="Cor" Target="{Binding ElementName=ColorBox}" Padding="0" VerticalAlignment="Center" />
                     <DockPanel Grid.Row="4" Grid.Column="1">
-                        <Border x:Name="ColorSwatch" Width="22" Height="18" BorderBrush="{DynamicResource VirBorder}" BorderThickness="1" Margin="0,0,6,0" DockPanel.Dock="Left" />
+                        <Button DockPanel.Dock="Left" Margin="0,0,6,0" Padding="0" Tag="cor" Click="PickColor_Click" Cursor="Hand"
+                                ToolTip="Clique para escolher a cor (paleta ou código)" AutomationProperties.Name="Escolher a cor predominante">
+                            <Border x:Name="ColorSwatch" Width="26" Height="18" BorderBrush="{DynamicResource VirBorder}" BorderThickness="1" />
+                        </Button>
                         <TextBox x:Name="ColorBox" TextChanged="Field_Changed" AutomationProperties.Name="Cor predominante em hexadecimal" />
                     </DockPanel>
                     <Label Grid.Row="4" Grid.Column="2" Content="Cor dos grãos" Target="{Binding ElementName=GrainColorBox}" Padding="8,0,8,0" VerticalAlignment="Center" />
                     <DockPanel Grid.Row="4" Grid.Column="3">
-                        <Border x:Name="GrainSwatch" Width="22" Height="18" BorderBrush="{DynamicResource VirBorder}" BorderThickness="1" Margin="0,0,6,0" DockPanel.Dock="Left" />
+                        <Button DockPanel.Dock="Left" Margin="0,0,6,0" Padding="0" Tag="grao" Click="PickColor_Click" Cursor="Hand"
+                                ToolTip="Clique para escolher a cor (paleta ou código)" AutomationProperties.Name="Escolher a cor dos grãos">
+                            <Border x:Name="GrainSwatch" Width="26" Height="18" BorderBrush="{DynamicResource VirBorder}" BorderThickness="1" />
+                        </Button>
                         <TextBox x:Name="GrainColorBox" TextChanged="Field_Changed" AutomationProperties.Name="Cor dos grãos no desenho em hexadecimal" />
                     </DockPanel>
                 </Grid>

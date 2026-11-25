@@ -1,0 +1,61 @@
+<ui:ViridianWindow x:Class="Viridian.UI.Windows.ColorPickerWindow"
+                   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:ui="clr-namespace:Viridian.UI"
+                   Title="Viridian — Escolher cor"
+                   Width="660" Height="560" MinWidth="520" MinHeight="420">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock x:Name="HeaderText" Style="{StaticResource VirHeader}" Margin="0,0,0,6" />
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition x:Name="PhotoColumn" Width="230" />
+            </Grid.ColumnDefinitions>
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource VirSection}" Margin="0,0,0,4" Text="Cores comuns (clique para escolher)" />
+                    <WrapPanel x:Name="PalettePanel" />
+                    <TextBlock x:Name="RecentTitle" Style="{StaticResource VirSection}" Text="Usadas recentemente" />
+                    <WrapPanel x:Name="RecentPanel" />
+                </StackPanel>
+            </ScrollViewer>
+            <StackPanel x:Name="PhotoPanel" Grid.Column="1" Margin="12,0,0,0">
+                <TextBlock Style="{StaticResource VirSection}" Margin="0,0,0,4" Text="Conta-gotas na foto" />
+                <Border BorderBrush="{DynamicResource VirBorder}" BorderThickness="1">
+                    <Image x:Name="PhotoImage" Stretch="Uniform" MaxHeight="300" Cursor="Cross" MouseLeftButtonDown="Photo_Click"
+                           AutomationProperties.Name="Foto da espécie: clique na flor ou na folha para pegar a cor" />
+                </Border>
+                <TextBlock Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="0,4,0,0"
+                           Text="Clique na flor, na folha ou no fruto da foto: a cor do ponto clicado (média dos arredores) é escolhida." />
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="2" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="56" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="110" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Style="{StaticResource VirLabel}" Text="Escolhida" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <Border x:Name="ChosenSwatch" Grid.Column="1" Height="28" BorderBrush="#888" BorderThickness="1" />
+            <Label Grid.Column="2" Content="_Código" Target="{Binding ElementName=HexBox}" Padding="12,0,8,0" VerticalAlignment="Center" />
+            <TextBox x:Name="HexBox" Grid.Column="3" TextChanged="Hex_Changed" AutomationProperties.Name="Código da cor (#RRGGBB)" />
+            <TextBlock x:Name="ChosenName" Grid.Column="4" Style="{StaticResource VirHint}" VerticalAlignment="Center" Margin="12,0,0,0" TextWrapping="Wrap" />
+        </Grid>
+
+        <DockPanel Grid.Row="3" Margin="0,10,0,0" LastChildFill="False">
+            <Button x:Name="ClearButton" Content="_Sem cor" Click="Clear_Click" DockPanel.Dock="Left" />
+            <Button Content="Cancelar" IsCancel="True" DockPanel.Dock="Right" />
+            <Button Content="_OK" IsDefault="True" Click="Ok_Click" Style="{StaticResource VirPrimaryButton}" DockPanel.Dock="Right" />
+        </DockPanel>
+    </Grid>
+</ui:ViridianWindow>

@@ -297,6 +297,18 @@ public partial class StoneWindow : ViridianWindow
         }
     }
 
+    /// <summary>Seletor de cor (paleta de tons de pedra e código).</summary>
+    private void PickColor_Click(object sender, RoutedEventArgs e)
+    {
+        bool grain = (sender as FrameworkElement)?.Tag as string == "grao";
+        TextBox box = grain ? GrainColorBox : ColorBox;
+        var picker = new ColorPickerWindow(grain ? "Cor dos grãos" : "Cor predominante", Core.Colors.ColorPurpose.Pedra, box.Text, null, false) { Owner = this };
+        if (picker.ShowDialog() == true)
+        {
+            box.Text = picker.Result;
+        }
+    }
+
     private void MarkDirty()
     {
         if (_loading || _current is null)
