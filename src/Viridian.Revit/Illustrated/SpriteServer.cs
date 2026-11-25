@@ -75,12 +75,18 @@ internal sealed class SpriteServer : IDirectContext3DServer
             double forward = RevitUnits.ToFeet(IllustratedVegetation.ForwardM);
             lock (_lock)
             {
-                _format ??= new VertexFormat(VertexFormatBits.PositionColored);
-                _effect ??= new EffectInstance(VertexFormatBits.PositionColored);
-                if (!_format.IsValid() || !_effect.IsValid())
+                // Com normais: o estilo Realista só desenha geometria iluminável. A luz é anulada (emissiva branca e
+                // difusa preta), para a cor do desenho sair igual em todos os estilos.
+                if (_format is null || _effect is null || !_format.IsValid() || !_effect.IsValid())
                 {
-                    _format = new VertexFormat(VertexFormatBits.PositionColored);
-                    _effect = new EffectInstance(VertexFormatBits.PositionColored);
+                    _format = new VertexFormat(VertexFormatBits.PositionNormalColored);
+                    _effect = new EffectInstance(VertexFormatBits.PositionNormalColored);
+                    _effect.SetAmbientColor(new Color(0, 0, 0));
+                    _effect.SetDiffuseColor(new Color(0, 0, 0));
+                    _effect.SetSpecularColor(new Color(0, 0, 0));
+                    _effect.SetEmissiveColor(new Color(255, 255, 255));
+                    _effect.SetGlossiness(0);
+                    _effect.SetTransparency(0);
                 }
 
                 // Tapetes dos maciços, no lugar (sem transformação).
@@ -201,15 +207,15 @@ internal sealed class SpriteServer : IDirectContext3DServer
                 }
 
                 int vertexCount = vertices.Count;
-                var vb = new VertexBuffer(vertexCount * VertexPositionColored.GetSizeInFloats());
-                vb.Map(vertexCount * VertexPositionColored.GetSizeInFloats());
-                VertexStreamPositionColored vs = vb.GetVertexStreamPositionColored();
+                var vb = new VertexBuffer(vertexCount * VertexPositionNormalColored.GetSizeInFloats());
+                vb.Map(vertexCount * VertexPositionNormalColored.GetSizeInFloats());
+                VertexStreamPositionNormalColored vs = vb.GetVertexStreamPositionNormalColored();
                 foreach (int index in vertices)
                 {
                     SpriteVertex v = _vertices[index];
                     bool white = mode == Mode.Line && !v.Outline;
                     byte r = white ? (byte)255 : v.Color.R, g = white ? (byte)255 : v.Color.G, b = white ? (byte)255 : v.Color.B;
-                    vs.AddVertex(new VertexPositionColored(new XYZ(v.X * k, v.Y * k, v.Z * k + _baseFeet), new ColorWithTransparency(r, g, b, 0)));
+                    vs.AddVertex(new VertexPositionNormalColored(new XYZ(v.X * k, v.Y * k, v.Z * k + _baseFeet), XYZ.BasisZ, new ColorWithTransparency(r, g, b, 0)));
                 }
 
                 vb.Unmap();

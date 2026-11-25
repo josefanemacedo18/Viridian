@@ -205,6 +205,7 @@ public static class IllustratedVegetation
                 _lastScan = now;
                 refresh |= Scan(uiDoc);
                 HidePlanColors(uiDoc);
+                HideFixedInNewViews(uiDoc);
             }
 
             if (refresh && _server is not null)
@@ -263,15 +264,30 @@ public static class IllustratedVegetation
             }
         }
 
-        bool changed = false;
+        // Vistas abertas e, nas pranchas abertas, as vistas das janelas de vista (o Revit as desenha dentro da prancha).
+        var views = new List<View>();
         foreach (UIView uiView in uiDoc.GetOpenUIViews())
         {
-            if (doc.GetElement(uiView.ViewId) is not View view)
+            if (doc.GetElement(uiView.ViewId) is not View open)
             {
                 continue;
             }
 
-            ViewSnapshot snapshot = Eligible(view) && (symbols.Count > 0 || _beds.Count > 0) ? Read(doc, view, symbols, _beds) : Empty;
+            views.Add(open);
+            if (open is ViewSheet sheet)
+            {
+                views.AddRange(sheet.GetAllPlacedViews().Select(doc.GetElement).OfType<View>());
+            }
+        }
+
+        HashSet<long> fixedViews = FixedVegetation.FixedViewIds(doc);
+        bool changed = false;
+        foreach (View view in views.DistinctBy(v => v.Id.Value))
+        {
+            // Vistas com a vegetação fixada já mostram as formas reais: o desenho ao vivo duplicaria.
+            ViewSnapshot snapshot = Eligible(view) && !fixedViews.Contains(view.Id.Value) && (symbols.Count > 0 || _beds.Count > 0)
+                ? Read(doc, view, symbols, _beds)
+                : Empty;
             Views.TryGetValue(view.UniqueId, out ViewSnapshot? previous);
             if (previous is null || previous.Signature != snapshot.Signature)
             {
@@ -281,6 +297,25 @@ public static class IllustratedVegetation
         }
 
         return changed;
+    }
+
+    /// <summary>
+    /// Monta, na hora, o que a vista mostra (exemplares e maciços), para fixar a vegetação em formas reais. Falso
+    /// quando a vista não tem vegetação ilustrada.
+    /// </summary>
+    internal static bool TryBuildSnapshot(Document doc, View view, out ViewSnapshot snapshot)
+    {
+        Sources sources = _sources = Sources.Refresh(_sources);
+        snapshot = Empty;
+        if (!sources.Settings.Model3D.IllustratedFamilies || !Eligible(view))
+        {
+            return false;
+        }
+
+        Dictionary<ElementId, PlantSprites> symbols = SymbolSprites(doc, sources);
+        List<BedEntry> beds = ReadBeds(doc, sources);
+        snapshot = Read(doc, view, symbols, beds);
+        return snapshot.Instances.Count > 0 || snapshot.Carpets.Count > 0;
     }
 
     private static readonly ViewSnapshot Empty = new(Array.Empty<SpriteInstance>(), Array.Empty<CarpetItem>(), XYZ.Zero, XYZ.Zero, 0);
@@ -552,6 +587,57 @@ public static class IllustratedVegetation
 
     private static double LevelElevation(Document doc, long viewId) =>
         doc.GetElement(new ElementId(viewId)) is ViewPlan { GenLevel: Level level } ? level.Elevation : 0;
+
+    private static int _viewCount = -1;
+
+    /// <summary>Vistas novas recebem o filtro que esconde a vegetação fixada em outras vistas (só quando há alguma).</summary>
+    private static void HideFixedInNewViews(UIDocument uiDoc)
+    {
+        Document doc = uiDoc.Document;
+        if (doc.IsFamilyDocument || doc.IsReadOnly || doc.IsModifiable)
+        {
+            return;
+        }
+
+        List<View> views;
+        using (var collector = new FilteredElementCollector(doc))
+        {
+            views = collector.OfClass(typeof(View)).Cast<View>().Where(v => !v.IsTemplate).ToList();
+        }
+
+        if (views.Count == _viewCount)
+        {
+            return;
+        }
+
+        _viewCount = views.Count;
+        if (FixedVegetation.Shapes(doc).Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            using var transaction = new Transaction(doc, "Viridian: vegetação fixa nas vistas novas");
+            if (transaction.Start() != TransactionStatus.Started)
+            {
+                return;
+            }
+
+            if (FixedVegetation.HideInNewViews(doc, views) > 0)
+            {
+                transaction.Commit();
+            }
+            else
+            {
+                transaction.RollBack();
+            }
+        }
+        catch (Exception ex)
+        {
+            ViridianLog.Warn("Vegetação fixa: filtro nas vistas novas.", ex);
+        }
+    }
 
     /// <summary>
     /// As cores da planta baixa (copa e floração) são superfícies finas no chão da família: nas vistas 3D ficariam

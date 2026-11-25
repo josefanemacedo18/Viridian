@@ -392,3 +392,103 @@ public sealed class Engine3DTestCommand : CommandBase
         return Result.Succeeded;
     }
 }
+
+/// <summary>
+/// Vegetação nas pranchas: fixa o desenho ilustrado como formas reais nas vistas 3D das pranchas (ou na vista 3D
+/// ativa), para sair na impressão, no PDF, nas imagens exportadas, no estilo Realista e na renderização. O desenho ao
+/// vivo continua nas demais vistas. Rodar de novo atualiza (depois de mudar o plantio ou girar a vista).
+/// </summary>
+[Autodesk.Revit.Attributes.Transaction(Autodesk.Revit.Attributes.TransactionMode.Manual)]
+public sealed class FixVegetationCommand : CommandBase
+{
+    internal override Result Run(ViridianContext ctx)
+    {
+        Document doc = ctx.Doc;
+        List<View3D> onSheets = Viridian.Revit.Illustrated.FixedVegetation.ViewsOnSheets(doc);
+        View active = ctx.UiDocument.ActiveView;
+        if (active is ViewSheet sheet)
+        {
+            onSheets = sheet.GetAllPlacedViews().Select(doc.GetElement).OfType<View3D>().Where(v => !v.IsTemplate).ToList();
+        }
+
+        var dialog = new TaskDialog("Viridian — Vegetação nas pranchas")
+        {
+            MainInstruction = "Fixar a vegetação ilustrada para impressão e Realista?",
+            MainContent = "O desenho ao vivo aparece só na tela. Fixado, ele vira formas reais (de frente para a câmera da vista) que saem na impressão, no PDF, "
+                          + "nas imagens, no estilo Realista e na renderização. Cada vista recebe as suas formas, ocultas nas outras vistas e nas plantas.\n\n"
+                          + "Depois de mudar o plantio ou girar a vista, rode de novo para atualizar.",
+        };
+        if (onSheets.Count > 0)
+        {
+            dialog.AddCommandLink(TaskDialogCommandLinkId.CommandLink1, $"Fixar nas vistas 3D {(active is ViewSheet ? "desta prancha" : "das pranchas")} ({onSheets.Count})",
+                string.Join(", ", onSheets.Take(6).Select(v => v.Name)) + (onSheets.Count > 6 ? "…" : string.Empty));
+        }
+
+        if (active is View3D { IsTemplate: false } activeView)
+        {
+            dialog.AddCommandLink(TaskDialogCommandLinkId.CommandLink2, "Fixar só na vista ativa", activeView.Name);
+        }
+
+        int fixedCount = Viridian.Revit.Illustrated.FixedVegetation.FixedViewIds(doc).Count;
+        if (fixedCount > 0)
+        {
+            dialog.AddCommandLink(TaskDialogCommandLinkId.CommandLink3, $"Desfazer a fixação ({fixedCount} vista(s))", "Apaga as formas fixadas; as vistas voltam ao desenho ao vivo.");
+        }
+
+        if (onSheets.Count == 0 && active is not View3D && fixedCount == 0)
+        {
+            TaskDialog.Show("Viridian", "Não há vistas 3D em pranchas. Abra uma vista 3D ou uma prancha com vistas 3D e rode de novo.");
+            return Result.Cancelled;
+        }
+
+        dialog.CommonButtons = TaskDialogCommonButtons.Cancel;
+        TaskDialogResult choice = dialog.Show();
+        List<View3D> targets = choice switch
+        {
+            TaskDialogResult.CommandLink1 => onSheets,
+            TaskDialogResult.CommandLink2 when active is View3D v => new List<View3D> { v },
+            _ => new List<View3D>(),
+        };
+
+        if (choice == TaskDialogResult.CommandLink3)
+        {
+            HashSet<long> ids = Viridian.Revit.Illustrated.FixedVegetation.FixedViewIds(doc);
+            int removed = ctx.Grouped("Viridian: desfazer vegetação fixa", () => Tx.Run(doc, "Viridian: desfazer vegetação fixa", () =>
+                ids.Select(id => doc.GetElement(new ElementId(id))).OfType<View3D>().Sum(v => Viridian.Revit.Illustrated.FixedVegetation.Remove(doc, v))), _ => true);
+            Viridian.Revit.Illustrated.IllustratedVegetation.Invalidate();
+            TaskDialog.Show("Viridian", $"{removed} forma(s) apagada(s). As vistas voltaram ao desenho ao vivo.");
+            return Result.Succeeded;
+        }
+
+        if (targets.Count == 0)
+        {
+            return Result.Cancelled;
+        }
+
+        var result = new Viridian.Revit.Illustrated.FixedVegetationResult();
+        var materials = new Dictionary<Core.Colors.Rgb, ElementId>();
+        ctx.Grouped("Viridian: vegetação nas pranchas", () =>
+        {
+            foreach (View3D view in targets)
+            {
+                Tx.Run(doc, "Viridian: vegetação fixa - " + view.Name, () =>
+                {
+                    (int plants, int carpets, int failed) = Viridian.Revit.Illustrated.FixedVegetation.Fix(doc, view, materials);
+                    Viridian.Revit.Illustrated.FixedVegetation.CleanView(doc, view);
+                    result.Plants += plants;
+                    result.Carpets += carpets;
+                    result.Failed += failed;
+                    result.Views.Add(view.Name);
+                    return 0;
+                }, suppressWarnings: true);
+            }
+
+            return result;
+        }, _ => true);
+        Viridian.Revit.Illustrated.IllustratedVegetation.Invalidate();
+        TaskDialog.Show("Viridian", $"Vegetação fixada em {result.Views.Count} vista(s): {result.Plants} planta(s) e {result.Carpets} maciço(s)"
+                                    + (result.Failed > 0 ? $" ({result.Failed} recusado(s) pelo Revit: veja o registro)" : string.Empty)
+                                    + $", com {materials.Count} cor(es).\n\nAgora a vegetação sai na impressão, no PDF e no estilo Realista. Depois de mudar o plantio ou girar a vista, rode de novo.");
+        return Result.Succeeded;
+    }
+}

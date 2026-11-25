@@ -4,6 +4,14 @@ O código foi compilado contra a API oficial do Revit 2027 e a lógica sem depen
 
 Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Viridian\Logs` (Viridian > Sobre abre a pasta).
 
+## Conferência da versão 2.2.1 — pranchas, impressão e Realista (cerca de 10 minutos)
+
+1. Abra uma vista 3D com vegetação e mude para **Realista**: as plantas continuam aparecendo, com as mesmas cores.
+2. Coloque essa vista 3D numa **prancha** e abra a prancha: as plantas aparecem na janela de vista.
+3. Rode **Maquete 3D > Vegetação nas Pranchas** e escolha "Fixar nas vistas 3D das pranchas". **Imprima ou exporte a prancha em PDF**: as plantas saem. Confira também uma **renderização** da vista.
+4. Abra outra vista 3D (não fixada): as formas fixadas não aparecem nela; o desenho ao vivo continua. Abra uma planta: nada mudou.
+5. Mude o plantio ou gire a vista fixada e rode o comando de novo: as formas são refeitas. Na mesma janela, "Desfazer a fixação" volta ao desenho ao vivo.
+
 ## Conferência da versão 2.1 — catálogo inteiro, maciços e pedras (cerca de 20 minutos)
 
 1. Num projeto com várias espécies (árvores, palmeiras, arbustos, herbáceas, forrações, trepadeiras), rode **Atualizar Dados** uma vez. Abra a **vista 3D padrão**: todas aparecem ilustradas, sempre de frente para a câmera. Na primeira vez cada espécie pode levar um ou dois segundos para aparecer.

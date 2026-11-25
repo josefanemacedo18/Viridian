@@ -145,6 +145,54 @@ public static class AppearanceTextures
         }
     }
 
+    /// <summary>
+    /// Aparência de cor lisa (sem imagem) no material, para o estilo Realista e a renderização mostrarem a cor do
+    /// material em vez do cinza padrão. Precisa de transação. Falhas ficam só no registro.
+    /// </summary>
+    public static void SetPlainColor(Document document, Material material, Rgb color)
+    {
+        try
+        {
+            string assetName = "VIR Cor - " + color.Hex;
+            AppearanceAssetElement? asset = AppearanceAssetElement.GetAppearanceAssetElementByName(document, assetName);
+            if (asset is null)
+            {
+                Asset? template = GenericTemplate(document.Application);
+                if (template is null)
+                {
+                    return;
+                }
+
+                asset = AppearanceAssetElement.Create(document, assetName, template);
+                using var scope = new AppearanceAssetEditScope(document);
+                Asset editable = scope.Start(asset.Id);
+                if (editable.FindByName(Generic.GenericDiffuse) is AssetPropertyDoubleArray4d diffuse)
+                {
+                    // Sem imagem ligada à cor (o modelo genérico pode trazer uma).
+                    if (diffuse.GetSingleConnectedAsset() is not null)
+                    {
+                        diffuse.RemoveConnectedAsset();
+                    }
+
+                    diffuse.SetValueAsColor(new Color(color.R, color.G, color.B));
+                }
+
+                if (editable.FindByName(Generic.GenericReflectivityAt0deg) is AssetPropertyDouble reflectivity && reflectivity.IsValidValue(0.0))
+                {
+                    reflectivity.Value = 0.0;
+                }
+
+                scope.Commit(true);
+            }
+
+            material.AppearanceAssetId = asset.Id;
+        }
+        catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+        {
+            ViridianLog.Warn("Aparência de cor do material " + material.Name, ex);
+        }
+    }
+
     private static string SafeFileName(string text) =>
         string.Concat(text.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '-' : c));
 }

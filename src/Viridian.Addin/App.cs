@@ -205,6 +205,10 @@ public sealed class App : IExternalApplication
             Small<Engine3DTestCommand, ProjectAvailability>(assembly, "Diagnóstico 3D", "model3d-test",
                 "Opcional: confere no seu Revit uma família com símbolo 2D e volume 3D e as texturas na vista realista, e guarda um relatório para consulta. Não é preciso enviar nada."));
 
+        Large<FixVegetationCommand, ProjectAvailability>(model, assembly, "Vegetação\nnas Pranchas", "model3d-update",
+            "Fixa a vegetação ilustrada como formas reais nas vistas 3D das pranchas (ou na vista 3D ativa): sai na impressão, no PDF, nas imagens, no estilo Realista e na renderização.",
+            "O desenho ao vivo aparece só na tela. Fixada, cada vista recebe as formas de frente para a sua câmera, ocultas nas outras vistas e nas plantas. Rode de novo depois de mudar o plantio ou girar a vista; a mesma janela desfaz a fixação.");
+
         RibbonPanel check = app.CreateRibbonPanel(TabName, "Verificação");
         Large<CheckCommand, ProjectAvailability>(check, assembly, "Verificar\nProjeto", "check",
             "Encontra exemplares sem código, códigos repetidos, famílias não cadastradas, maciços inválidos, registros órfãos, conflitos de copa e de espaçamento.",
