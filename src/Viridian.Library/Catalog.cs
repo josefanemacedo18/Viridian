@@ -555,6 +555,84 @@ public sealed class CatalogService
         _store.Save(_catalog);
     }
 
+    /// <summary>
+    /// Grava de uma vez as alterações lidas de uma planilha (<see cref="CatalogSheet.Read"/>). Espécies inválidas
+    /// não são gravadas e entram nos problemas; códigos repetidos de espécies novas recebem o próximo código livre.
+    /// </summary>
+    public (int Updated, int Added, List<string> Problems) Import(CatalogImport import)
+    {
+        ArgumentNullException.ThrowIfNull(import);
+        var problems = new List<string>();
+        int updated = 0, added = 0;
+        var codes = new HashSet<string>(_catalog.Species.Select(s => s.Code.Trim()), StringComparer.OrdinalIgnoreCase);
+        foreach (Species species in import.Updated)
+        {
+            int index = _catalog.Species.FindIndex(s => string.Equals(s.Id, species.Id, StringComparison.OrdinalIgnoreCase));
+            if (index < 0)
+            {
+                continue;
+            }
+
+            IReadOnlyList<string> invalid = SpeciesValidator.Validate(species);
+            species.Code = (species.Code ?? string.Empty).Trim();
+            string oldCode = _catalog.Species[index].Code.Trim();
+            if (invalid.Count > 0)
+            {
+                problems.Add($"{species.PopularName}: {string.Join("; ", invalid)}");
+                continue;
+            }
+
+            if (species.Code.Length == 0)
+            {
+                species.Code = oldCode;
+            }
+            else if (!string.Equals(species.Code, oldCode, StringComparison.OrdinalIgnoreCase) && codes.Contains(species.Code))
+            {
+                problems.Add($"{species.PopularName}: o código {species.Code} já pertence a outra espécie; mantido {oldCode}.");
+                species.Code = oldCode;
+            }
+
+            codes.Remove(oldCode);
+            codes.Add(species.Code);
+            species.IsUserDefined = true;
+            _catalog.Species[index] = species;
+            updated++;
+        }
+
+        foreach (Species species in import.Added)
+        {
+            IReadOnlyList<string> invalid = SpeciesValidator.Validate(species);
+            if (invalid.Count > 0)
+            {
+                problems.Add($"{species.PopularName}: {string.Join("; ", invalid)}");
+                continue;
+            }
+
+            species.Code = (species.Code ?? string.Empty).Trim();
+            if (species.Code.Length == 0 || codes.Contains(species.Code))
+            {
+                string wanted = species.Code;
+                species.Code = CodeFormat.NextSpeciesCode(codes, species.Category);
+                if (wanted.Length > 0)
+                {
+                    problems.Add($"{species.PopularName}: o código {wanted} já existia; recebeu {species.Code}.");
+                }
+            }
+
+            codes.Add(species.Code);
+            species.IsUserDefined = true;
+            _catalog.Species.Add(species);
+            added++;
+        }
+
+        if (updated + added > 0)
+        {
+            _store.Save(_catalog);
+        }
+
+        return (updated, added, problems);
+    }
+
     public bool Remove(string id)
     {
         Species? species = Find(id);

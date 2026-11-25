@@ -549,6 +549,108 @@ public partial class SpeciesBrowserWindow : ViridianWindow
         }
     }
 
+    // ------------------------------------------------------------------ planilha
+
+    private void SheetButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (SheetButton.ContextMenu is ContextMenu menu)
+        {
+            menu.PlacementTarget = SheetButton;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Top;
+            menu.IsOpen = true;
+        }
+    }
+
+    private void ExportSheet_Click(object sender, RoutedEventArgs e)
+    {
+        List<Species> listed = (SpeciesGrid.ItemsSource as IEnumerable<SpeciesRow>)?.Select(r => r.Species).ToList() ?? new List<Species>();
+        if (listed.Count == 0)
+        {
+            Warn("Nenhuma espécie na lista. Limpe os filtros para exportar o catálogo inteiro.");
+            return;
+        }
+
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Exportar catálogo para planilha",
+            Filter = "Planilha do Excel (*.xlsx)|*.xlsx",
+            FileName = "Catálogo Viridian " + DateTime.Now.ToString("yyyy-MM-dd", Num.PtBr) + ".xlsx",
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            Viridian.Core.Export.XlsxWriter.Write(dialog.FileName, new[] { CatalogSheet.Export(listed) });
+            Inform($"{listed.Count} espécie(s) exportada(s) para:\n{dialog.FileName}\n\nEdite no Excel e use Importar planilha para trazer as alterações. Não altere a coluna Identificador.");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ViridianLog.Error("Falha ao exportar o catálogo.", ex);
+            Warn("Não foi possível gravar a planilha (feche-a no Excel se estiver aberta):\n" + ex.Message);
+        }
+    }
+
+    private void ImportSheet_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Importar planilha do catálogo",
+            Filter = "Planilha do Excel (*.xlsx)|*.xlsx",
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        CatalogImport import;
+        try
+        {
+            List<string[]> rows = Viridian.Core.Costs.PriceTableReader.ReadXlsx(dialog.FileName);
+            import = CatalogSheet.Read(rows, _catalog.All, _catalog.NewDraft);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or System.Xml.XmlException)
+        {
+            ViridianLog.Error("Falha ao ler a planilha do catálogo.", ex);
+            Warn("Não foi possível ler a planilha (feche-a no Excel se estiver aberta):\n" + ex.Message);
+            return;
+        }
+
+        string problems = import.Problems.Count == 0 ? string.Empty
+            : $"\n\n{import.Problems.Count} problema(s) (essas células ou linhas serão ignoradas):\n" + string.Join("\n", import.Problems.Take(12))
+              + (import.Problems.Count > 12 ? "\n…" : string.Empty);
+        if (!import.HasChanges)
+        {
+            Inform($"Nada a alterar: {import.Unchanged} espécie(s) iguais ao catálogo." + problems);
+            return;
+        }
+
+        string changed = string.Join(", ", import.Updated.Take(8).Select(s => s.PopularName)) + (import.Updated.Count > 8 ? "…" : string.Empty);
+        string added = string.Join(", ", import.Added.Take(8).Select(s => s.PopularName)) + (import.Added.Count > 8 ? "…" : string.Empty);
+        if (!Confirm($"{import.Updated.Count} espécie(s) alterada(s)" + (import.Updated.Count > 0 ? ": " + changed : string.Empty)
+                     + $"\n{import.Added.Count} espécie(s) nova(s)" + (import.Added.Count > 0 ? ": " + added : string.Empty)
+                     + $"\n{import.Unchanged} sem alteração" + problems
+                     + "\n\nGravar no catálogo? As espécies alteradas passam a ser do escritório (a atualização do catálogo padrão não as sobrescreve)."))
+        {
+            return;
+        }
+
+        try
+        {
+            (int updated, int addedCount, List<string> saveProblems) = _catalog.Import(import);
+            Refresh(null);
+            Inform($"{updated} espécie(s) atualizada(s) e {addedCount} nova(s) no catálogo."
+                   + (saveProblems.Count == 0 ? string.Empty : "\n\nNão gravadas ou ajustadas:\n" + string.Join("\n", saveProblems.Take(12))));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ViridianLog.Error("Falha ao gravar o catálogo.", ex);
+            Warn("Não foi possível gravar o catálogo em disco:\n" + ex.Message);
+        }
+    }
+
     private void Insert_Click(object sender, RoutedEventArgs e) => Finish(BrowserAction.Insert);
 
     private void Distribute_Click(object sender, RoutedEventArgs e) => Finish(BrowserAction.Distribute);
