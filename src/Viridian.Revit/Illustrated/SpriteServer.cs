@@ -11,8 +11,10 @@ namespace Viridian.Revit.Illustrated;
 /// <summary>
 /// Servidor do serviço DirectContext3D: a cada quadro desenhado pelo Revit, põe a imagem de cada exemplar de frente
 /// para a câmera (regra em <see cref="SpriteBillboard"/>) e envia os triângulos coloridos. As cores são as dos
-/// vértices, por isso não dependem de material: aparecem iguais em Sombreado, Cores consistentes e Realista. Em
-/// Linha oculta a imagem fica em preto e branco (contorno e fundo branco) e em Estrutura de arame só o contorno.
+/// vértices, por isso não dependem de material. Em Sombreado e Cores consistentes vão sem normais e sem luz (cor exata);
+/// no Realista vão com normais (o Realista só desenha geometria iluminável), sem cores fixadas no efeito, para que a
+/// cor de cada vértice seja respeitada. Em Linha oculta a imagem fica em preto e branco (contorno e fundo branco) e em
+/// Estrutura de arame só o contorno.
 /// </summary>
 internal sealed class SpriteServer : IDirectContext3DServer
 {
@@ -26,6 +28,8 @@ internal sealed class SpriteServer : IDirectContext3DServer
     private readonly object _lock = new();
     private VertexFormat? _format;
     private EffectInstance? _effect;
+    private VertexFormat? _litFormat;
+    private EffectInstance? _litEffect;
     private bool _errorLogged;
 
     public Guid GetServerId() => ServerId;
@@ -69,25 +73,30 @@ internal sealed class SpriteServer : IDirectContext3DServer
             {
                 DisplayStyle.Wireframe => Mode.Wire,
                 DisplayStyle.HLR => Mode.Line,
+                DisplayStyle.Realistic or DisplayStyle.RealisticWithEdges or DisplayStyle.Rendering => Mode.Lit,
                 _ => Mode.Color,
             };
 
             double forward = RevitUnits.ToFeet(IllustratedVegetation.ForwardM);
             lock (_lock)
             {
-                // Com normais: o estilo Realista só desenha geometria iluminável. A luz é anulada (emissiva branca e
-                // difusa preta), para a cor do desenho sair igual em todos os estilos.
+                // Sem luz (cor exata do vértice), como até a 2.2.0: Sombreado, Cores consistentes, Linha oculta, arame.
                 if (_format is null || _effect is null || !_format.IsValid() || !_effect.IsValid())
                 {
-                    _format = new VertexFormat(VertexFormatBits.PositionNormalColored);
-                    _effect = new EffectInstance(VertexFormatBits.PositionNormalColored);
-                    _effect.SetAmbientColor(new Color(0, 0, 0));
-                    _effect.SetDiffuseColor(new Color(0, 0, 0));
-                    _effect.SetSpecularColor(new Color(0, 0, 0));
-                    _effect.SetEmissiveColor(new Color(255, 255, 255));
-                    _effect.SetGlossiness(0);
-                    _effect.SetTransparency(0);
+                    _format = new VertexFormat(VertexFormatBits.PositionColored);
+                    _effect = new EffectInstance(VertexFormatBits.PositionColored);
                 }
+
+                // Realista: com normais, que ele exige. Nenhuma cor é fixada no efeito: cores fixadas (como a difusa
+                // preta da 2.2.1) passam por cima das cores dos vértices e deixavam a vegetação preta ou cinza.
+                if (_litFormat is null || _litEffect is null || !_litFormat.IsValid() || !_litEffect.IsValid())
+                {
+                    _litFormat = new VertexFormat(VertexFormatBits.PositionNormalColored);
+                    _litEffect = new EffectInstance(VertexFormatBits.PositionNormalColored);
+                }
+
+                VertexFormat format = mode == Mode.Lit ? _litFormat : _format;
+                EffectInstance effect = mode == Mode.Lit ? _litEffect : _effect;
 
                 // Tapetes dos maciços, no lugar (sem transformação).
                 DrawContext.SetWorldTransform(Transform.Identity);
@@ -98,7 +107,7 @@ internal sealed class SpriteServer : IDirectContext3DServer
                         break;
                     }
 
-                    _carpets.GetValue(carpet, c => new GpuSprite(c.Mesh.Vertices, c.Mesh.Triangles, Array.Empty<int>(), c.BaseFeet)).Draw(mode, _format, _effect);
+                    _carpets.GetValue(carpet, c => new GpuSprite(c.Mesh.Vertices, c.Mesh.Triangles, Array.Empty<int>(), c.BaseFeet)).Draw(mode, format, effect);
                 }
 
                 foreach (SpriteInstance instance in snapshot.Instances)
@@ -123,7 +132,7 @@ internal sealed class SpriteServer : IDirectContext3DServer
                     transform.BasisY = ToXyz(frame.Up);
                     transform.BasisZ = ToXyz(frame.Normal);
                     DrawContext.SetWorldTransform(transform);
-                    gpu.Draw(mode, _format, _effect);
+                    gpu.Draw(mode, format, effect);
                 }
 
                 DrawContext.SetWorldTransform(Transform.Identity);
@@ -145,7 +154,12 @@ internal sealed class SpriteServer : IDirectContext3DServer
 
     internal enum Mode
     {
+        /// <summary>Cores dos vértices sem luz (Sombreado, Cores consistentes).</summary>
         Color,
+
+        /// <summary>Cores dos vértices com normais (Realista e renderização).</summary>
+        Lit,
+
         Line,
         Wire,
     }
@@ -207,15 +221,31 @@ internal sealed class SpriteServer : IDirectContext3DServer
                 }
 
                 int vertexCount = vertices.Count;
-                var vb = new VertexBuffer(vertexCount * VertexPositionNormalColored.GetSizeInFloats());
-                vb.Map(vertexCount * VertexPositionNormalColored.GetSizeInFloats());
-                VertexStreamPositionNormalColored vs = vb.GetVertexStreamPositionNormalColored();
-                foreach (int index in vertices)
+                VertexBuffer vb;
+                if (mode == Mode.Lit)
                 {
-                    SpriteVertex v = _vertices[index];
-                    bool white = mode == Mode.Line && !v.Outline;
-                    byte r = white ? (byte)255 : v.Color.R, g = white ? (byte)255 : v.Color.G, b = white ? (byte)255 : v.Color.B;
-                    vs.AddVertex(new VertexPositionNormalColored(new XYZ(v.X * k, v.Y * k, v.Z * k + _baseFeet), XYZ.BasisZ, new ColorWithTransparency(r, g, b, 0)));
+                    // Normal na direção da câmera (o eixo Z da imagem aponta para ela).
+                    vb = new VertexBuffer(vertexCount * VertexPositionNormalColored.GetSizeInFloats());
+                    vb.Map(vertexCount * VertexPositionNormalColored.GetSizeInFloats());
+                    VertexStreamPositionNormalColored vs = vb.GetVertexStreamPositionNormalColored();
+                    foreach (int index in vertices)
+                    {
+                        SpriteVertex v = _vertices[index];
+                        vs.AddVertex(new VertexPositionNormalColored(new XYZ(v.X * k, v.Y * k, v.Z * k + _baseFeet), XYZ.BasisZ, new ColorWithTransparency(v.Color.R, v.Color.G, v.Color.B, 0)));
+                    }
+                }
+                else
+                {
+                    vb = new VertexBuffer(vertexCount * VertexPositionColored.GetSizeInFloats());
+                    vb.Map(vertexCount * VertexPositionColored.GetSizeInFloats());
+                    VertexStreamPositionColored vs = vb.GetVertexStreamPositionColored();
+                    foreach (int index in vertices)
+                    {
+                        SpriteVertex v = _vertices[index];
+                        bool white = mode == Mode.Line && !v.Outline;
+                        byte r = white ? (byte)255 : v.Color.R, g = white ? (byte)255 : v.Color.G, b = white ? (byte)255 : v.Color.B;
+                        vs.AddVertex(new VertexPositionColored(new XYZ(v.X * k, v.Y * k, v.Z * k + _baseFeet), new ColorWithTransparency(r, g, b, 0)));
+                    }
                 }
 
                 vb.Unmap();

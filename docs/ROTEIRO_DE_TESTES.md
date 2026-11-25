@@ -4,6 +4,13 @@ O código foi compilado contra a API oficial do Revit 2027 e a lógica sem depen
 
 Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Viridian\Logs` (Viridian > Sobre abre a pasta).
 
+## Conferência da versão 2.3.1 — cores da vegetação no 3D e faixa reorganizada (cerca de 10 minutos)
+
+1. Abra uma vista 3D com vegetação e passe por **Sombreado**, **Cores consistentes** e **Realista**: as plantas aparecem coloridas nos três (nada preto ou cinza). No Realista a cor pode ficar um pouco mais clara ou escura conforme a luz da vista.
+2. Coloque a vista 3D numa prancha, rode **Maquete 3D > Vegetação nas Pranchas** e exporte o **PDF**: as plantas saem coloridas.
+3. Se no Realista ao vivo as plantas ainda ficarem escuras, anote e me envie uma imagem; para a prancha e o PDF, a fixação (passo 2) já resolve.
+4. Confira a faixa: painéis na ordem Biblioteca, Plantio, Maciços, Canteiros, Composição, Pisos e Drenagem, Identificação, Documentação, Detalhamento, Quantitativos, Maquete 3D, Verificação e Configurações. **Floração na Planta** tem o botão *Criar calendário na prancha*; o **Diagnóstico 3D** está em Configurações.
+
 ## Conferência da versão 2.3.0 — canteiros, contorno, lista do projeto e floração (cerca de 25 minutos)
 
 1. **Compor Canteiro:** numa planta, escolha uma região de uns 10 × 3 m e clique no lado do muro. Adicione uma palmeira (sugerida como Destaque, 2 un.), um arbusto alto (Fundo), uma herbácea florida (Meio), uma forração em muda (Frente) e uma grama vendida em m² (Base). Confira a prévia: palmeiras espalhadas, faixas na ordem fundo → frente a partir do lado clicado. Mude as porcentagens e o papel de uma espécie e use *Sortear de novo*. Clique em **Plantar**: os exemplares saem com código, a forração vira maciço em hachura e um único Ctrl+Z desfaz tudo.

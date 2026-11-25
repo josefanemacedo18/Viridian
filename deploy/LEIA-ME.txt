@@ -1,4 +1,4 @@
-﻿VIRIDIAN 2.3.0 — Paisagismo 2D técnico para Autodesk Revit 2027
+﻿VIRIDIAN 2.3.1 — Paisagismo 2D técnico para Autodesk Revit 2027
 ==============================================================
 
 INSTALAR
@@ -39,6 +39,16 @@ PRIMEIROS PASSOS
 9. Estudo Solar (painel Composição): horas de sol com a sombra das copas e
    das edificações; Quadro de Especificação (painel Documentação); aba
    Compras nos relatórios.
+
+NOVIDADES DA 2.3.1
+- Vegetação ilustrada colorida de novo nas vistas 3D: em Sombreado e Cores
+  consistentes ela estava saindo preta, e no Realista cinza. Corrigido.
+- Faixa reorganizada na ordem do trabalho: Biblioteca, Plantio, Maciços,
+  Canteiros, Composição, Pisos e Drenagem, Identificação, Documentação,
+  Detalhamento, Quantitativos, Maquete 3D, Verificação e Configurações.
+- Calendário de Floração agora fica dentro de Floração na Planta (botão
+  "Criar calendário na prancha").
+- Diagnóstico 3D foi para o painel Configurações.
 
 NOVIDADES DA 2.3
 - Canteiros (painel novo): Compor Canteiro planta várias espécies numa só
