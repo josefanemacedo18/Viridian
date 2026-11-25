@@ -22,10 +22,15 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Label Content="_Pesquisar" Target="{Binding ElementName=SearchBox}" Padding="0" VerticalAlignment="Center" Margin="0,0,8,0" />
             <TextBox x:Name="SearchBox" Grid.Column="1" TextChanged="Search_Changed" PreviewKeyDown="SearchBox_PreviewKeyDown"
                      AutomationProperties.Name="Pesquisar espécie" ToolTip="Código, nome popular ou científico. Sem texto, aparecem as espécies usadas por último." />
+            <CheckBox x:Name="ProjectOnlyBox" Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center" Content="Só do p_rojeto"
+                      Checked="ProjectOnly_Changed" Unchecked="ProjectOnly_Changed"
+                      AutomationProperties.Name="Mostrar só as espécies do projeto"
+                      ToolTip="Lista curta com as espécies já plantadas neste projeto (exemplares e maciços), para repetir as escolhas sem procurar no catálogo inteiro." />
         </Grid>
         <DataGrid x:Name="SpeciesGrid" Grid.Row="2" Margin="0,0,12,0" SelectionChanged="SpeciesGrid_SelectionChanged" MouseDoubleClick="SpeciesGrid_DoubleClick">
             <DataGrid.Columns>
@@ -43,6 +48,7 @@
                 <DataGridTextColumn Header="Nome popular" Binding="{Binding PopularName}" Width="*" />
                 <DataGridTextColumn Header="Nome científico" Binding="{Binding ScientificName}" Width="*" FontStyle="Italic" />
                 <DataGridTextColumn Header="Copa" Binding="{Binding CrownText}" Width="60" ElementStyle="{StaticResource VirRightCell}" />
+                <DataGridTextColumn x:Name="UsageColumn" Header="No projeto" Binding="{Binding UsageText}" Width="150" />
             </DataGrid.Columns>
         </DataGrid>
 

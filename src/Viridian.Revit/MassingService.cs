@@ -283,6 +283,14 @@ public sealed class MassingService
         return Members(document, record.Id).Count(m => m.Location is LocationPoint p && !polygon.Contains(RevitUnits.ToPoint2(p.Point)));
     }
 
+    /// <summary>Elementos que representam o maciço na planta: a região e os seus exemplares ou componentes de detalhe.</summary>
+    public static List<ElementId> ElementIdsOf(Document document, FilledRegion region, string massingId)
+    {
+        var ids = new List<ElementId> { region.Id };
+        ids.AddRange(Members(document, massingId).Select(m => m.Id));
+        return ids;
+    }
+
     /// <summary>Exemplares e componentes de detalhe ligados a um maciço.</summary>
     private static List<Element> Members(Document document, string massingId)
     {

@@ -172,6 +172,9 @@ public sealed class App : IExternalApplication
             Small<SolarStudyCommand, ProjectAvailability>(assembly, "Estudo Solar", "solar",
                 "Horas de sol direto mês a mês numa região, com a sombra das copas adultas, das edificações e do terreno, pelas coordenadas da obra: calendário de luz, mapas coloridos em cópias da planta e plantas que não recebem a luz que pedem, com sugestões de espécies."));
 
+        Large<FloweringPanelCommand, ProjectAvailability>(composition, assembly, "Floração\nna Planta", "calendar",
+            "Painel de consulta: por maciço e por espécie isolada da vista, os meses floridos nas cores das flores e os meses sem flor. Nada é desenhado na planta.",
+            "Escolha um mês para ver o que está florido e, se quiser, isolar temporariamente na vista só o que floresce nele (Redefinir ocultar/isolar temporário volta ao normal).");
         Large<IndicateNorthCommand, ProjectAvailability>(composition, assembly, "Indicar\nNorte", "solar",
             "Indique o norte verdadeiro clicando na planta: um ponto qualquer e depois a direção do norte. O estudo solar e as sombras seguem essa direção, mesmo com o projeto desenhado girado.",
             "Fica gravado no projeto (só no Viridian) ou, se preferir, gira também o norte verdadeiro do Revit (Gerenciar > Posição).");

@@ -108,6 +108,9 @@ public sealed class ViridianSettings
     /// <summary>Grava o código da espécie em "Marca de tipo" e o código do exemplar em "Marca".</summary>
     public bool SyncMarks { get; set; } = true;
 
+    /// <summary>Seletor rápido mostrando só as espécies já usadas no projeto aberto.</summary>
+    public bool QuickPickProjectOnly { get; set; }
+
     /// <summary>Espécies usadas por último (identificadores), mostradas primeiro nos seletores rápidos.</summary>
     public List<string> RecentSpecies { get; set; } = new();
 

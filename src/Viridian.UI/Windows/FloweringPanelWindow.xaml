@@ -1,0 +1,103 @@
+<ui:ViridianWindow x:Class="Viridian.UI.Windows.FloweringPanelWindow"
+                   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:ui="clr-namespace:Viridian.UI"
+                   Title="Viridian — Floração na planta"
+                   Width="1040" Height="600" MinWidth="820" MinHeight="420">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock x:Name="HeaderText" Style="{StaticResource VirHeader}" Text="Floração na planta" Margin="0" />
+        <TextBlock Grid.Row="1" Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="0,4,0,8"
+                   Text="Cada linha é um maciço ou as plantas isoladas de uma espécie desta vista, com os meses pintados na cor da flor (cinza: floração discreta). Confira a continuidade antes de fechar a escolha; nada é desenhado na planta." />
+
+        <DataGrid x:Name="GroupsGrid" Grid.Row="2" SelectionChanged="GroupsGrid_SelectionChanged" MouseDoubleClick="GroupsGrid_DoubleClick"
+                  AutomationProperties.Name="Floração por maciço e espécie" RowHeight="34">
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Header="Maciço ou espécie" Width="*" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Title}" FontWeight="{Binding TitleWeight}" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding Detail}" Style="{StaticResource VirHint}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Width="456" IsReadOnly="True">
+                    <DataGridTemplateColumn.Header>
+                        <ItemsControl x:Name="MonthHeader" Width="444">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Rows="1" Columns="12" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" HorizontalAlignment="Center" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </DataGridTemplateColumn.Header>
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ItemsControl ItemsSource="{Binding Cells}" Width="444" VerticalAlignment="Center">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Rows="1" Columns="12" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Height="18" Margin="1,0" CornerRadius="3" Background="{Binding Fill}"
+                                                BorderBrush="{Binding Edge}" BorderThickness="{Binding EdgeThickness}" ToolTip="{Binding Tip}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Meses sem flor" Binding="{Binding GapText}" Width="190">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap" />
+                            <Setter Property="VerticalAlignment" Value="Center" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Grid Grid.Row="3" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="140" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Label Content="_Mês" Target="{Binding ElementName=MonthBox}" Padding="0" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <ComboBox x:Name="MonthBox" Grid.Column="1" SelectionChanged="MonthBox_SelectionChanged" AutomationProperties.Name="Mês a conferir" />
+            <TextBlock x:Name="MonthText" Grid.Column="2" Style="{StaticResource VirValue}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="12,0,0,0" />
+        </Grid>
+
+        <Grid Grid.Row="4" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Style="{StaticResource VirHint}" TextWrapping="Wrap" VerticalAlignment="Center"
+                       Text="Isolar é temporário: para voltar ao normal, use Redefinir ocultar/isolar temporário (ícone dos óculos) na barra da vista. Duplo clique numa linha seleciona os elementos dela." />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="12,0,0,0">
+                <Button x:Name="IsolateButton" Content="_Isolar na vista" Click="Isolate_Click" Style="{StaticResource VirPrimaryButton}"
+                        ToolTip="Mostra na vista ativa só o que floresce no mês escolhido (da linha selecionada), sem alterar o projeto." />
+                <Button x:Name="SelectButton" Content="_Selecionar" Click="Select_Click"
+                        ToolTip="Seleciona os elementos da linha que florescem no mês escolhido." />
+                <Button Content="Fechar" IsCancel="True" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</ui:ViridianWindow>

@@ -6,6 +6,7 @@ using System.Windows.Media.Imaging;
 using Viridian.Core.Colors;
 using Viridian.Core.Config;
 using Viridian.Core.Model;
+using Viridian.Core.Reports;
 using Viridian.Core.Scale;
 using Viridian.Core.Symbols;
 using Viridian.Library;
@@ -24,14 +25,18 @@ public partial class QuickSpeciesWindow : ViridianWindow
     private readonly LibraryPaths _paths;
     private readonly ViridianSettings _settings;
     private readonly bool _insertOptions;
+    private readonly IReadOnlyDictionary<string, SpeciesUsage> _usage;
     private string _lastVariantSpecies = string.Empty;
 
     /// <param name="caption">Título (por exemplo, "Inserir vegetação").</param>
     /// <param name="actionLabel">Texto do botão principal (por exemplo, "Inserir").</param>
     /// <param name="insertOptions">Mostra as opções dos exemplares (variante, situação, estágio, observações).</param>
     /// <param name="actionHint">Explicação do que acontece depois de confirmar.</param>
-    public QuickSpeciesWindow(CatalogService catalog, LibraryPaths paths, ViridianSettings settings, string caption, string actionLabel, bool insertOptions, string actionHint)
+    /// <param name="usage">Espécies já usadas no projeto aberto (lista do projeto); nulo fora de um projeto.</param>
+    public QuickSpeciesWindow(CatalogService catalog, LibraryPaths paths, ViridianSettings settings, string caption, string actionLabel, bool insertOptions, string actionHint,
+        IReadOnlyDictionary<string, SpeciesUsage>? usage = null)
     {
+        _usage = usage ?? new Dictionary<string, SpeciesUsage>();
         _catalog = catalog;
         _paths = paths;
         _settings = settings;
@@ -48,6 +53,16 @@ public partial class QuickSpeciesWindow : ViridianWindow
         }
 
         StatusBox.SelectedIndex = 0;
+        int inProject = _catalog.All.Count(s => _usage.ContainsKey(s.Id));
+        ProjectOnlyBox.Content = inProject > 0 ? $"Só do p_rojeto ({inProject})" : "Só do p_rojeto";
+        ProjectOnlyBox.IsEnabled = inProject > 0;
+        if (inProject == 0)
+        {
+            ProjectOnlyBox.ToolTip = "Nenhuma espécie do catálogo plantada neste projeto ainda.";
+            UsageColumn.Visibility = Visibility.Collapsed;
+        }
+
+        ProjectOnlyBox.IsChecked = inProject > 0 && settings.QuickPickProjectOnly;
         Refresh(null);
         Loaded += (_, _) => SearchBox.Focus();
     }
@@ -61,7 +76,22 @@ public partial class QuickSpeciesWindow : ViridianWindow
     {
         string text = SearchBox.Text.Trim();
         List<Species> found;
-        if (text.Length == 0)
+        if (ProjectOnlyBox.IsChecked == true)
+        {
+            // Lista do projeto: recentes primeiro, depois pela quantidade usada.
+            var recentOrder = _settings.RecentSpecies
+                .Select((id, i) => (id, i))
+                .GroupBy(x => x.id, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First().i, StringComparer.OrdinalIgnoreCase);
+            IEnumerable<Species> project = text.Length == 0 ? _catalog.All : _catalog.Search(new SpeciesFilter { Text = text });
+            found = project.Where(s => _usage.ContainsKey(s.Id))
+                .OrderBy(s => recentOrder.GetValueOrDefault(s.Id, int.MaxValue))
+                .ThenByDescending(s => _usage[s.Id].Plants + _usage[s.Id].Massings)
+                .ThenBy(s => s.Code, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            CountText.Text = found.Count == 1 ? "1 espécie do projeto" : $"{found.Count} espécies do projeto";
+        }
+        else if (text.Length == 0)
         {
             // Sem pesquisa: recentes primeiro, depois o catálogo em ordem de código.
             var recent = _settings.RecentSpecies.Select(_catalog.Find).OfType<Species>().ToList();
@@ -75,7 +105,9 @@ public partial class QuickSpeciesWindow : ViridianWindow
             CountText.Text = found.Count == 1 ? "1 espécie encontrada" : $"{found.Count} espécies encontradas";
         }
 
-        List<SpeciesRow> rows = found.Take(MaxRows).Select(s => new SpeciesRow(s, _settings.Colors)).ToList();
+        List<SpeciesRow> rows = found.Take(MaxRows)
+            .Select(s => new SpeciesRow(s, _settings.Colors) { UsageText = _usage.TryGetValue(s.Id, out SpeciesUsage? u) ? u.Describe() : string.Empty })
+            .ToList();
         SpeciesGrid.ItemsSource = rows;
         SpeciesRow? select = rows.FirstOrDefault(r => string.Equals(r.Species.Id, selectId, StringComparison.OrdinalIgnoreCase)) ?? rows.FirstOrDefault();
         SpeciesGrid.SelectedItem = select;
@@ -160,6 +192,17 @@ public partial class QuickSpeciesWindow : ViridianWindow
         {
             ViridianLog.Warn("Fotografia ilegível: " + species.PhotoFile, ex);
         }
+    }
+
+    private void ProjectOnly_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!IsInitialized)
+        {
+            return;
+        }
+
+        _settings.QuickPickProjectOnly = ProjectOnlyBox.IsChecked == true;
+        Refresh(SelectedSpecies?.Id);
     }
 
     private void Search_Changed(object sender, TextChangedEventArgs e)

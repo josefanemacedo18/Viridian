@@ -147,6 +147,55 @@ public sealed class FloweringCalendarCommand : CommandBase
     }
 }
 
+/// <summary>
+/// Painel de consulta da floração na planta: meses floridos por maciço e por espécie isolada da vista ativa, nas cores
+/// das flores. Não desenha nada; pode isolar temporariamente na vista o que floresce em um mês.
+/// </summary>
+[Transaction(TransactionMode.Manual)]
+[Regeneration(RegenerationOption.Manual)]
+public sealed class FloweringPanelCommand : CommandBase
+{
+    internal override Result Run(ViridianContext ctx)
+    {
+        ViewPlan view = ctx.RequirePlanView();
+        var massings = new List<(string Title, Species Species, IReadOnlyList<long> ElementIds)>();
+        foreach ((MassingInfo info, Species species) in DesignFlows.Massings(ctx, view))
+        {
+            if (ctx.Doc.GetElement(new ElementId(info.ElementId)) is FilledRegion region)
+            {
+                massings.Add((info.Record.Id, species, MassingService.ElementIdsOf(ctx.Doc, region, info.Record.Id).Select(id => id.Value).ToList()));
+            }
+        }
+
+        List<(Species Species, long ElementId)> plants = DesignFlows.Plants(ctx, view).Select(p => (p.Species, p.Record.ElementId)).ToList();
+        IReadOnlyList<FloweringGroup> groups = FloweringMap.Build(massings, plants, ctx.ProjectCode);
+        if (groups.Count == 0)
+        {
+            throw new ViridianException("Não há exemplares nem maciços do catálogo nesta vista.");
+        }
+
+        var window = new FloweringPanelWindow(view.Name, groups, DateTime.Now.Month);
+        if (!ctx.ShowDialog(window) || window.ElementIds.Count == 0)
+        {
+            return Result.Cancelled;
+        }
+
+        var ids = window.ElementIds.Select(id => new ElementId(id)).Where(id => ctx.Doc.GetElement(id) is not null).ToList();
+        if (ids.Count == 0)
+        {
+            return Result.Cancelled;
+        }
+
+        if (window.Action == FloweringPanelAction.Isolar && view.CanUseTemporaryVisibilityModes())
+        {
+            Tx.Run(ctx.Doc, "Viridian: isolar floração do mês", () => view.IsolateElementsTemporary(ids));
+        }
+
+        ctx.UiDocument.Selection.SetElementIds(ids);
+        return Result.Succeeded;
+    }
+}
+
 /// <summary>Verifica a composição de um canteiro: equilíbrio, diversidade, textura, escala, sub-bosque e floração.</summary>
 [Transaction(TransactionMode.Manual)]
 [Regeneration(RegenerationOption.Manual)]

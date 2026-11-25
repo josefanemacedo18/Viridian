@@ -35,7 +35,8 @@ internal static class PlantingFlows
     {
         ctx.RequirePlanView();
         var window = new QuickSpeciesWindow(ctx.Catalog, ctx.Paths, ctx.Settings, "Inserir vegetação", "Inserir", true,
-            "Depois de confirmar, o símbolo acompanha o cursor: clique na vista para posicionar cada exemplar e pressione ESC para concluir.");
+            "Depois de confirmar, o símbolo acompanha o cursor: clique na vista para posicionar cada exemplar e pressione ESC para concluir.",
+            ctx.ProjectUsage());
         if (!ctx.ShowDialog(window) || window.SelectedSpecies is not Species species)
         {
             return Result.Cancelled;

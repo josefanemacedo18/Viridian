@@ -42,6 +42,9 @@ public sealed class SpeciesRow
 
     public string ColorTip { get; }
 
+    /// <summary>Uso no projeto aberto (seletor rápido), por exemplo "12 un. · 1 maciço (8 m²)".</summary>
+    public string UsageText { get; init; } = string.Empty;
+
     private static System.Windows.Media.Brush Brush(Rgb color)
     {
         var brush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(color.R, color.G, color.B));

@@ -6,6 +6,7 @@ using Microsoft.Win32;
 using Viridian.Core.Config;
 using Viridian.Core.Geometry;
 using Viridian.Core.Model;
+using Viridian.Core.Reports;
 using Viridian.Library;
 using Viridian.Revit;
 using Viridian.UI;
@@ -129,7 +130,7 @@ internal sealed class ViridianContext
     /// <summary>Seletor rápido de espécie (recentes no topo). Lança cancelamento quando o usuário fecha a janela.</summary>
     public Species PickSpecies(string caption, string actionLabel = "Continuar", string hint = "")
     {
-        var picker = new QuickSpeciesWindow(Catalog, Paths, Settings, caption, actionLabel, false, hint);
+        var picker = new QuickSpeciesWindow(Catalog, Paths, Settings, caption, actionLabel, false, hint, ProjectUsage());
         if (!ShowDialog(picker) || picker.SelectedSpecies is null)
         {
             throw new CommandCancelledException();
@@ -137,6 +138,30 @@ internal sealed class ViridianContext
 
         RememberSpecies(picker.SelectedSpecies);
         return picker.SelectedSpecies;
+    }
+
+    /// <summary>
+    /// Espécies já usadas no projeto aberto (exemplares e maciços), lidas na hora para nunca ficarem desatualizadas.
+    /// Vazio quando não há projeto ou a leitura falha (o seletor continua funcionando com o catálogo inteiro).
+    /// </summary>
+    public IReadOnlyDictionary<string, SpeciesUsage> ProjectUsage()
+    {
+        try
+        {
+            if (UiDoc?.Document is not Document document || document.IsFamilyDocument)
+            {
+                return new Dictionary<string, SpeciesUsage>();
+            }
+
+            return ProjectSpecies.Build(
+                PlantingService.ReadPlants(document, Lookup),
+                MassingService.ReadMassings(document).Select(m => m.Record));
+        }
+        catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+        {
+            ViridianLog.Warn("Não foi possível ler as espécies do projeto.", ex);
+            return new Dictionary<string, SpeciesUsage>();
+        }
     }
 
     /// <summary>Coloca a espécie no topo da lista de recentes.</summary>
