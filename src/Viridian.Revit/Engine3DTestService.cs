@@ -508,10 +508,10 @@ public static class Engine3DTestService
             using (var scope = new AppearanceAssetEditScope(document))
             {
                 Asset editable = scope.Start(asset.Id);
-                notes.Add(ConnectBitmap(editable.FindByName(Generic.GenericDiffuse), bitmap, sizeM, "cor (difusa)"));
+                notes.Add(AppearanceTextures.ConnectBitmap(editable.FindByName(Generic.GenericDiffuse), bitmap, sizeM, "cor (difusa)"));
                 if (cutout is not null)
                 {
-                    notes.Add(ConnectBitmap(editable.FindByName(Generic.GenericCutoutOpacity), cutout, sizeM, "recorte"));
+                    notes.Add(AppearanceTextures.ConnectBitmap(editable.FindByName(Generic.GenericCutoutOpacity), cutout, sizeM, "recorte"));
                 }
 
                 scope.Commit(true);
@@ -523,57 +523,6 @@ public static class Engine3DTestService
 
         return id;
     }
-
-    /// <summary>Liga uma imagem (bitmap unificado) a uma propriedade da aparência e ajusta o tamanho real da imagem.</summary>
-    private static string ConnectBitmap(AssetProperty? property, string file, double sizeM, string label)
-    {
-        if (property is null)
-        {
-            return $"{label}: propriedade não encontrada";
-        }
-
-        Asset? connected = property.GetSingleConnectedAsset();
-        if (connected is null)
-        {
-            property.AddConnectedAsset("UnifiedBitmapSchema");
-            connected = property.GetSingleConnectedAsset();
-        }
-
-        if (connected?.FindByName(UnifiedBitmap.UnifiedbitmapBitmap) is not AssetPropertyString path)
-        {
-            return $"{label}: não aceitou imagem";
-        }
-
-        if (!path.IsValidValue(file))
-        {
-            return $"{label}: caminho não aceito";
-        }
-
-        path.Value = file;
-        string scale = string.Empty;
-        foreach (string axis in new[] { UnifiedBitmap.TextureRealWorldScaleX, UnifiedBitmap.TextureRealWorldScaleY })
-        {
-            if (connected.FindByName(axis) is AssetPropertyDistance distance)
-            {
-                double value = ToUnit(sizeM, distance.GetUnitTypeId());
-                if (distance.IsValidValue(value))
-                {
-                    distance.Value = value;
-                    scale = $" ({sizeM:0.##} m)";
-                }
-            }
-        }
-
-        return $"{label}: imagem ligada{scale}";
-    }
-
-    private static double ToUnit(double meters, ForgeTypeId unit) =>
-        unit == UnitTypeId.Inches ? meters / 0.0254
-        : unit == UnitTypeId.Feet ? meters / 0.3048
-        : unit == UnitTypeId.Centimeters ? meters * 100
-        : unit == UnitTypeId.Millimeters ? meters * 1000
-        : unit == UnitTypeId.Meters ? meters
-        : UnitUtils.ConvertToInternalUnits(meters, UnitTypeId.Meters);
 
     private static DirectShape? Shape(Document document, IReadOnlyList<MeshPiece> pieces, Func<MeshPart, ElementId> material, string name)
     {

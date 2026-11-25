@@ -308,6 +308,40 @@ public partial class StoneWindow : ViridianWindow
         UpdatePreview();
     }
 
+    private string _textureKey = string.Empty;
+
+    /// <summary>Amostra da textura gerada para o material (a mesma que vai para a aparência do material no Revit).</summary>
+    private void ShowTexture(LooseMaterial m)
+    {
+        string key = StoneTexture.Signature(m);
+        if (key == _textureKey)
+        {
+            return;
+        }
+
+        _textureKey = key;
+        try
+        {
+            Core.Model3D.Textures.RgbaImage image = StoneTexture.Render(m, 256);
+            using var stream = new System.IO.MemoryStream(Core.Model3D.Textures.PngWriter.Encode(image));
+            var bitmap = new System.Windows.Media.Imaging.BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+            bitmap.StreamSource = stream;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            TextureImage.Source = bitmap;
+            double cm = StoneTexture.TileMeters(m) * 100;
+            TextureText.Text = $"Amostra de {Num.Format(cm, "0")} × {Num.Format(cm, "0")} cm, gerada a partir do tipo, da granulometria e das cores do material. "
+                               + "No Revit ela vai para a aparência do material, na escala real; a hachura continua para a leitura em planta.";
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NotSupportedException)
+        {
+            TextureImage.Source = null;
+            TextureText.Text = "Não foi possível gerar a amostra da textura.";
+        }
+    }
+
     private void UpdatePreview()
     {
         SetSwatch(ColorSwatch, ColorBox.Text);
@@ -324,6 +358,7 @@ public partial class StoneWindow : ViridianWindow
 
         PavingType t = LooseMaterialUse.ToPaving(m, use);
         Swatch.Show(t);
+        ShowTexture(m);
         string layers = t.Layers.Count == 0 ? "sem camadas sob o material" : string.Join("; ", t.Layers.Select(l => l.Kind == PavingLayerKind.Manta ? l.Name : $"{l.Name} {PavingDetail.Cm(l.ThicknessMm)}"));
         SwatchText.Text = $"Amostra de 1,0 m · {LooseMaterialUse.Description(m)}\n{LooseLabels.Of(use)}: camada de {PavingDetail.Cm(t.ThicknessMm)}; {layers}."
                           + (_dirty ? "\n(alterações não salvas)" : string.Empty);

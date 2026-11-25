@@ -110,6 +110,36 @@ public sealed class StoneCommand : CommandBase
         }
 
         string useText = LooseLabels.Of(window.Use).ToLowerInvariant();
+
+        // Textura do material (Realista e renderização), gerada a partir dos dados da pedra e gravada na biblioteca.
+        (string File, double SizeM, Core.Colors.Rgb Average)? texture = null;
+        if (window.Action is StoneAction.Apply or StoneAction.FillRegion or StoneAction.Border or StoneAction.CreateType)
+        {
+            try
+            {
+                texture = AppearanceTextures.StoneTexture(ctx.Paths, material);
+            }
+            catch (ViridianException ex)
+            {
+                ViridianLog.Warn("Textura da pedra não gerada: " + ex.Message);
+            }
+        }
+
+        FloorType StoneType()
+        {
+            FloorType created = PavingService.EnsureFloorType(ctx.Doc, type);
+            if (texture is { } t)
+            {
+                string? note = AppearanceTextures.ApplyStone(ctx.Doc, PavingService.EnsureMaterial(ctx.Doc, type), t.File, t.SizeM, t.Average);
+                if (note is not null)
+                {
+                    ViridianLog.Warn($"Textura de \"{type.Name}\": {note}");
+                }
+            }
+
+            return created;
+        }
+
         switch (window.Action)
         {
             case StoneAction.Apply:
@@ -117,7 +147,7 @@ public sealed class StoneCommand : CommandBase
                 (FloorType floorType, int changed) = ctx.Grouped("Viridian: aplicar pedra", () =>
                     Tx.Run(ctx.Doc, "Viridian: aplicar pedra", () =>
                     {
-                        FloorType created = PavingService.EnsureFloorType(ctx.Doc, type);
+                        FloorType created = StoneType();
                         return (created, PavingService.Apply(ctx.Doc, created, floors));
                     }, suppressWarnings: true), _ => true);
                 TaskDialog.Show("Viridian", $"\"{floorType.Name}\" aplicado a {changed} piso(s), como {useText}.");
@@ -132,7 +162,7 @@ public sealed class StoneCommand : CommandBase
                 Floor floor = ctx.Grouped("Viridian: cobrir região", () =>
                     Tx.Run(ctx.Doc, "Viridian: cobrir região", () =>
                     {
-                        FloorType created = PavingService.EnsureFloorType(ctx.Doc, type);
+                        FloorType created = StoneType();
                         return StoneService.CreateFloor(ctx.Doc, created, region.Polygon, level);
                     }, suppressWarnings: true), _ => true);
                 (double volume, double? weight, int? bags) = LooseMaterialUse.Purchase(material, window.Use, region.Polygon.Area);
@@ -156,7 +186,7 @@ public sealed class StoneCommand : CommandBase
                 (List<Floor> created, int failed) = ctx.Grouped("Viridian: borda de caminho", () =>
                     Tx.Run(ctx.Doc, "Viridian: borda de caminho", () =>
                     {
-                        FloorType floorType = PavingService.EnsureFloorType(ctx.Doc, type);
+                        FloorType floorType = StoneType();
                         return StoneService.CreateBorders(ctx.Doc, floorType, paths, window.BorderWidthM, window.BorderSide, level, around);
                     }, suppressWarnings: true), r => r.Created.Count > 0);
                 if (created.Count == 0)
@@ -176,8 +206,9 @@ public sealed class StoneCommand : CommandBase
             case StoneAction.CreateType:
             {
                 FloorType floorType = ctx.Grouped("Viridian: tipo de piso", () =>
-                    Tx.Run(ctx.Doc, "Viridian: tipo de piso", () => PavingService.EnsureFloorType(ctx.Doc, type), suppressWarnings: true), _ => true);
-                TaskDialog.Show("Viridian", $"Tipo de piso \"{floorType.Name}\" criado (ou atualizado), com espessura total de {PavingDetail.Cm(type.TotalThicknessMm)}.\n\nUse Arquitetura > Piso e escolha o tipo.");
+                    Tx.Run(ctx.Doc, "Viridian: tipo de piso", StoneType, suppressWarnings: true), _ => true);
+                TaskDialog.Show("Viridian", $"Tipo de piso \"{floorType.Name}\" criado (ou atualizado), com espessura total de {PavingDetail.Cm(type.TotalThicknessMm)}"
+                                            + (texture is null ? "." : ", com a textura da pedra no estilo Realista.") + "\n\nUse Arquitetura > Piso e escolha o tipo.");
                 break;
             }
 

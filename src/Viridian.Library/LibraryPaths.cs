@@ -41,6 +41,9 @@ public sealed class LibraryPaths
 
     public string Profiles3DFile => Path.Combine(DataFolder, "perfis-3d.json");
 
+    /// <summary>Texturas geradas das pedras e coberturas (uma imagem por material, refeita quando ele muda).</summary>
+    public string StoneTexturesFolder => Path.Combine(Root, "Texturas", "Pedras");
+
     /// <summary>Famílias 2D geradas pelo plugin, organizadas por categoria.</summary>
     public string GeneratedFolder(PlantCategory category) => Path.Combine(Root, "Familias", Labels.Folder(category));
 

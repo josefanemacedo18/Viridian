@@ -135,6 +135,12 @@
                 </Border>
                 <TextBlock x:Name="SwatchText" Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="0,4,0,0" />
 
+                <TextBlock Style="{StaticResource VirSection}" Text="Textura (estilo Realista e renderização)" />
+                <Border BorderBrush="{DynamicResource VirBorder}" BorderThickness="1" Margin="0,2,0,0" HorizontalAlignment="Left">
+                    <Image x:Name="TextureImage" Width="200" Height="200" Stretch="Fill" AutomationProperties.Name="Amostra da textura da pedra" />
+                </Border>
+                <TextBlock x:Name="TextureText" Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="0,4,0,0" />
+
                 <TextBlock Style="{StaticResource VirSection}" Text="Quanto comprar" />
                 <DockPanel>
                     <Label Content="Área (m²)" Target="{Binding ElementName=AreaBox}" Padding="0,0,8,0" VerticalAlignment="Center" DockPanel.Dock="Left" />

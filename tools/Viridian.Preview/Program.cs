@@ -12,6 +12,25 @@ using Viridian.Library;
 // Uso: Viridian.Preview <pasta de saída>
 string outDir = args.Length > 0 ? args[0] : "preview";
 Directory.CreateDirectory(outDir);
+if (args.Contains("--pedras"))
+{
+    // Texturas das pedras e coberturas: uma imagem por material e um índice (para conferência).
+    string folder = Path.Combine(outDir, "pedras-texturas");
+    Directory.CreateDirectory(folder);
+    var lines = new List<string>();
+    foreach (var m in Viridian.Core.Paving.LooseMaterialDefaults.Create())
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var image = Viridian.Core.Paving.StoneTexture.Render(m);
+        Viridian.Core.Model3D.Textures.PngWriter.Save(image, Path.Combine(folder, m.Id + ".png"));
+        lines.Add($"{m.Id};{m.Name};{m.Kind};{Viridian.Core.Paving.StoneTexture.TileMeters(m):0.00};{watch.ElapsedMilliseconds}");
+    }
+
+    File.WriteAllLines(Path.Combine(folder, "indice.csv"), lines);
+    Console.WriteLine($"{lines.Count} texturas");
+    return;
+}
+
 if (args.Contains("--catalogo"))
 {
     // Vegetação ilustrada de todo o catálogo (conferência por categoria).
