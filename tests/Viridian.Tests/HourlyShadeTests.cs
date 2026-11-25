@@ -138,7 +138,8 @@ public class HourlyShadeTests
         Assert.Contains(d.Texts, t => t.Text.StartsWith("sol a", StringComparison.Ordinal));
         Assert.Contains(d.Texts, t => t.Text == "AR-1 Fícus");
         Assert.True(d.Fills.Count < 400, d.Fills.Count.ToString()); // faixas agrupadas, não uma célula por ponto
-        Assert.Contains(d.Lines, l => l.Dashed);
+        Assert.Contains(d.Fills, f => f.Color == ShadeSheet.CrownColor); // copas vistas de cima
+        Assert.Contains(d.Fills, f => f.Color == ShadeSheet.GroundColor);
     }
 
     [Fact]

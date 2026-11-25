@@ -151,11 +151,11 @@ public static class HourlyShade
     /// <summary>Classe de sombra: 0 = sombra (luz abaixo de 35%), 1 = meia-luz (35% a 75%), -1 = sol.</summary>
     public static int ShadeClass(double light) => light < 0.35 ? 0 : light < 0.75 ? 1 : -1;
 
-    public static readonly Rgb ShadeColor = new(0x6E, 0x79, 0x8A);
+    public static readonly Rgb ShadeColor = new(0x5A, 0x67, 0x80);
 
-    public static readonly Rgb PartialColor = new(0xB8, 0xC0, 0xCB);
+    public static readonly Rgb PartialColor = new(0xA9, 0xB6, 0xC6);
 
-    public static readonly Rgb SunColor = new(0xF6, 0xD8, 0x5A);
+    public static readonly Rgb SunColor = new(0xF5, 0xD0, 0x5C);
 }
 
 /// <summary>Planta analisada no quadro de sombras: rótulo e índices nas listas de plantas dos quadros.</summary>
@@ -193,11 +193,12 @@ public static class ShadeSheet
         string stageText)
     {
         var g = new Drawing { Title = title };
-        g.Text(new Point2(0, 0.024), title.ToUpperInvariant(), -1, 1.3);
+        g.Text(new Point2(0, 0.026), title.ToUpperInvariant(), -1, 1.45);
+        g.Line(new Point2(0, 0.0215), new Point2(4 * PanelWidthM + 3 * GapM, 0.0215), heavy: true);
         g.Text(new Point2(0, 0.017), $"{date.Name}, dia {date.Day} · {site.Describe()}", -1, 0.85);
         g.Text(new Point2(0, 0.011), $"Hora legal, sem horário de verão. Sombras das copas ({stageText})"
                                      + (buildings ? ", das edificações e do terreno." : ".") + " Decíduas mais transparentes nos meses sem folhas.", -1, 0.8);
-        Legend(g, new Point2(0, 0.005));
+        Legend(g, new Point2(0, 0.0055));
 
         if (frames.Count == 0)
         {
@@ -228,13 +229,22 @@ public static class ShadeSheet
         return g;
     }
 
+    /// <summary>Chão da região analisada e copas vistas de cima, nos quadros.</summary>
+    public static readonly Rgb GroundColor = new(0xEE, 0xF2, 0xE6);
+
+    public static readonly Rgb CrownColor = new(0x9C, 0xC2, 0x7E);
+
+    private static readonly Rgb Ink = new(0x2B, 0x33, 0x40);
+
     private static void Legend(Drawing g, Point2 at)
     {
         (Rgb Color, string Text)[] items =
         {
-            (HourlyShade.ShadeColor, "sombra"),
+            (GroundColor, "chão ao sol"),
             (HourlyShade.PartialColor, "meia-luz (copa rala ou borda)"),
-            (HourlyShade.SunColor, "sol (na tabela)"),
+            (HourlyShade.ShadeColor, "sombra"),
+            (CrownColor, "copa (vista de cima)"),
+            (HourlyShade.SunColor, "sol: de onde vem a luz"),
         };
         double x = at.X;
         foreach ((Rgb color, string text) in items)
@@ -245,8 +255,6 @@ public static class ShadeSheet
             g.Text(new Point2(x + 0.0065, at.Y - 0.0024), text, -1, 0.75);
             x += 0.010 + 0.0015 * text.Length;
         }
-
-        g.Text(new Point2(x, at.Y - 0.0024), "Contorno tracejado: sombra de cada copa no chão. Círculo: copa.", -1, 0.75);
     }
 
     private static void Panel(Drawing g, ShadeFrame frame, IReadOnlyList<Point2> grid, double cell, Polygon2 region,
@@ -255,14 +263,30 @@ public static class ShadeSheet
         Point2 P(Point2 p) => new(origin.X + (p.X - b.MinX) * k, origin.Y - (b.MaxY - p.Y) * k);
         List<Point2> Map(IEnumerable<Point2> pts) => pts.Select(P).ToList();
 
-        // Sombra na malha (faixas da mesma classe).
+        // Chão da região (cor clara), sombra na malha por cima e as copas vistas de cima (acima das sombras no chão).
+        foreach (IReadOnlyList<Point2> ring in region.Rings.Where(r => Geo.SignedArea(r) > 0))
+        {
+            g.Fills.Add(new DrawFill(Map(ring), GroundColor));
+        }
+
         foreach ((int cls, Bounds2 box) in HourlyShade.Runs(grid, cell, i => HourlyShade.ShadeClass(frame.Grid[i])))
         {
             var rect = new List<Point2> { new(box.MinX, box.MinY), new(box.MaxX, box.MinY), new(box.MaxX, box.MaxY), new(box.MinX, box.MaxY) };
             g.Fills.Add(new DrawFill(Map(rect), cls == 0 ? HourlyShade.ShadeColor : HourlyShade.PartialColor));
         }
 
-        // Contorno da região e moldura.
+        foreach (CrownObstacle c in crowns)
+        {
+            var circle = Enumerable.Range(0, 28).Select(i => new Point2(c.Center.X + c.Radius * Math.Cos(Geo.TwoPi * i / 28), c.Center.Y + c.Radius * Math.Sin(Geo.TwoPi * i / 28))).ToList();
+            List<Point2> clipped = Geo.ClipToRect(circle, b);
+            if (clipped.Count >= 3)
+            {
+                g.Fills.Add(new DrawFill(Map(clipped), CrownColor));
+                g.Polyline(Map(clipped), true);
+            }
+        }
+
+        // Contorno da região (forte) e moldura do quadro.
         foreach (IReadOnlyList<Point2> ring in region.Rings)
         {
             g.Polyline(Map(ring), true, heavy: true);
@@ -271,54 +295,56 @@ public static class ShadeSheet
         var frameBox = new List<Point2> { new(b.MinX, b.MinY), new(b.MaxX, b.MinY), new(b.MaxX, b.MaxY), new(b.MinX, b.MaxY) };
         g.Polyline(Map(frameBox), true);
 
-        // Sombras das copas (tracejadas) e copas (círculos), recortadas na moldura.
-        foreach ((string _, IReadOnlyList<Point2> outline, double _) in frame.Shadows)
-        {
-            List<Point2> clipped = Geo.ClipToRect(outline, b);
-            if (clipped.Count >= 3)
-            {
-                g.Polyline(Map(clipped), true, dashed: true);
-            }
-        }
-
-        foreach (CrownObstacle c in crowns)
-        {
-            var circle = Enumerable.Range(0, 20).Select(i => new Point2(c.Center.X + c.Radius * Math.Cos(Geo.TwoPi * i / 20), c.Center.Y + c.Radius * Math.Sin(Geo.TwoPi * i / 20))).ToList();
-            List<Point2> clipped = Geo.ClipToRect(circle, b);
-            if (clipped.Count >= 3)
-            {
-                g.Polyline(Map(clipped), true);
-            }
-        }
-
-        // Sol: seta da borda da moldura para o centro, do lado de onde vem a luz.
+        // Sol: disco com raios junto à moldura, do lado de onde vem a luz, e seta apontando para o centro.
         var dir = new Point2(frame.ToSun.X, frame.ToSun.Y);
         if (dir.Length > 1e-6)
         {
             dir = dir.Normalized();
             Point2 center = new((b.MinX + b.MaxX) / 2, (b.MinY + b.MaxY) / 2);
-            double reach = Math.Min(b.Width, b.Height) * 0.46;
-            Point2 from = P(center + dir * reach), to = P(center + dir * (reach * 0.72));
-            var sun = Drawing.Ellipse(from, 0.0018, 0.0018, 12);
+            double reach = Math.Min(b.Width, b.Height) * 0.44;
+            Point2 from = P(center + dir * reach), to = P(center + dir * (reach * 0.66));
+            const double r = 0.0021;
+            var sun = Drawing.Ellipse(from, r, r, 16);
             g.Fills.Add(new DrawFill(sun, HourlyShade.SunColor));
             g.Polyline(sun, true);
-            g.Line(from, to);
-            Point2 back = (from - to).Normalized() * 0.0012, side = back.Perp() * 0.7;
-            g.Line(to, to + back + side);
-            g.Line(to, to + back - side);
+            for (int i = 0; i < 8; i++)
+            {
+                double a = i * Math.PI / 4;
+                var u = new Point2(Math.Cos(a), Math.Sin(a));
+                g.Line(from + u * (r * 1.35), from + u * (r * 1.9));
+            }
+
+            Point2 start = from + (to - from).Normalized() * (r * 2.1);
+            g.Line(start, to, heavy: true);
+            Point2 back = (start - to).Normalized() * 0.0013, side = back.Perp() * 0.65;
+            g.Fills.Add(new DrawFill(new List<Point2> { to, to + back + side, to + back - side }, Ink));
         }
 
-        // Norte verdadeiro.
-        Point2 nOrigin = new(origin.X + b.Width * k - 0.004, origin.Y - 0.003);
-        Point2 north = new Point2(0, 1).Rotate(trueNorthRad) * 0.0035;
-        g.Line(nOrigin - north * 0.4, nOrigin + north);
-        g.Text(nOrigin + north * 1.4, "N", 0, 0.6);
+        // Norte verdadeiro: seta cheia com "N".
+        Point2 nOrigin = new(origin.X + b.Width * k - 0.0045, origin.Y - 0.0055);
+        Point2 up = new Point2(0, 1).Rotate(trueNorthRad), across = up.Perp();
+        Point2 tip = nOrigin + up * 0.0032, tail = nOrigin - up * 0.0022;
+        g.Fills.Add(new DrawFill(new List<Point2> { tip, tail + across * 0.0013, nOrigin - up * 0.0010, tail - across * 0.0013 }, Ink));
+        g.Text(tip + up * 0.0016, "N", 0, 0.62);
 
+        // Cabeçalho do quadro: hora e barra com a parte da região à sombra.
         double bottom = origin.Y - b.Height * k;
-        g.Text(new Point2(origin.X, origin.Y + 0.0045), frame.HourText, -1, 1.05);
-        g.Text(new Point2(origin.X + 0.012, origin.Y + 0.0045), $"{frame.ShadedFraction.ToString("0%", Pt)} da região à sombra", -1, 0.7);
+        g.Text(new Point2(origin.X, origin.Y + 0.0045), frame.HourText, -1, 1.15);
+        double barX = origin.X + 0.0125, barW = 0.022, barY = origin.Y + 0.0052;
+        double shaded = Math.Clamp(frame.ShadedFraction, 0, 1);
+        g.Fills.Add(new DrawFill(Rect(barX, barY, barX + barW, barY - 0.0018), HourlyShade.SunColor));
+        if (shaded > 0.005)
+        {
+            g.Fills.Add(new DrawFill(Rect(barX, barY, barX + barW * shaded, barY - 0.0018), HourlyShade.ShadeColor));
+        }
+
+        g.Polyline(Rect(barX, barY, barX + barW, barY - 0.0018), true);
+        g.Text(new Point2(barX + barW + 0.0015, origin.Y + 0.0035), $"{frame.ShadedFraction.ToString("0%", Pt)} à sombra", -1, 0.7);
         g.Text(new Point2(origin.X, bottom - 0.0035), HourlyShade.SunText(frame.Sun), -1, 0.68);
     }
+
+    private static List<Point2> Rect(double x0, double y0, double x1, double y1) =>
+        new() { new(x0, y0), new(x1, y0), new(x1, y1), new(x0, y1) };
 
     /// <summary>Tabela: cada espécie (ou planta) por horário, com sol ou sombra e o total de horas de sol.</summary>
     private static void Table(Drawing g, IReadOnlyList<ShadeFrame> frames, IReadOnlyList<ShadeRow> rows, Point2 at)
@@ -330,7 +356,7 @@ public static class ShadeSheet
         }
 
         double width = NameColumnM + frames.Count * HourColumnM + HourColumnM * 1.4;
-        g.Text(new Point2(at.X, at.Y + 0.003), "Sol nas plantas da região, hora a hora (média dos exemplares de cada espécie)", -1, 0.9);
+        g.Text(new Point2(at.X, at.Y + 0.003), "SOL NAS PLANTAS DA REGIÃO, HORA A HORA (média dos exemplares de cada espécie)", -1, 0.95);
         for (int f = 0; f < frames.Count; f++)
         {
             g.Text(new Point2(at.X + NameColumnM + (f + 0.5) * HourColumnM, at.Y - RowM * 0.35), frames[f].ClockHour.ToString("00", Pt) + "h", 0, 0.72);
@@ -338,8 +364,15 @@ public static class ShadeSheet
 
         g.Text(new Point2(at.X + NameColumnM + (frames.Count + 0.7) * HourColumnM, at.Y - RowM * 0.35), "h de sol", 0, 0.7);
         double y = at.Y - RowM;
+        double maxHours = Math.Max(1, frames.Count);
+        int index = 0;
         foreach (ShadeRow row in rows)
         {
+            if (index++ % 2 == 1)
+            {
+                g.Fills.Add(new DrawFill(Rect(at.X, y, at.X + NameColumnM, y - RowM), new Rgb(0xF1, 0xF3, 0xEE)));
+            }
+
             double sunHours = 0;
             for (int f = 0; f < frames.Count; f++)
             {
@@ -357,6 +390,9 @@ public static class ShadeSheet
 
             string label = row.Label.Length > 44 ? row.Label[..43] + "…" : row.Label;
             g.Text(new Point2(at.X + 0.0015, y - RowM * 0.3), label, -1, 0.78);
+            // Horas de sol em barra (proporcional ao intervalo analisado) e número.
+            double hx = at.X + NameColumnM + frames.Count * HourColumnM + 0.0008, hw = HourColumnM * 1.4 - 0.0016;
+            g.Fills.Add(new DrawFill(Rect(hx, y - RowM * 0.62, hx + hw * Math.Clamp(sunHours / maxHours, 0, 1), y - RowM * 0.92), HourlyShade.SunColor));
             g.Text(new Point2(at.X + NameColumnM + (frames.Count + 0.7) * HourColumnM, y - RowM * 0.3), sunHours.ToString("0.#", Pt), 0, 0.78);
             y -= RowM;
         }

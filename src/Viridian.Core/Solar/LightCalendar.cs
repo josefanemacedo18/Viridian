@@ -27,9 +27,23 @@ public static class LightCalendar
         var g = new Drawing { Title = title };
         double width = NameColumnM + dates.Count * DateColumnM + SummaryColumnM;
         double y = 0;
-        g.Text(new Point2(0, y + RowM * 3.6), title.ToUpperInvariant(), -1, 1.3);
+        g.Text(new Point2(0, y + RowM * 3.9), title.ToUpperInvariant(), -1, 1.45);
+        g.Line(new Point2(0, y + RowM * 3.15), new Point2(width, y + RowM * 3.15), heavy: true);
         g.Text(new Point2(0, y + RowM * 2.4), site.Describe(), -1, 0.85);
         g.Text(new Point2(0, y + RowM * 1.4), period + ". Horas de sol direto num dia típico; horários em hora legal, sem horário de verão.", -1, 0.8);
+
+        // Faixa do cabeçalho e das linhas do sol do dia (fundo claro), e linhas alternadas das espécies.
+        g.Fills.Add(new DrawFill(Box(0, y, width, y - RowM), Header));
+        g.Fills.Add(new DrawFill(Box(0, y - RowM, width, y - 4 * RowM), Info));
+        for (int r = 0; r < rows.Count; r++)
+        {
+            if (r % 2 == 1)
+            {
+                double yy = y - (4 + r) * RowM;
+                g.Fills.Add(new DrawFill(Box(0, yy, NameColumnM, yy - RowM), Zebra));
+                g.Fills.Add(new DrawFill(Box(NameColumnM + dates.Count * DateColumnM, yy, width, yy - RowM), Zebra));
+            }
+        }
 
         // Cabeçalho.
         for (int d = 0; d < dates.Count; d++)
@@ -102,25 +116,34 @@ public static class LightCalendar
 
         g.Line(new Point2(width, y), new Point2(width, bottom), heavy: true);
 
-        // Legenda das faixas e notas.
+        // Legenda: faixa contínua da sombra ao sol forte, com o nome de cada faixa embaixo.
         double ly = bottom - RowM * 1.2;
-        double lx = 0;
-        foreach ((double _, double _, string color, string label) in SolarClasses.Bins(s))
+        var bins = SolarClasses.Bins(s);
+        double segment = Math.Min(0.045, width / bins.Count);
+        for (int i = 0; i < bins.Count; i++)
         {
-            var box = new List<Point2> { new(lx, ly), new(lx + 0.006, ly), new(lx + 0.006, ly - 0.004), new(lx, ly - 0.004) };
-            g.Fills.Add(new DrawFill(box, Rgb.Parse(color, Rgb.White)));
-            g.Polyline(box, true);
-            g.Text(new Point2(lx + 0.008, ly - 0.0028), label, -1, 0.75);
-            lx += 0.008 + 0.0016 * label.Length + 0.006;
+            double lx = i * segment;
+            g.Fills.Add(new DrawFill(Box(lx, ly, lx + segment, ly - 0.0035), Rgb.Parse(bins[i].Color, Rgb.White)));
+            g.Text(new Point2(lx + segment / 2, ly - 0.0062), bins[i].Label, 0, 0.7);
         }
 
-        ly -= RowM * 1.3;
+        g.Polyline(Box(0, ly, bins.Count * segment, ly - 0.0035), true);
+        g.Text(new Point2(0, ly + 0.0018), "menos sol", -1, 0.65);
+        g.Text(new Point2(bins.Count * segment, ly + 0.0018), "mais sol", 1, 0.65);
+        ly -= RowM * 2.1;
         g.Text(new Point2(0, ly), $"× não atende à luz que a espécie pede; ~ no limite (até {SolarClasses.Hours(s.ToleranceHours)} h fora da faixa). "
                                    + "\"Atende\": meses (ou datas) dentro da faixa ou no limite.", -1, 0.75);
         g.Text(new Point2(0, ly - RowM * 0.9), "Sombra das copas adultas" + (buildings ? ", das edificações e do terreno (também de vínculos)." : ".")
                                               + " Valores de referência para o projeto; confira em campo.", -1, 0.75);
         return g;
     }
+
+    private static readonly Rgb Header = new(0xE4, 0xE9, 0xE1);
+    private static readonly Rgb Info = new(0xF4, 0xF6, 0xF1);
+    private static readonly Rgb Zebra = new(0xF4, 0xF5, 0xF2);
+
+    private static List<Point2> Box(double x0, double y0, double x1, double y1) =>
+        new() { new(x0, y0), new(x1, y0), new(x1, y1), new(x0, y1) };
 
     private static string Fit(string text, int max) => text.Length <= max ? text : text[..(max - 1)] + "…";
 }

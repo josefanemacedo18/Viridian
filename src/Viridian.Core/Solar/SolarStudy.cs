@@ -364,7 +364,8 @@ public static class SolarClasses
 {
     private static readonly CultureInfo Pt = CultureInfo.GetCultureInfo("pt-BR");
 
-    private static readonly string[] Colors = { "#34457A", "#6E8FC0", "#A8CBA0", "#F1D46A", "#E8923A" };
+    /// <summary>Da sombra ao sol forte: azul-ardósia, azul-acinzentado, verde-sálvia, amarelo-sol e laranja-quente.</summary>
+    private static readonly string[] Colors = { "#33415F", "#6A84AE", "#A4C6A2", "#F5D878", "#EF9E48" };
 
     public static string Hours(double h) => h.ToString("0.#", Pt);
 

@@ -140,7 +140,7 @@ public class SolarMonthlyTests
         };
         var site = new SolarSite(-23.55, -46.63, -3, "São Paulo", SiteSource.Projeto);
         Viridian.Core.Detailing.Drawing d = LightCalendar.Build("Calendário de luz", "Mês a mês", site, dates, rows, Settings, true);
-        Assert.Equal(24 + 5, d.Fills.Count); // 2 linhas × 12 meses + 5 faixas da legenda
+        Assert.Equal(24 + 5 + 2 + 2, d.Fills.Count); // 2 linhas × 12 meses + 5 faixas da legenda + faixas do cabeçalho + 2 zebras
         Assert.Contains(d.Texts, t => t.Text == "2,0 ×");
         Assert.Contains(d.Texts, t => t.Text == "0/12");
         Assert.Contains(d.Texts, t => t.Text.Contains("São Paulo", StringComparison.Ordinal));
