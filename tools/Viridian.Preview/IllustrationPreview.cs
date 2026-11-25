@@ -1,11 +1,18 @@
 using System.Diagnostics;
+using System.Globalization;
+using System.Text;
 using Viridian.Core.Colors;
+using Viridian.Core.Geometry;
 using Viridian.Core.Model;
+using Viridian.Core.Model3D;
 using Viridian.Core.Model3D.Illustration;
 using Viridian.Core.Model3D.Profiles;
 using Viridian.Library;
 
-/// <summary>Piloto dos cartões ilustrados: para cada espécie, a vista de quina e as 4 faces de cada fase, a partir das regiões achatadas.</summary>
+/// <summary>
+/// Vegetação ilustrada (RPC): para cada espécie do piloto, as 16 imagens em volta e a de cima da fase adulta, as
+/// fases, os estilos de vista e cenas 3D simuladas com a mesma regra de posicionamento usada no Revit.
+/// </summary>
 internal static class IllustrationPreview
 {
     public static void Write(string folder)
@@ -13,7 +20,8 @@ internal static class IllustrationPreview
         Directory.CreateDirectory(folder);
         List<Species> catalog = SeedCatalog.CreateSpecies();
         List<Plant3DProfile> profiles = Plant3DProfileDefaults.Create();
-        foreach (string name in PlantCardsPlanner.Pilot)
+        var sprites = new Dictionary<string, PlantSprites>();
+        foreach (string name in PlantSpritesPlanner.Pilot)
         {
             Species? s = catalog.FirstOrDefault(x => string.Equals(x.ScientificName, name, StringComparison.OrdinalIgnoreCase));
             if (s is null)
@@ -23,21 +31,120 @@ internal static class IllustrationPreview
             }
 
             var watch = Stopwatch.StartNew();
-            PlantCards cards = PlantCardsPlanner.Build(s, 0, profiles, new ColorSettings(), "#6B4F3A");
+            PlantSprites plant = PlantSpritesPlanner.Build(s, 0, profiles, new ColorSettings(), "#6B4F3A");
+            sprites[name] = plant;
             string slug = name.ToLowerInvariant().Replace(' ', '-');
-            foreach (CardSet set in cards.Sets)
+            SpriteStage adult = plant.StageFor(PlantSpritesPlanner.DefaultStage);
+            double size = Math.Max(adult.HeightM, adult.CrownM);
+            int triangles = 0;
+            for (int v = 0; v < PlantSprites.SideViews; v++)
             {
-                double plantSize = Math.Max(set.ArtA.Size, set.ArtB.Size);
-                string stage = $"fase{set.Code}";
-                File.WriteAllText(Path.Combine(folder, $"{slug}-{stage}-quina.svg"), CardSvg.Corner(set.PlaneA, set.PlaneB, plantSize));
-                File.WriteAllText(Path.Combine(folder, $"{slug}-{stage}-face1.svg"), CardSvg.Face(set.PlaneA, plantSize));
-                File.WriteAllText(Path.Combine(folder, $"{slug}-{stage}-face2.svg"), CardSvg.Face(set.PlaneB, plantSize));
-                File.WriteAllText(Path.Combine(folder, $"{slug}-{stage}-face3.svg"), CardSvg.Face(set.PlaneA, plantSize, mirrored: true));
-                File.WriteAllText(Path.Combine(folder, $"{slug}-{stage}-face4.svg"), CardSvg.Face(set.PlaneB, plantSize, mirrored: true));
-                Console.WriteLine($"{name} · {set.Label}: A {set.PlaneA.Regions.Count} cores / {set.PlaneA.Loops} laços / {set.PlaneA.Edges} arestas; B {set.PlaneB.Edges} arestas; célula {set.PlaneA.Cell * 1000:0.#} mm");
+                SpriteMesh mesh = plant.Get(adult.Code, v);
+                triangles = Math.Max(triangles, mesh.TriangleCount);
+                File.WriteAllText(Path.Combine(folder, $"{slug}-adulta-v{v:00}.svg"), CardSvg.Mesh(mesh, size));
             }
 
-            Console.WriteLine($"{name}: {cards.Sets.Count} fases, {cards.Edges} arestas no total, {watch.ElapsedMilliseconds} ms, hash {cards.Hash}");
+            SpriteMesh top = plant.Get(adult.Code, PlantSprites.TopView);
+            File.WriteAllText(Path.Combine(folder, $"{slug}-adulta-topo.svg"), CardSvg.Mesh(top, Math.Max(top.MaxX - top.MinX, top.MaxY - top.MinY) * 1.05, centerVertically: true));
+            File.WriteAllText(Path.Combine(folder, $"{slug}-adulta-linha.svg"), CardSvg.Mesh(plant.Get(adult.Code, 2), size, style: "linha"));
+            File.WriteAllText(Path.Combine(folder, $"{slug}-adulta-arame.svg"), CardSvg.Mesh(plant.Get(adult.Code, 2), size, style: "arame"));
+            foreach (SpriteStage stage in plant.Stages)
+            {
+                File.WriteAllText(Path.Combine(folder, $"{slug}-fase{stage.Code}.svg"), CardSvg.Mesh(plant.Get(stage.Code, 2), size));
+            }
+
+            Console.WriteLine($"{name}: {plant.Stages.Count} fases, até {triangles} triângulos por imagem, {watch.ElapsedMilliseconds} ms (17 imagens adultas + fases), hash {plant.Hash}");
         }
+
+        // Cenas: um jardim visto como numa vista 3D do Revit (isométrica de dois lados, perspectiva à altura dos olhos
+        // e quase de cima). As mesmas imagens, sempre de frente para a câmera.
+        var layout = new List<(string Name, double X, double Y, double Rot, int Stage)>
+        {
+            ("Handroanthus chrysotrichus", 4, 10, 0.3, 4), ("Delonix regia", 15, 11, 1.2, 4), ("Syagrus romanzoffiana", 22, 4, 0.0, 4),
+            ("Syagrus romanzoffiana", 24.5, 7, 2.0, 3), ("Bismarckia nobilis", 9, 3, 0.7, 4), ("Araucaria angustifolia", 26, 13, 0.1, 4),
+            ("Agave attenuata", 12.5, 1.6, 0.4, 4), ("Agave attenuata", 13.6, 2.3, 1.9, 4), ("Agave attenuata", 14.5, 1.4, 3.0, 4),
+            ("Strelitzia reginae", 3, 2.5, 0.2, 4), ("Strelitzia reginae", 4.4, 3.1, 1.4, 4), ("Dracaena marginata", 18, 2.5, 0.9, 4),
+            ("Handroanthus chrysotrichus", 9, 13, 2.2, 2), ("Dracaena marginata", 19.5, 3.4, 2.6, 3),
+        };
+        var cameras = new List<(string File, Vec3 Eye, Vec3 Target, bool Perspective)>
+        {
+            ("cena-iso-sudeste.svg", new Vec3(48, -26, 30), new Vec3(14, 8, 2), false),
+            ("cena-iso-noroeste.svg", new Vec3(-20, 42, 30), new Vec3(14, 8, 2), false),
+            ("cena-perspectiva.svg", new Vec3(16, -14, 1.7), new Vec3(15, 8, 4), true),
+            ("cena-quase-de-cima.svg", new Vec3(18, -10, 46), new Vec3(14, 8, 0), false),
+        };
+        foreach ((string file, Vec3 eye, Vec3 target, bool perspective) in cameras)
+        {
+            File.WriteAllText(Path.Combine(folder, file), Scene(layout, sprites, eye, target, perspective));
+        }
+    }
+
+    private static string Scene(List<(string Name, double X, double Y, double Rot, int Stage)> layout, Dictionary<string, PlantSprites> sprites, Vec3 eye, Vec3 target, bool perspective)
+    {
+        const int w = 1400, h = 900;
+        Vec3 dir = (target - eye).Normalized();
+        Vec3 right = dir.Cross(new Vec3(0, 0, 1)).Normalized();
+        Vec3 up = right.Cross(dir);
+        double focal = perspective ? w * 0.75 : 0;
+        double ortho = 40.0 / w; // metros por pixel na isométrica
+        (double X, double Y, double D) Project(Vec3 p)
+        {
+            Vec3 v = p - eye;
+            double x = v.Dot(right), y = v.Dot(up), d = v.Dot(dir);
+            return perspective
+                ? (w / 2 + focal * x / Math.Max(d, 0.05), h / 2 - focal * y / Math.Max(d, 0.05), d)
+                : (w / 2 + x / ortho, h / 2 - y / ortho, d);
+        }
+
+        var sb = new StringBuilder();
+        sb.Append(CultureInfo.InvariantCulture, $"<svg xmlns='http://www.w3.org/2000/svg' width='{w}' height='{h}' viewBox='0 0 {w} {h}'><rect width='{w}' height='{h}' fill='#FFFFFF'/>");
+        Vec3[] lot = { new(-2, -3, 0), new(30, -3, 0), new(30, 18, 0), new(-2, 18, 0) };
+        sb.Append("<path d='");
+        for (int i = 0; i < lot.Length; i++)
+        {
+            (double x, double y, double _) = Project(lot[i]);
+            sb.Append(CultureInfo.InvariantCulture, $"{(i == 0 ? 'M' : 'L')}{x:0.#},{y:0.#}");
+        }
+
+        sb.Append("Z' fill='#D9D4C7' stroke='#8C877B' stroke-width='1'/>");
+        var plants = new List<(double Depth, SpriteFrame Frame, SpriteMesh Mesh)>();
+        foreach ((string name, double px, double py, double rot, int stageCode) in layout)
+        {
+            if (!sprites.TryGetValue(name, out PlantSprites? plant))
+            {
+                continue;
+            }
+
+            SpriteStage stage = plant.StageFor(stageCode);
+            SpriteFrame frame = SpriteBillboard.Place(new Vec3(px, py, 0), rot, stage.HeightM, eye, dir, up, perspective, 0.08);
+            SpriteMesh mesh = plant.Get(stage.Code, frame.View);
+            plants.Add((Project(new Vec3(px, py, stage.HeightM / 2)).D, frame, mesh));
+        }
+
+        foreach ((double _, SpriteFrame frame, SpriteMesh mesh) in plants.OrderByDescending(p => p.Depth))
+        {
+            var tris = new List<(double Z, int I)>();
+            for (int i = 0; i + 2 < mesh.Triangles.Count; i += 3)
+            {
+                tris.Add((mesh.Vertices[mesh.Triangles[i]].Z, i));
+            }
+
+            foreach ((double _, int i) in tris.OrderBy(t => t.Z).ThenBy(t => t.I))
+            {
+                var pts = new (double X, double Y, double D)[3];
+                for (int k = 0; k < 3; k++)
+                {
+                    SpriteVertex v = mesh.Vertices[mesh.Triangles[i + k]];
+                    pts[k] = Project(frame.ToWorld(v.X, v.Y, v.Z));
+                }
+
+                string color = mesh.Vertices[mesh.Triangles[i]].Color.Hex;
+                sb.Append(CultureInfo.InvariantCulture,
+                    $"<path d='M{pts[0].X:0.##},{pts[0].Y:0.##}L{pts[1].X:0.##},{pts[1].Y:0.##}L{pts[2].X:0.##},{pts[2].Y:0.##}Z' fill='{color}' stroke='{color}' stroke-width='0.3'/>");
+            }
+        }
+
+        sb.Append("</svg>");
+        return sb.ToString();
     }
 }

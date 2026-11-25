@@ -44,7 +44,7 @@ public static class SymbolFamilyBuilder
     /// <param name="volume">Cartões ilustrados da vegetação 3D (nulo: só o símbolo 2D).</param>
     /// <param name="volumeResult">Recebe o que aconteceu com os cartões (quando informado).</param>
     public static int Build(RevitApplication app, string templateFile, PlantSymbol symbol, SymbolPaint paint, string outputFile, ViridianSettings settings, string typeName,
-        PlantCards? volume = null, VolumeBuildResult? volumeResult = null)
+        SpriteHandle? volume = null, VolumeBuildResult? volumeResult = null)
     {
         Document familyDocument;
         try
@@ -69,7 +69,7 @@ public static class SymbolFamilyBuilder
                 skipped = Draw(app, familyDocument, symbol, paint, settings, typeName);
                 if (volume is not null)
                 {
-                    DrawCards(familyDocument, volume, volumeResult ?? new VolumeBuildResult());
+                    DrawHandle(familyDocument, volume, volumeResult ?? new VolumeBuildResult());
                 }
             }
             catch (Autodesk.Revit.Exceptions.ApplicationException ex)
@@ -251,111 +251,65 @@ public static class SymbolFamilyBuilder
     public const string StageParameter = "VIR Fase 3D";
 
     /// <summary>
-    /// Espessura do cartão (m). O contorno preto fica um pouco mais fino (recuado) e cada cor ganha um décimo de
-    /// milímetro a mais conforme a ordem: onde duas regiões se encostam com sobreposição mínima, sempre há uma na
-    /// frente, sem faces coplanares disputando a mesma posição.
+    /// Etapa opcional da vegetação ilustrada (RPC): a imagem da planta é desenhada pelo Viridian na própria vista,
+    /// sempre de frente para a câmera, e não fica dentro da família. A família recebe só os parâmetros de exemplar
+    /// ("VIR Fase 3D" e "VIR 3D visível") e um eixo vertical fino (linha de modelo, oculta em planta) na subcategoria
+    /// "VIR Volume 3D", que permite selecionar o exemplar nas vistas 3D, cortes e elevações (fica atrás da imagem).
+    /// Se o Revit recusar o eixo, a família segue só com o símbolo e os parâmetros: a imagem aparece do mesmo jeito.
     /// </summary>
-    private static double CardThicknessM(int colorIndex) => colorIndex == CardArt.Black ? 0.003 : 0.004 + 0.0002 * Math.Min(colorIndex, 30);
-
-    /// <summary>
-    /// Etapa opcional da vegetação ilustrada: para cada fase, os dois planos cruzados viram extrusões finas, uma por
-    /// cor (o contorno preto é uma delas), na subcategoria do volume 3D, ocultas em planta e visíveis em 3D, cortes e
-    /// elevações. A fase de cada exemplar é escolhida pelo parâmetro "VIR Fase 3D". Se o Revit recusar tudo, a família
-    /// fica só com o símbolo 2D, como antes.
-    /// </summary>
-    private static void DrawCards(Document familyDocument, PlantCards cards, VolumeBuildResult result)
+    private static void DrawHandle(Document familyDocument, SpriteHandle handle, VolumeBuildResult result)
     {
         var reasons = new List<string>();
-        bool committed = RunSilently(familyDocument, "Viridian: cartões 3D", required: false, () =>
+        bool committed = RunSilently(familyDocument, "Viridian: vegetação ilustrada", required: false, () =>
         {
             Category planting = familyDocument.OwnerFamily.FamilyCategory ?? throw new ViridianException("família sem categoria");
             Category subcategory = GetOrCreateSubcategory(familyDocument, planting, VolumeSubcategory);
+            subcategory.LineColor = new Color(120, 120, 120);
             FamilyManager manager = familyDocument.FamilyManager;
             FamilyParameter? visible = InstanceParameter(manager, VisibleParameter, SpecTypeId.Boolean.YesNo, 1, result);
-            FamilyParameter? stage = InstanceParameter(manager, StageParameter, SpecTypeId.Int.Integer, PlantCardsPlanner.DefaultStage, result);
-            double elevation = ReferenceLevelElevation(familyDocument);
-            var visibility = new FamilyElementVisibility(FamilyElementVisibilityType.Model)
-            {
-                IsShownInCoarse = true,
-                IsShownInMedium = true,
-                IsShownInFine = true,
-                IsShownInFrontBack = true,
-                IsShownInLeftRight = true,
-                IsShownInTopBottom = false,
-                IsShownInPlanRCPCut = false,
-            };
-            var materials = new Dictionary<string, ElementId>(StringComparer.Ordinal);
-            ElementId MaterialOf(Rgb color)
-            {
-                string name = "VIR Cartão " + color.Hex;
-                if (!materials.TryGetValue(name, out ElementId? id))
-                {
-                    Material? existing = new FilteredElementCollector(familyDocument).OfClass(typeof(Material)).Cast<Material>().FirstOrDefault(m => m.Name == name);
-                    id = existing?.Id ?? Material.Create(familyDocument, name);
-                    if (existing is null && familyDocument.GetElement(id) is Material created)
-                    {
-                        created.Color = new Color(color.R, color.G, color.B);
-                        created.Shininess = 0;
-                        created.Smoothness = 0;
-                    }
-
-                    materials[name] = id;
-                }
-
-                return id;
-            }
-
-            var forms = new List<GenericForm>();
-            foreach (CardSet set in cards.Sets)
-            {
-                FamilyParameter? shown = SetParameter(manager, set, visible, stage, result);
-                foreach ((CardRegions regions, XYZ right, XYZ normal) in new[]
-                         {
-                             (set.PlaneA, XYZ.BasisY, XYZ.BasisX),
-                             (set.PlaneB, -XYZ.BasisX, XYZ.BasisY),
-                         })
-                {
-                    foreach (ColorRegion region in regions.Regions)
-                    {
-                        ElementId material = MaterialOf(region.Color);
-                        foreach (Extrusion form in Extrude(familyDocument, region.Loops, right, normal, elevation, CardThicknessM(region.ColorIndex), result))
-                        {
-                            try
-                            {
-                                form.SetVisibility(visibility);
-                                form.Subcategory = subcategory;
-                                form.get_Parameter(BuiltInParameter.MATERIAL_ID_PARAM)?.Set(material);
-                                if (shown is not null && form.get_Parameter(BuiltInParameter.IS_VISIBLE_PARAM) is Parameter isVisible && manager.CanElementParameterBeAssociated(isVisible))
-                                {
-                                    manager.AssociateElementParameterToFamilyParameter(isVisible, shown);
-                                    result.Associated++;
-                                }
-
-                                forms.Add(form);
-                            }
-                            catch (Autodesk.Revit.Exceptions.ApplicationException ex)
-                            {
-                                AddReason(result, "ajuste do cartão recusado: " + ex.Message);
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (forms.Count == 0)
-            {
-                throw new ViridianException("nenhum cartão aceito (" + string.Join("; ", result.Reasons.Take(3)) + ")");
-            }
-
-            result.HiddenInPlan = forms.All(f => f.GetVisibility() is { IsShownInTopBottom: false, IsShownInPlanRCPCut: false });
-            result.Created = forms.Count;
+            InstanceParameter(manager, StageParameter, SpecTypeId.Int.Integer, PlantSpritesPlanner.DefaultStage, result);
             result.HasVisibleParameter = visible is not null;
+
+            double elevation = ReferenceLevelElevation(familyDocument);
+            double height = RevitUnits.ToFeet(Math.Max(0.3, handle.AxisHeightM));
+            SketchPlane plane = SketchPlane.Create(familyDocument, Plane.CreateByNormalAndOrigin(XYZ.BasisX, new XYZ(0, 0, elevation)));
+            ModelCurve axis = familyDocument.FamilyCreate.NewModelCurve(Line.CreateBound(new XYZ(0, 0, elevation), new XYZ(0, 0, elevation + height)), plane);
+            if (subcategory.GetGraphicsStyle(GraphicsStyleType.Projection) is GraphicsStyle style)
+            {
+                axis.Subcategory = style;
+            }
+
+            try
+            {
+                axis.SetVisibility(new FamilyElementVisibility(FamilyElementVisibilityType.Model)
+                {
+                    IsShownInCoarse = true,
+                    IsShownInMedium = true,
+                    IsShownInFine = true,
+                    IsShownInFrontBack = true,
+                    IsShownInLeftRight = true,
+                    IsShownInTopBottom = false,
+                    IsShownInPlanRCPCut = false,
+                });
+                result.HiddenInPlan = true;
+            }
+            catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+            {
+                AddReason(result, "visibilidade do eixo recusada: " + ex.Message);
+            }
+
+            if (visible is not null && axis.get_Parameter(BuiltInParameter.IS_VISIBLE_PARAM) is Parameter isVisible && manager.CanElementParameterBeAssociated(isVisible))
+            {
+                manager.AssociateElementParameterToFamilyParameter(isVisible, visible);
+                result.Associated++;
+            }
+
+            result.Created = 1;
         }, reasons);
 
         if (!committed)
         {
             result.Created = 0;
-            result.HiddenInPlan = false;
             foreach (string reason in reasons)
             {
                 AddReason(result, reason);
@@ -380,130 +334,6 @@ public static class SymbolFamilyBuilder
             result.Notes.Add($"parâmetro \"{name}\" não criado: {ex.Message}");
             return null;
         }
-    }
-
-    /// <summary>
-    /// Visibilidade de uma fase: "VIR 3D &lt;fase&gt;" = e(VIR 3D visível; VIR Fase 3D = código). Sem fórmula (se o Revit
-    /// recusar), fica um sim/não simples, ligado só na fase adulta.
-    /// </summary>
-    private static FamilyParameter? SetParameter(FamilyManager manager, CardSet set, FamilyParameter? visible, FamilyParameter? stage, VolumeBuildResult result)
-    {
-        string name = "VIR 3D " + set.Label;
-        FamilyParameter? parameter = null;
-        try
-        {
-            parameter = manager.get_Parameter(name) ?? manager.AddParameter(name, GroupTypeId.Graphics, SpecTypeId.Boolean.YesNo, true);
-            if (visible is not null && stage is not null)
-            {
-                manager.SetFormula(parameter, $"and({VisibleParameter}, {StageParameter} = {set.Code})");
-                return parameter;
-            }
-        }
-        catch (Autodesk.Revit.Exceptions.ApplicationException ex)
-        {
-            result.Notes.Add($"fórmula da fase \"{set.Label}\" recusada: {ex.Message}");
-        }
-
-        if (parameter is not null && manager.CurrentType is not null)
-        {
-            try
-            {
-                manager.Set(parameter, set.Code == PlantCardsPlanner.DefaultStage ? 1 : 0);
-            }
-            catch (Autodesk.Revit.Exceptions.ApplicationException ex)
-            {
-                result.Notes.Add($"fase \"{set.Label}\": {ex.Message}");
-            }
-        }
-
-        return parameter;
-    }
-
-    /// <summary>
-    /// Extrusão fina de uma região (todos os contornos num só perfil). Se o Revit recusar o perfil inteiro, tenta cada
-    /// contorno externo com os seus furos; e, por último, só o contorno externo.
-    /// </summary>
-    private static List<Extrusion> Extrude(Document familyDocument, List<List<Point2>> loops, XYZ right, XYZ normal, double elevation, double thicknessM, VolumeBuildResult result)
-    {
-        double half = RevitUnits.ToFeet(thicknessM) / 2;
-        XYZ offset = normal * -half + new XYZ(0, 0, elevation);
-        SketchPlane plane = SketchPlane.Create(familyDocument, Plane.CreateByNormalAndOrigin(normal, offset));
-        XYZ At(Point2 p) => right * RevitUnits.ToFeet(p.X) + XYZ.BasisZ * RevitUnits.ToFeet(p.Y) + offset;
-        Extrusion? Make(IEnumerable<List<Point2>> group)
-        {
-            var profile = new CurveArrArray();
-            foreach (List<Point2> loop in group)
-            {
-                var curves = new CurveArray();
-                for (int i = 0; i < loop.Count; i++)
-                {
-                    curves.Append(Line.CreateBound(At(loop[i]), At(loop[(i + 1) % loop.Count])));
-                }
-
-                profile.Append(curves);
-            }
-
-            try
-            {
-                return familyDocument.FamilyCreate.NewExtrusion(true, profile, plane, 2 * half);
-            }
-            catch (Autodesk.Revit.Exceptions.ApplicationException ex)
-            {
-                AddReason(result, "extrusão recusada: " + ex.Message);
-                result.Failed++;
-                return null;
-            }
-        }
-
-        var made = new List<Extrusion>();
-        if (Make(loops) is Extrusion whole)
-        {
-            made.Add(whole);
-            return made;
-        }
-
-        // Externos (anti-horários) com os furos que estão dentro deles.
-        List<List<Point2>> outers = loops.Where(l => SignedArea(l) > 0).ToList();
-        List<List<Point2>> holes = loops.Where(l => SignedArea(l) <= 0).ToList();
-        foreach (List<Point2> outer in outers)
-        {
-            var group = new List<List<Point2>> { outer };
-            group.AddRange(holes.Where(h => Inside(outer, h[0])));
-            Extrusion? piece = Make(group) ?? Make(new[] { outer });
-            if (piece is not null)
-            {
-                made.Add(piece);
-            }
-        }
-
-        return made;
-    }
-
-    private static double SignedArea(List<Point2> loop)
-    {
-        double a = 0;
-        for (int i = 0; i < loop.Count; i++)
-        {
-            Point2 p = loop[i], q = loop[(i + 1) % loop.Count];
-            a += p.X * q.Y - q.X * p.Y;
-        }
-
-        return a / 2;
-    }
-
-    private static bool Inside(List<Point2> polygon, Point2 point)
-    {
-        bool inside = false;
-        for (int i = 0, j = polygon.Count - 1; i < polygon.Count; j = i++)
-        {
-            if ((polygon[i].Y > point.Y) != (polygon[j].Y > point.Y)
-                && point.X < (polygon[j].X - polygon[i].X) * (point.Y - polygon[i].Y) / (polygon[j].Y - polygon[i].Y) + polygon[i].X)
-            {
-                inside = !inside;
-            }
-        }
-
-        return inside;
     }
 
     private static void AddReason(VolumeBuildResult result, string reason)
@@ -685,7 +515,7 @@ public sealed class VolumeBuildResult
     /// <summary>A família foi montada com volume nesta chamada (falso quando veio do cache).</summary>
     public bool Attempted { get; set; }
 
-    /// <summary>Formas livres criadas.</summary>
+    /// <summary>Eixos de seleção criados (0 ou 1).</summary>
     public int Created { get; set; }
 
     public int Failed { get; set; }
@@ -702,8 +532,15 @@ public sealed class VolumeBuildResult
 
     public List<string> Notes { get; } = new();
 
-    /// <summary>O volume pode ser usado: há formas e elas ficam ocultas em planta.</summary>
+    /// <summary>O eixo foi criado e fica oculto em planta.</summary>
     public bool Usable => Created > 0 && HiddenInPlan;
+}
+
+/// <summary>O que a família de uma espécie com vegetação ilustrada recebe: o eixo de seleção, com esta altura (m).</summary>
+public sealed record SpriteHandle(double AxisHeightM)
+{
+    /// <summary>Marca da família na assinatura (aumente quando o conteúdo da família mudar).</summary>
+    public const string Marker = "-S1";
 }
 
 /// <summary>Opções de carregamento: substitui a família existente e preserva os valores dos tipos do projeto.</summary>

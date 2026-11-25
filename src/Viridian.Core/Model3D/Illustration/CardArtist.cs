@@ -30,10 +30,21 @@ public static class CardArtist
     /// <param name="referenceSize">Porte de referência (o da planta adulta): as fases menores usam uma fração dele como base do traço.</param>
     public static CardArt Draw(IReadOnlyList<IllustratedPart> parts, double azimuth, double tone, int seed, double referenceSize = 0)
     {
-        ArgumentNullException.ThrowIfNull(parts);
         var toEye = new Vec3(Math.Cos(azimuth), Math.Sin(azimuth), 0);
-        Vec3 right = Up.Cross(toEye).Normalized();
-        Point2 Proj(Vec3 v) => new(v.Dot(right), v.Z);
+        return DrawView(parts, toEye, Up.Cross(toEye).Normalized(), Up, false, tone, seed, referenceSize);
+    }
+
+    /// <summary>
+    /// A planta vista de cima (copa em planta): x para leste (+X da família) e y para norte (+Y). Usada quando a
+    /// câmera olha de cima, no lugar da imagem em pé.
+    /// </summary>
+    public static CardArt DrawTop(IReadOnlyList<IllustratedPart> parts, double tone, int seed, double referenceSize = 0) =>
+        DrawView(parts, Up, new Vec3(1, 0, 0), new Vec3(0, 1, 0), true, tone, seed, referenceSize);
+
+    private static CardArt DrawView(IReadOnlyList<IllustratedPart> parts, Vec3 toEye, Vec3 right, Vec3 upAxis, bool top, double tone, int seed, double referenceSize)
+    {
+        ArgumentNullException.ThrowIfNull(parts);
+        Point2 Proj(Vec3 v) => new(v.Dot(right), v.Dot(upAxis));
 
         double height = 0.01, reach = 0.01;
         foreach (IllustratedPart part in parts)
@@ -45,7 +56,7 @@ public static class CardArtist
             }
         }
 
-        double size = Math.Max(height, 2 * reach);
+        double size = top ? 2 * reach : Math.Max(height, 2 * reach);
         // As fases menores usam uma fração do porte adulto como base: o traço continua coerente entre as fases sem
         // ficar grosso demais nas mudas.
         double unit = Scale(size, referenceSize);

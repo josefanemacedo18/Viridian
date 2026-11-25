@@ -4,6 +4,7 @@ using System.Text;
 using Autodesk.Revit.DB;
 using Viridian.Core.Colors;
 using Viridian.Core.Config;
+using Viridian.Core.Detailing;
 using Viridian.Core.Model;
 using Viridian.Core.Model3D.Illustration;
 using Viridian.Core.Model3D.Profiles;
@@ -42,61 +43,28 @@ public sealed class SpeciesFamilyService
 
     private static bool _colorWarningShown;
 
-    private IReadOnlyList<Plant3DProfile>? _profiles;
-
-    /// <summary>Perfis 3D da biblioteca (padrões, se o arquivo não puder ser lido), para o modo Família BIM.</summary>
-    private IReadOnlyList<Plant3DProfile> Profiles
-    {
-        get
-        {
-            if (_profiles is null)
-            {
-                try
-                {
-                    _profiles = new Plant3DProfileLibrary(_paths).Profiles;
-                }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
-                {
-                    ViridianLog.Warn("Perfis 3D: usando os padrões nas famílias.", ex);
-                    _profiles = Plant3DProfileDefaults.Create();
-                }
-            }
-
-            return _profiles;
-        }
-    }
-
-    /// <summary>Cartões rejeitados nesta sessão (espécie e assinatura): não são tentados de novo a cada inserção.</summary>
-    private static readonly HashSet<string> RejectedCards = new(StringComparer.Ordinal);
-
-    private readonly Dictionary<string, PlantCards> _cards = new(StringComparer.Ordinal);
-
     /// <summary>
-    /// Cartões ilustrados que a família da espécie deve ter (piloto e configuração ligada), ou nulo: a família fica só
-    /// com o símbolo 2D. O cálculo é guardado durante a sessão.
+    /// Vegetação ilustrada (RPC) da espécie: a família recebe o eixo de seleção e os parâmetros de exemplar, e a imagem é
+    /// desenhada na vista pelo Viridian. Nulo quando a espécie não está no piloto, tem família própria ou o recurso está
+    /// desligado nas configurações.
     /// </summary>
-    public PlantCards? CardsFor(Species species, int variant)
+    public SpriteHandle? HandleFor(Species species)
     {
-        if (!_settings.Model3D.IllustratedFamilies || species.HasCustomPlantingFamily || !PlantCardsPlanner.IsPilot(species))
+        if (!_settings.Model3D.IllustratedFamilies || species.HasCustomPlantingFamily || !PlantSpritesPlanner.IsPilot(species))
         {
             return null;
         }
 
-        string key = species.Id + "#" + variant + "#" + Core.Model3D.Generation.GeometryHash.Text(ViridianJson.Serialize(species));
-        if (!_cards.TryGetValue(key, out PlantCards? cards))
-        {
-            cards = PlantCardsPlanner.Build(species, variant, Profiles, _settings.Colors, _settings.Model3D.TrunkColor);
-            _cards[key] = cards;
-        }
-
-        return RejectedCards.Contains(species.Id + "|" + cards.Hash) ? null : cards;
+        (double _, double height) = GrowthModel.Size(species, GrowthStage.Maturidade);
+        return new SpriteHandle(Math.Round(height * 0.5, 2));
     }
 
-    /// <summary>Assinatura esperada da família: a do símbolo 2D e, nas espécies com cartões, a dos cartões.</summary>
+    /// <summary>Assinatura esperada da família: a do símbolo 2D e, nas espécies ilustradas, a marca do eixo de seleção.</summary>
     public string ExpectedHash(Species species, int variant, ProjectData project) =>
-        Combine(GeometryHash(species, variant, _settings.Colors), CardsFor(species, variant));
+        Combine(GeometryHash(species, variant, _settings.Colors), HandleFor(species));
 
-    private static string Combine(string hash2D, PlantCards? cards) => cards is null ? hash2D : hash2D + "-C" + cards.Hash;
+    private static string Combine(string hash2D, SpriteHandle? handle) =>
+        handle is null ? hash2D : hash2D + SpriteHandle.Marker + "-" + handle.AxisHeightM.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>Indica que o modelo de família configurado mudou e as configurações devem ser gravadas.</summary>
     public bool TemplateFileChanged { get; private set; }
@@ -118,7 +86,7 @@ public sealed class SpeciesFamilyService
 
         variant = Math.Clamp(variant, 0, species.EffectiveVariants - 1);
         bool custom = species.HasCustomPlantingFamily;
-        PlantCards? volume = custom ? null : CardsFor(species, variant);
+        SpriteHandle? volume = custom ? null : HandleFor(species);
         string hash = custom ? string.Empty : Combine(GeometryHash(species, variant, _settings.Colors), volume);
         FamilySymbol symbol;
         if (custom)
@@ -128,24 +96,12 @@ public sealed class SpeciesFamilyService
         else
         {
             var volumeResult = new VolumeBuildResult();
-            FamilySymbol? generated = EnsureGenerated(document, species, variant, hash, volume, volumeResult);
-            if (generated is not null)
+            symbol = EnsureGenerated(document, species, variant, hash, volume, volumeResult)
+                     ?? throw new ViridianException($"Não foi possível gerar a família de {species.DisplayName}.");
+            if (volume is not null && volumeResult.Attempted && !volumeResult.Usable)
             {
-                symbol = generated;
-            }
-            else
-            {
-                // O Revit não aceitou os cartões (ou não os escondeu em planta): a espécie fica com o símbolo 2D, como
-                // antes, e a maquete a representa. Não é tentado de novo nesta sessão.
-                string why = volumeResult.Created == 0
-                    ? "o Revit não aceitou os cartões 3D na família (" + string.Join("; ", volumeResult.Reasons.Take(2)) + ")"
-                    : "os cartões 3D não ficaram ocultos nas plantas";
-                RejectedCards.Add(species.Id + "|" + volume!.Hash);
-                ViridianLog.Warn($"Vegetação ilustrada: {species.DisplayName} fica só com o símbolo 2D — {why}.");
-                volume = null;
-                hash = GeometryHash(species, variant, _settings.Colors);
-                symbol = EnsureGenerated(document, species, variant, hash, null, null)
-                         ?? throw new ViridianException($"Não foi possível gerar a família de {species.DisplayName}.");
+                // A imagem ilustrada aparece mesmo sem o eixo; só a seleção nas vistas 3D fica pelo símbolo.
+                ViridianLog.Warn($"Vegetação ilustrada: eixo de seleção de {species.DisplayName} não criado ({string.Join("; ", volumeResult.Reasons.Concat(volumeResult.Notes).Take(3))}).");
             }
         }
 
@@ -239,7 +195,7 @@ public sealed class SpeciesFamilyService
 
             if (!link.IsCustom && !species.HasCustomPlantingFamily && link.GeometryHash != ExpectedHash(species, link.Variant, project))
             {
-                reasons.Add(CardsFor(species, link.Variant) is null ? "símbolo" : "símbolo ou cartões 3D");
+                reasons.Add(HandleFor(species) is null ? "símbolo" : "símbolo ou vegetação ilustrada");
             }
 
             if (reasons.Count > 0)
@@ -331,8 +287,8 @@ public sealed class SpeciesFamilyService
 
     // ------------------------------------------------------------------ famílias geradas
 
-    /// <summary>Gera ou reaproveita a família; devolve nulo quando o volume 3D pedido foi recusado pelo Revit.</summary>
-    private FamilySymbol? EnsureGenerated(Document document, Species species, int variant, string hash, PlantCards? volume, VolumeBuildResult? volumeResult)
+    /// <summary>Gera ou reaproveita a família (com o eixo da vegetação ilustrada, quando pedido).</summary>
+    private FamilySymbol? EnsureGenerated(Document document, Species species, int variant, string hash, SpriteHandle? volume, VolumeBuildResult? volumeResult)
     {
         (FamilySymbol Symbol, SpeciesLink Link)? linked = LinkedSymbols(document)
             .Where(x => !x.Link.IsCustom && x.Link.Variant == variant
@@ -350,11 +306,6 @@ public sealed class SpeciesFamilyService
         string familyName = linked.HasValue ? linked.Value.Symbol.Family.Name : UniqueFamilyName(document, standardName, species.Id);
         string typeName = TypeNameOf(species);
         string file = EnsureFamilyFile(document.Application, species, variant, familyName, standardName, hash, typeName, volume, volumeResult);
-        if (volumeResult is { Attempted: true, Usable: false })
-        {
-            return null; // o volume foi recusado: o arquivo não é carregado (quem chamou gera só o símbolo 2D)
-        }
-
         Family family = LoadFamilyFile(document, file);
 
         // Ao regerar, o tipo já usado pelos exemplares continua sendo o tipo da espécie.
@@ -429,10 +380,10 @@ public sealed class SpeciesFamilyService
     }
 
     private string EnsureFamilyFile(RevitApplication app, Species species, int variant, string familyName, string standardName, string hash, string typeName,
-        PlantCards? volume, VolumeBuildResult? volumeResult)
+        SpriteHandle? volume, VolumeBuildResult? volumeResult)
     {
-        // As famílias com volume 3D ficam numa subpasta própria (o nome do arquivo é o nome da família no projeto),
-        // para projetos com e sem o modo Família BIM não regerarem a mesma família um do outro.
+        // As famílias da vegetação ilustrada ficam numa subpasta própria (o nome do arquivo é o nome da família no projeto),
+        // para projetos com e sem a vegetação ilustrada não regerarem a mesma família um do outro.
         bool cacheable = string.Equals(familyName, standardName, StringComparison.OrdinalIgnoreCase);
         string folder = volume is null ? _paths.GeneratedFolder(species.Category) : Path.Combine(_paths.GeneratedFolder(species.Category), "3D");
         string cacheFile = Path.Combine(folder, familyName + ".rfa");
@@ -441,7 +392,7 @@ public sealed class SpeciesFamilyService
         string cacheKey = hash + "|" + typeName;
         if (cacheable && File.Exists(cacheFile) && index.TryGetValue(indexKey, out string? cachedKey) && cachedKey == cacheKey)
         {
-            return cacheFile; // só famílias com volume aceito entram no índice
+            return cacheFile;
         }
 
         PlantSymbol symbol = SymbolGenerator.Generate(species.SymbolStyle, species.CrownDiameterM, species.EffectiveSymbolSeed, variant);
@@ -465,7 +416,7 @@ public sealed class SpeciesFamilyService
             return temporary;
         }
 
-        if (cacheable && (volume is null || volumeResult is null || volumeResult.Usable))
+        if (cacheable)
         {
             index[indexKey] = cacheKey;
             WriteIndex(index);
@@ -475,7 +426,7 @@ public sealed class SpeciesFamilyService
     }
 
     private void BuildWithAnyTemplate(RevitApplication app, PlantSymbol symbol, SymbolPaint paint, string target, string typeName,
-        PlantCards? volume = null, VolumeBuildResult? volumeResult = null)
+        SpriteHandle? volume = null, VolumeBuildResult? volumeResult = null)
     {
         IReadOnlyList<string> candidates = FamilyTemplateLocator.Candidates(app, _settings.FamilyTemplateFile);
         var rejections = new List<string>();

@@ -4,25 +4,42 @@ using Viridian.Core.Geometry;
 
 namespace Viridian.Core.Model3D.Illustration;
 
-/// <summary>Prévia em SVG exatamente da geometria que vai para a família: as regiões achatadas de cada plano.</summary>
+/// <summary>Prévias em SVG da vegetação ilustrada: as regiões achatadas e a malha triangulada que vai para a vista 3D.</summary>
 public static class CardSvg
 {
-    /// <summary>Uma face do cartão (plano A ou B, de frente ou espelhada pelo verso).</summary>
+    /// <summary>As regiões de cor de uma imagem (de frente ou espelhada).</summary>
     public static string Face(CardRegions regions, double plantSize, int size = 800, bool mirrored = false) =>
         Wrap(size, string.Empty, Group(regions, plantSize, size, mirrored ? $"translate({size},0) scale(-1,1)" : string.Empty));
 
-    /// <summary>Vista de quina dos dois planos cruzados, como a referência: metade esquerda do plano A e direita do B à frente.</summary>
-    public static string Corner(CardRegions planeA, CardRegions planeB, double plantSize, int size = 800)
+    /// <summary>
+    /// A imagem exatamente como vai para a placa de vídeo: os triângulos de cada camada, do fundo para a frente.
+    /// <paramref name="style"/>: "cor", "linha" (linha oculta: contorno preto e branco) ou "arame" (só o contorno).
+    /// </summary>
+    public static string Mesh(SpriteMesh mesh, double plantSize, int size = 800, string style = "cor", bool centerVertically = false)
     {
-        string squeeze = string.Create(CultureInfo.InvariantCulture, $"translate({size / 2},0) scale(0.7071,1) translate({-size / 2},0)");
-        string defs = string.Create(CultureInfo.InvariantCulture,
-            $"<defs><clipPath id='cl'><rect x='0' y='0' width='{size / 2}' height='{size}'/></clipPath><clipPath id='cr'><rect x='{size / 2}' y='0' width='{size / 2}' height='{size}'/></clipPath></defs>");
-        var sb = new StringBuilder();
-        sb.Append($"<g clip-path='url(#cr)' opacity='0.92'>{Group(planeA, plantSize, size, squeeze)}</g>");
-        sb.Append($"<g clip-path='url(#cl)' opacity='0.92'>{Group(planeB, plantSize, size, squeeze)}</g>");
-        sb.Append($"<g clip-path='url(#cl)'>{Group(planeA, plantSize, size, squeeze)}</g>");
-        sb.Append($"<g clip-path='url(#cr)'>{Group(planeB, plantSize, size, squeeze)}</g>");
-        return Wrap(size, defs, sb.ToString());
+        ArgumentNullException.ThrowIfNull(mesh);
+        double k = size * 0.9 / Math.Max(1e-6, plantSize);
+        double cy = centerVertically ? (mesh.MinY + mesh.MaxY) / 2 : 0;
+        var sb = new StringBuilder("<g>");
+        IReadOnlyList<int> list = style == "arame" ? mesh.OutlineTriangles : mesh.Triangles;
+        var tris = new List<(double Z, int I)>();
+        for (int i = 0; i + 2 < list.Count; i += 3)
+        {
+            tris.Add((mesh.Vertices[list[i]].Z, i));
+        }
+
+        foreach ((double _, int i) in tris.OrderBy(t => t.Z).ThenBy(t => t.I))
+        {
+            SpriteVertex a = mesh.Vertices[list[i]], b = mesh.Vertices[list[i + 1]], c = mesh.Vertices[list[i + 2]];
+            string color = style == "linha" && !a.Outline ? "#FFFFFF" : a.Color.Hex;
+            double X(SpriteVertex v) => size / 2.0 + v.X * k;
+            double Y(SpriteVertex v) => centerVertically ? size / 2.0 - (v.Y - cy) * k : size * 0.96 - v.Y * k;
+            sb.Append(CultureInfo.InvariantCulture,
+                $"<path d='M{X(a):0.##},{Y(a):0.##}L{X(b):0.##},{Y(b):0.##}L{X(c):0.##},{Y(c):0.##}Z' fill='{color}' stroke='{color}' stroke-width='0.35' stroke-linejoin='round'/>");
+        }
+
+        sb.Append("</g>");
+        return Wrap(size, string.Empty, sb.ToString());
     }
 
     private static string Wrap(int size, string defs, string inner) =>

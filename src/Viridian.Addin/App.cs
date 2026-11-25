@@ -41,6 +41,16 @@ public sealed class App : IExternalApplication
         // Quadro de fotos: texto e linha acompanham a foto arrastada (e a planta movida).
         Services.PhotoBoardUpdater.Register(application.ActiveAddInId);
 
+        // Vegetação ilustrada: imagem sempre de frente para a câmera nas vistas 3D, cortes e elevações.
+        try
+        {
+            Viridian.Revit.Illustrated.IllustratedVegetation.Start(application);
+        }
+        catch (Exception ex)
+        {
+            ViridianLog.Error("Falha ao iniciar a vegetação ilustrada.", ex);
+        }
+
         ViridianLog.Info("Viridian carregado.");
         return Result.Succeeded;
     }
@@ -51,6 +61,7 @@ public sealed class App : IExternalApplication
         {
             _scaleUpdater?.Detach();
             Services.PhotoBoardUpdater.Unregister(application.ActiveAddInId);
+            Viridian.Revit.Illustrated.IllustratedVegetation.Stop(application);
         }
         catch (Exception ex)
         {
