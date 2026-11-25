@@ -1,5 +1,6 @@
 using System.IO;
 using Autodesk.Revit.DB;
+using Viridian.Core.Detailing;
 using Viridian.Core.Geometry;
 using Viridian.Core.Identification;
 using Viridian.Core.Model;
@@ -140,6 +141,8 @@ public sealed class PhotoService
         double z = PlantingService.LevelOf(view)?.ProjectElevation ?? 0;
         ElementId textType = _labels.EnsureTextType(document).Id;
         var bySpecies = species.ToDictionary(s => s.Species.Id, StringComparer.OrdinalIgnoreCase);
+        GraphicsStyle? framePen = DrawingRenderer.PenStyle(document, view, LinePen.Media);
+        GraphicsStyle? leaderPen = DrawingRenderer.PenStyle(document, view, LinePen.Fina);
 
         foreach (PhotoCard card in cards)
         {
@@ -158,6 +161,19 @@ public sealed class PhotoService
             {
                 ElementData.Write(image, ElementData.KindPhotoBoard, Link(PhotoBoardLink.RoleImage));
                 topLeft = image.GetLocation(BoxPlacement.TopLeft);
+
+                // Moldura fina em volta da foto (acompanha a foto quando ela é arrastada).
+                XYZ bottomRight = image.GetLocation(BoxPlacement.BottomRight);
+                foreach (DetailCurve line in Rectangle(document, view, Bounds2.FromPoints(new[] { RevitUnits.ToPoint2(topLeft), RevitUnits.ToPoint2(bottomRight) }), z).OfType<DetailCurve>())
+                {
+                    if (framePen is not null)
+                    {
+                        line.LineStyle = framePen;
+                    }
+
+                    XYZ start = line.GeometryCurve.GetEndPoint(0);
+                    ElementData.Write(line, ElementData.KindPhotoBoard, Link(PhotoBoardLink.RoleFrame, start.X - topLeft.X, start.Y - topLeft.Y));
+                }
             }
             else
             {
@@ -168,13 +184,15 @@ public sealed class PhotoService
                 }
             }
 
-            string text = (item.Code + " " + item.Species.PopularName).Trim().ToUpperInvariant() + "\n" + item.Species.ScientificName;
+            string title = (item.Code + " " + item.Species.PopularName).Trim().ToUpperInvariant();
+            string text = title + "\n" + item.Species.ScientificName;
             using (var options = new TextNoteOptions(textType) { HorizontalAlignment = HorizontalTextAlignment.Center })
             {
                 var at = new Point2(card.Box.Center.X, card.Box.MaxY - M(PhotoHeightMm + 1.5));
                 XYZ position = RevitUnits.ToXyz(at, z);
                 TextNote note = TextNote.Create(document, view.Id, position, RevitUnits.MmToFeet(CardWidthMm), LabelService.ToRevitText(text), options); // largura no papel
                 ElementData.Write(note, ElementData.KindPhotoBoard, Link(PhotoBoardLink.RoleText, position.X - topLeft.X, position.Y - topLeft.Y));
+                Emphasize(note, title.Length, item.Species.ScientificName.Length);
             }
 
             // Linha indicadora até o exemplar, com um ponto marcando a planta.
@@ -182,14 +200,25 @@ public sealed class PhotoService
             XYZ b = RevitUnits.ToXyz(card.Target, z);
             if (a.DistanceTo(b) > document.Application.ShortCurveTolerance * 2)
             {
-                ElementData.Write(document.Create.NewDetailCurve(view, Line.CreateBound(a, b)), ElementData.KindPhotoBoard, Link(PhotoBoardLink.RoleLeader));
+                DetailCurve leader = document.Create.NewDetailCurve(view, Line.CreateBound(a, b));
+                if (leaderPen is not null)
+                {
+                    leader.LineStyle = leaderPen;
+                }
+
+                ElementData.Write(leader, ElementData.KindPhotoBoard, Link(PhotoBoardLink.RoleLeader));
             }
 
-            double dot = RevitUnits.ToFeet(M(0.8));
+            double dot = RevitUnits.ToFeet(M(1.0));
             if (dot * Math.PI > document.Application.ShortCurveTolerance * 2)
             {
-                ElementData.Write(document.Create.NewDetailCurve(view, Arc.Create(b, dot, 0, 2 * Math.PI * 0.999, XYZ.BasisX, XYZ.BasisY)),
-                    ElementData.KindPhotoBoard, Link(PhotoBoardLink.RoleDot));
+                DetailCurve marker = document.Create.NewDetailCurve(view, Arc.Create(b, dot, 0, 2 * Math.PI * 0.999, XYZ.BasisX, XYZ.BasisY));
+                if (framePen is not null)
+                {
+                    marker.LineStyle = framePen;
+                }
+
+                ElementData.Write(marker, ElementData.KindPhotoBoard, Link(PhotoBoardLink.RoleDot));
             }
         }
 
@@ -239,6 +268,21 @@ public sealed class PhotoService
             }
         }
 
+        // Moldura: cada lado volta à posição relativa à foto.
+        foreach ((Element element, PhotoBoardLink link) in parts.Where(p => p.Link.Role == PhotoBoardLink.RoleFrame))
+        {
+            if (element is CurveElement { GeometryCurve: Curve side } frameLine)
+            {
+                XYZ start = side.GetEndPoint(0);
+                XYZ wanted = new(topLeft.X + link.TextDx, topLeft.Y + link.TextDy, start.Z);
+                XYZ delta = wanted - start;
+                if (delta.GetLength() > 1e-6)
+                {
+                    ElementTransformUtils.MoveElement(document, frameLine.Id, delta);
+                }
+            }
+        }
+
         // Ponta da linha: o exemplar ligado (se ainda existe) ou a ponta atual.
         PhotoBoardLink any = parts[0].Link;
         Element? leader = parts.FirstOrDefault(p => p.Link.Role == PhotoBoardLink.RoleLeader).Element;
@@ -268,6 +312,30 @@ public sealed class PhotoService
         if (dot is CurveElement circle && circle.GeometryCurve is Arc arc && arc.Center.DistanceTo(new XYZ(target.X, target.Y, arc.Center.Z)) > 1e-6)
         {
             ElementTransformUtils.MoveElement(document, circle.Id, new XYZ(target.X - arc.Center.X, target.Y - arc.Center.Y, 0));
+        }
+    }
+
+    /// <summary>Primeira linha (código e nome popular) em negrito e o nome científico em itálico.</summary>
+    private static void Emphasize(TextNote note, int titleLength, int scientificLength)
+    {
+        try
+        {
+            FormattedText formatted = note.GetFormattedText();
+            if (titleLength > 0)
+            {
+                formatted.SetBoldStatus(new TextRange(0, titleLength), true);
+            }
+
+            if (scientificLength > 0)
+            {
+                formatted.SetItalicStatus(new TextRange(titleLength + 1, scientificLength), true);
+            }
+
+            note.SetFormattedText(formatted);
+        }
+        catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+        {
+            ViridianLog.Warn("Quadro de fotos: formatação do texto.", ex);
         }
     }
 

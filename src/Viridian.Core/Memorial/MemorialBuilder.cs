@@ -77,15 +77,40 @@ public static class MemorialBuilder
 
     private static void Cover(List<DocBlock> b, MemorialProject p, IReadOnlyList<MemorialSpecies> species)
     {
-        b.Add(new DocParagraph("Memorial descritivo de paisagismo", DocStyle.Title));
-        b.Add(new DocParagraph(string.IsNullOrWhiteSpace(p.Name) ? "Projeto de paisagismo" : p.Name, DocStyle.Subtitle));
+        // Faixa verde com o título, em letra clara.
+        b.Add(new DocTable(new[] { 1.0 }, new[]
+        {
+            new[]
+            {
+                new DocCell(new DocBlock[]
+                {
+                    new DocParagraph(new[] { new DocRun("Memorial descritivo de paisagismo", Bold: true, Color: "FFFFFF", SizePt: 24) }),
+                    new DocParagraph(new[] { new DocRun(string.IsNullOrWhiteSpace(p.Name) ? "Projeto de paisagismo" : p.Name, Color: "E3ECDC", SizePt: 15) }),
+                }, "2E4A36"),
+            },
+        }, HeaderRow: false, Borders: false));
 
-        // Mosaico de fotos da paleta na capa (até seis espécies com foto).
+        // Mosaico de fotos da paleta na capa (até seis espécies com foto, em duas linhas de três).
         List<MemorialSpecies> photos = species.Where(s => File.Exists(s.PhotoFile)).Take(6).ToList();
         if (photos.Count > 0)
         {
-            var row = photos.Select(s => new DocCell(new DocBlock[] { new DocImage(s.PhotoFile, 2.6, true), new DocParagraph(new[] { new DocRun(s.Species.PopularName, SizePt: 8) }, DocStyle.Caption, true) })).ToList();
-            b.Add(new DocTable(photos.Select(_ => 1.0).ToList(), new[] { row }, HeaderRow: false, Borders: false));
+            var mosaic = new List<IReadOnlyList<DocCell>>();
+            foreach (MemorialSpecies[] line in photos.Chunk(3))
+            {
+                var cells = line.Select(s => new DocCell(new DocBlock[]
+                {
+                    new DocImage(s.PhotoFile, 3.6, true),
+                    new DocParagraph(new[] { new DocRun(s.Species.PopularName, Bold: true, SizePt: 9), new DocRun(" " + s.Species.ScientificName, Italic: true, SizePt: 8) }, DocStyle.Caption, true),
+                })).ToList();
+                while (cells.Count < 3)
+                {
+                    cells.Add(new DocCell(string.Empty));
+                }
+
+                mosaic.Add(cells);
+            }
+
+            b.Add(new DocTable(new[] { 1.0, 1.0, 1.0 }, mosaic, HeaderRow: false, Borders: false));
         }
 
         var info = new List<IReadOnlyList<DocCell>>();
@@ -93,7 +118,7 @@ public static class MemorialBuilder
         {
             if (!string.IsNullOrWhiteSpace(value))
             {
-                info.Add(new[] { new DocCell(label, bold: true), new DocCell(value) });
+                info.Add(new[] { new DocCell(label, "E3ECDC", bold: true), new DocCell(value) });
             }
         }
 
@@ -105,7 +130,18 @@ public static class MemorialBuilder
         Line("Data", p.Date.ToString("d 'de' MMMM 'de' yyyy", Pt));
         if (info.Count > 0)
         {
-            b.Add(new DocTable(new[] { 1.0, 3.0 }, info, HeaderRow: false, Borders: false));
+            b.Add(new DocTable(new[] { 1.0, 3.0 }, info, HeaderRow: false, Borders: true));
+        }
+
+        // Sumário (as seções são sempre as mesmas, na mesma ordem).
+        b.Add(new DocParagraph("Sumário", DocStyle.Heading2));
+        foreach (string section in new[]
+        {
+            "1. Partido e composição", "2. Paleta vegetal", "3. Fichas das espécies", "4. Calendário de floração",
+            "5. Especificações de plantio", "6. Manutenção", "7. Créditos das fotografias",
+        })
+        {
+            b.Add(new DocParagraph(new[] { new DocRun(section, Color: "2E4A36") }));
         }
     }
 
@@ -171,7 +207,7 @@ public static class MemorialBuilder
         foreach (MemorialSpecies m in species)
         {
             Species s = m.Species;
-            b.Add(new DocParagraph($"{m.Code} · {s.PopularName}", DocStyle.Heading2));
+            b.Add(new DocParagraph(new[] { new DocRun($"{m.Code} · {s.PopularName}"), new DocRun("  " + s.ScientificName, Bold: false, Italic: true, SizePt: 10.5) }, DocStyle.Heading2));
 
             var data = new List<DocBlock>
             {

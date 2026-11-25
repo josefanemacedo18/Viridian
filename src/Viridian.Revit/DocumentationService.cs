@@ -1,5 +1,6 @@
 using System.Globalization;
 using Autodesk.Revit.DB;
+using Viridian.Core.Detailing;
 using Viridian.Core.Colors;
 using Viridian.Core.Config;
 using Viridian.Core.Geometry;
@@ -126,78 +127,61 @@ public sealed class DocumentationService
                 view.Scale = scale;
             }
 
-            // Medidas em milímetros no papel, convertidas para o modelo pela escala da vista.
-            double Unit(double paperMm) => RevitUnits.ToFeet(paperMm * scale / 1000.0);
-            ElementId textType = _labels.EnsureTextType(document).Id;
-
-            // Com fotografias, a legenda ganha a coluna "Foto" e linhas mais altas.
+            // Linhas agrupadas por categoria (maciços à parte), na ordem das categorias.
             var photos = entries.ToDictionary(e => e, e => e.Species is null ? string.Empty : PhotoResolver(e.Species.PhotoFile));
             bool withPhotos = photos.Values.Any(p => p.Length > 0);
-            double rowHeight = withPhotos ? 26 : 13;
-            double[] columns = withPhotos
-                ? new double[] { 0, 24, 60, 82, 132, 192, 230 }
-                : new double[] { 0, 20, 42, 92, 152, 190 };
-            string[] headers = withPhotos
-                ? new[] { "Símbolo", "Foto", "Código", "Nome popular", "Nome científico", "Quantidade" }
-                : new[] { "Símbolo", "Código", "Nome popular", "Nome científico", "Quantidade" };
-            int text = withPhotos ? 2 : 1; // primeira coluna de texto
+            List<LegendEntry> ordered = entries
+                .Select((e, i) => (Entry: e, Index: i))
+                .OrderBy(x => GroupOrder(x.Entry))
+                .ThenBy(x => x.Index)
+                .Select(x => x.Entry)
+                .ToList();
+            List<LegendRow> rows = ordered.Select(e => new LegendRow(e.Code, e.PopularName, e.ScientificName, e.Quantity, GroupName(e))).ToList();
+            double unit = scale / 1000.0;
+            string title = "Legenda de vegetação" + (string.IsNullOrWhiteSpace(projectTitle) ? string.Empty : " — " + projectTitle);
+            LegendLayoutResult layout = LegendLayout.Build(rows, withPhotos, title, unit);
+            new DrawingRenderer(document, view, _settings.Labels.TextSizeMm).Render(layout.Drawing, Point2.Zero);
 
-            double top = 0;
-            AddText(document, view, textType, "LEGENDA DE VEGETAÇÃO" + (string.IsNullOrWhiteSpace(projectTitle) ? string.Empty : " — " + projectTitle), Unit(0), Unit(top + 9));
-
-            double headerTop = top;
-            double headerBottom = headerTop - 8;
-            for (int c = 0; c < headers.Length; c++)
+            // Símbolos, hachuras e fotos nativos, por cima, nas posições da diagramação.
+            foreach (LegendSlot slot in layout.Slots)
             {
-                AddText(document, view, textType, headers[c], Unit(columns[c] + 1.5), Unit(headerTop - 2.5));
-            }
-
-            double y = headerBottom;
-            var horizontal = new List<double> { headerTop, headerBottom };
-            foreach (LegendEntry entry in entries)
-            {
-                double rowTop = y;
-                double rowBottom = y - rowHeight;
-                double centerX = (columns[0] + columns[1]) / 2;
-                double centerY = (rowTop + rowBottom) / 2;
-
+                LegendEntry entry = ordered[slot.Row];
+                Bounds2 b = slot.Symbol;
                 if (entry.Hatch is not null)
                 {
                     RegionPaint? paint = entry.Species is null ? null : VegetationPalette.Massing(entry.Species, _settings.Colors);
-                    DrawHatchSample(document, view, entry.Hatch, paint, Unit(columns[0] + 3), Unit(rowBottom + 2.5), Unit(columns[1] - 3), Unit(rowTop - 2.5));
+                    DrawHatchSample(document, view, entry.Hatch, paint, RevitUnits.ToFeet(b.MinX), RevitUnits.ToFeet(b.MinY), RevitUnits.ToFeet(b.MaxX), RevitUnits.ToFeet(b.MaxY));
                 }
                 else if (entry.Species is not null)
                 {
-                    DrawSymbol(document, view, entry.Species, SymbolPaint.For(entry.Species, _settings.Colors), Unit(centerX), Unit(centerY), Unit(rowHeight - 3));
+                    DrawSymbol(document, view, entry.Species, SymbolPaint.For(entry.Species, _settings.Colors),
+                        RevitUnits.ToFeet(b.Center.X), RevitUnits.ToFeet(b.Center.Y), RevitUnits.ToFeet(Math.Min(b.Width, b.Height)));
                 }
 
-                if (withPhotos && photos[entry].Length > 0 && PhotoService.EnsureImageType(document, photos[entry]) is ImageType photo)
+                if (slot.Photo is Bounds2 p && photos[entry].Length > 0 && PhotoService.EnsureImageType(document, photos[entry]) is ImageType photo)
                 {
-                    PhotoService.PlaceImage(document, view, photo, new XYZ(Unit(columns[1] + 1.5), Unit(rowTop - 1.5), 0), Unit(columns[2] - columns[1] - 3), Unit(rowHeight - 3));
+                    PhotoService.PlaceImage(document, view, photo, new XYZ(RevitUnits.ToFeet(p.MinX), RevitUnits.ToFeet(p.MaxY), 0), RevitUnits.ToFeet(p.Width), RevitUnits.ToFeet(p.Height));
                 }
-
-                AddText(document, view, textType, entry.Code, Unit(columns[text] + 1.5), Unit(centerY + 1.3));
-                AddText(document, view, textType, entry.PopularName, Unit(columns[text + 1] + 1.5), Unit(centerY + 1.3));
-                AddText(document, view, textType, entry.ScientificName, Unit(columns[text + 2] + 1.5), Unit(centerY + 1.3));
-                AddText(document, view, textType, entry.Quantity, Unit(columns[text + 3] + 1.5), Unit(centerY + 1.3));
-
-                y = rowBottom;
-                horizontal.Add(y);
-            }
-
-            foreach (double line in horizontal)
-            {
-                AddLine(document, view, Unit(columns[0]), Unit(line), Unit(columns[^1]), Unit(line));
-            }
-
-            foreach (double column in columns)
-            {
-                AddLine(document, view, Unit(column), Unit(headerTop), Unit(column), Unit(y));
             }
 
             return view;
         }, suppressWarnings: true);
     }
+
+    private static int GroupOrder(LegendEntry e) => e.Hatch is not null ? 100 : e.Species is null ? 200 : (int)e.Species.Category;
+
+    private static string GroupName(LegendEntry e) => e.Hatch is not null ? "Maciços" : e.Species is null ? "Outros" : e.Species.Category switch
+    {
+        PlantCategory.Arvore => "Árvores",
+        PlantCategory.Palmeira => "Palmeiras",
+        PlantCategory.Arbusto => "Arbustos",
+        PlantCategory.Herbacea => "Herbáceas",
+        PlantCategory.Forracao => "Forrações",
+        PlantCategory.Gramado => "Gramados",
+        PlantCategory.Trepadeira => "Trepadeiras",
+        PlantCategory.Aquatica => "Aquáticas",
+        _ => "Outros",
+    };
 
     /// <summary>Cria a tabela nativa de vegetação agrupada por espécie (ou devolve a existente).</summary>
     public ViewSchedule CreateSpeciesSchedule(Document document)

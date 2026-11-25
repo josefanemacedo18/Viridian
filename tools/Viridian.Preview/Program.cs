@@ -307,6 +307,27 @@ internal static class SvgSheets
         }
 
         yield return ("jardim-de-chuva", WaterSolarPreview.RainGarden(), 260, 25);
+
+        var rows = new[]
+        {
+            new Viridian.Core.Detailing.LegendRow("AR-001", "Ipê-amarelo", "Handroanthus chrysotrichus", "2 mudas", "Árvores"),
+            new Viridian.Core.Detailing.LegendRow("AR-015", "Jabuticabeira", "Plinia cauliflora", "8 mudas", "Árvores"),
+            new Viridian.Core.Detailing.LegendRow("PA-001", "Jerivá", "Syagrus romanzoffiana", "5 mudas", "Palmeiras"),
+            new Viridian.Core.Detailing.LegendRow("AB-001", "Clúsia", "Clusia fluminensis", "11 mudas", "Arbustos"),
+            new Viridian.Core.Detailing.LegendRow("FO-001", "Grama-amendoim", "Arachis repens", "14,5 m²", "Maciços"),
+        };
+        var legend = Viridian.Core.Detailing.LegendLayout.Build(rows, true, "Legenda de vegetação — Residência Jardim das Palmeiras", 0.1);
+        foreach (var slot in legend.Slots)
+        {
+            // Marcadores no lugar do símbolo e da foto (no Revit são elementos nativos).
+            legend.Drawing.Fill(Viridian.Core.Detailing.Drawing.Ellipse(slot.Symbol.Center, slot.Symbol.Width * 0.4, slot.Symbol.Height * 0.4, 24), new Viridian.Core.Colors.Rgb(0x6A, 0x96, 0x52));
+            if (slot.Photo is Bounds2 ph)
+            {
+                legend.Drawing.Box(ph.MinX, ph.MinY, ph.MaxX, ph.MaxY, new Viridian.Core.Colors.Rgb(0xC9, 0xD6, 0xBE));
+            }
+        }
+
+        yield return ("legenda", legend.Drawing, 60, 100);
     }
 
     /// <summary>SVG de um desenho do Viridian (metros × fator em pixels). <paramref name="scale"/>: escala de papel das hachuras.</summary>

@@ -90,6 +90,8 @@ public static class DocxWriter
             Add(zip, "word/styles.xml", Styles());
             var rels = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">");
             rels.Append("<Relationship Id=\"rIdStyles\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>");
+            rels.Append("<Relationship Id=\"rIdFooter1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer\" Target=\"footer1.xml\"/>");
+            Add(zip, "word/footer1.xml", Footer(title));
             for (int i = 0; i < images.Count; i++)
             {
                 rels.Append(Inv, $"<Relationship Id=\"rIdImg{i + 1}\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/image\" Target=\"media/{images[i].Name}\"/>");
@@ -106,7 +108,7 @@ public static class DocxWriter
                 + "xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" "
                 + "xmlns:pic=\"http://schemas.openxmlformats.org/drawingml/2006/picture\"><w:body>"
                 + body
-                + "<w:sectPr><w:pgSz w:w=\"11906\" w:h=\"16838\"/><w:pgMar w:top=\"1134\" w:right=\"1134\" w:bottom=\"1134\" w:left=\"1134\" w:header=\"567\" w:footer=\"567\" w:gutter=\"0\"/></w:sectPr>"
+                + "<w:sectPr><w:footerReference w:type=\"default\" r:id=\"rIdFooter1\"/><w:pgSz w:w=\"11906\" w:h=\"16838\"/><w:pgMar w:top=\"1134\" w:right=\"1134\" w:bottom=\"1134\" w:left=\"1134\" w:header=\"567\" w:footer=\"567\" w:gutter=\"0\"/></w:sectPr>"
                 + "</w:body></w:document>");
         }
 
@@ -228,7 +230,7 @@ public static class DocxWriter
             sb.Append("<w:tblBorders>");
             foreach (string side in new[] { "top", "left", "bottom", "right", "insideH", "insideV" })
             {
-                sb.Append("<w:").Append(side).Append(" w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"A9B8AF\"/>");
+                sb.Append("<w:").Append(side).Append(" w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"C9D3C4\"/>");
             }
 
             sb.Append("</w:tblBorders>");
@@ -254,7 +256,8 @@ public static class DocxWriter
             for (int c = 0; c < twips.Length; c++)
             {
                 DocCell cell = c < row.Count ? row[c] : new DocCell(string.Empty);
-                string? fill = cell.Fill ?? (header ? "1F4D3A" : null);
+                // Cabeçalho na cor principal e linhas alternadas claras (só em tabelas com cabeçalho e bordas).
+                string? fill = cell.Fill ?? (header ? "2E4A36" : table.HeaderRow && table.Borders && r % 2 == 0 ? "F6F8F2" : null);
                 sb.Append(Inv, $"<w:tc><w:tcPr><w:tcW w:w=\"{twips[c]}\" w:type=\"dxa\"/>");
                 if (fill is not null)
                 {
@@ -298,9 +301,20 @@ public static class DocxWriter
         + "<Default Extension=\"xml\" ContentType=\"application/xml\"/>"
         + "<Default Extension=\"jpeg\" ContentType=\"image/jpeg\"/><Default Extension=\"jpg\" ContentType=\"image/jpeg\"/><Default Extension=\"png\" ContentType=\"image/png\"/>"
         + "<Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/>"
+        + "<Override PartName=\"/word/footer1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml\"/>"
         + "<Override PartName=\"/word/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml\"/>"
         + "<Override PartName=\"/docProps/core.xml\" ContentType=\"application/vnd.openxmlformats-package.core-properties+xml\"/>"
         + "</Types>";
+
+    /// <summary>Rodapé: nome do documento e número da página, sobre um fio verde.</summary>
+    private static string Footer(string title) =>
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+        + $"<w:ftr xmlns:w=\"{W}\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">"
+        + "<w:p><w:pPr><w:pBdr><w:top w:val=\"single\" w:sz=\"6\" w:space=\"4\" w:color=\"5E824E\"/></w:pBdr><w:tabs><w:tab w:val=\"right\" w:pos=\"9638\"/></w:tabs></w:pPr>"
+        + $"<w:r><w:rPr><w:color w:val=\"6B746D\"/><w:sz w:val=\"16\"/></w:rPr><w:t xml:space=\"preserve\">{X(title.Length > 0 ? title : "Viridian")}</w:t></w:r>"
+        + "<w:r><w:rPr><w:color w:val=\"6B746D\"/><w:sz w:val=\"16\"/></w:rPr><w:tab/><w:t xml:space=\"preserve\">página </w:t></w:r>"
+        + "<w:fldSimple w:instr=\" PAGE \"><w:r><w:rPr><w:b/><w:color w:val=\"2E4A36\"/><w:sz w:val=\"16\"/></w:rPr><w:t>1</w:t></w:r></w:fldSimple>"
+        + "</w:p></w:ftr>";
 
     private static string Styles()
     {
@@ -310,10 +324,10 @@ public static class DocxWriter
                + $"<w:styles xmlns:w=\"{W}\"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii=\"Calibri\" w:hAnsi=\"Calibri\" w:cs=\"Calibri\"/><w:sz w:val=\"21\"/><w:lang w:val=\"pt-BR\"/></w:rPr></w:rPrDefault>"
                + "<w:pPrDefault><w:pPr><w:spacing w:after=\"80\" w:line=\"264\" w:lineRule=\"auto\"/></w:pPr></w:pPrDefault></w:docDefaults>"
                + Style("Normal", "Normal", "<w:color w:val=\"1E2A24\"/>")
-               + Style("Title", "Title", "<w:b/><w:color w:val=\"1F4D3A\"/><w:sz w:val=\"52\"/>", "<w:spacing w:before=\"1200\" w:after=\"240\"/>")
-               + Style("Subtitle", "Subtitle", "<w:color w:val=\"2F6B4F\"/><w:sz w:val=\"30\"/>", "<w:spacing w:after=\"160\"/>")
-               + Style("Heading1", "heading 1", "<w:b/><w:color w:val=\"1F4D3A\"/><w:sz w:val=\"32\"/>", "<w:keepNext/><w:spacing w:before=\"360\" w:after=\"160\"/><w:outlineLvl w:val=\"0\"/>")
-               + Style("Heading2", "heading 2", "<w:b/><w:color w:val=\"2F6B4F\"/><w:sz w:val=\"25\"/>", "<w:keepNext/><w:spacing w:before=\"240\" w:after=\"100\"/><w:outlineLvl w:val=\"1\"/>")
+               + Style("Title", "Title", "<w:b/><w:color w:val=\"2E4A36\"/><w:sz w:val=\"56\"/>", "<w:spacing w:before=\"600\" w:after=\"200\"/>")
+               + Style("Subtitle", "Subtitle", "<w:color w:val=\"5E824E\"/><w:sz w:val=\"30\"/>", "<w:spacing w:after=\"160\"/>")
+               + Style("Heading1", "heading 1", "<w:b/><w:color w:val=\"2E4A36\"/><w:sz w:val=\"32\"/>", "<w:keepNext/><w:pBdr><w:bottom w:val=\"single\" w:sz=\"8\" w:space=\"4\" w:color=\"5E824E\"/></w:pBdr><w:spacing w:before=\"360\" w:after=\"200\"/><w:outlineLvl w:val=\"0\"/>")
+               + Style("Heading2", "heading 2", "<w:b/><w:color w:val=\"5E824E\"/><w:sz w:val=\"25\"/>", "<w:keepNext/><w:spacing w:before=\"240\" w:after=\"100\"/><w:outlineLvl w:val=\"1\"/>")
                + Style("Caption", "caption", "<w:i/><w:color w:val=\"5F6B63\"/><w:sz w:val=\"17\"/>")
                + Style("Small", "Texto pequeno", "<w:color w:val=\"5F6B63\"/><w:sz w:val=\"17\"/>")
                + "</w:styles>";

@@ -443,9 +443,9 @@ public static class SolarService
                     FilePath = Path.Combine(folder, PavingService.SafeName(view.Name)),
                     HLRandWFViewsFileType = ImageFileType.PNG,
                     ShadowViewsFileType = ImageFileType.PNG,
-                    ImageResolution = ImageResolution.DPI_150,
+                    ImageResolution = ImageResolution.DPI_300,
                     ZoomType = ZoomFitType.FitToPage,
-                    PixelSize = 2400,
+                    PixelSize = 6000, // nitidez de impressão em A1
                     FitDirection = FitDirectionType.Horizontal,
                 };
                 options.SetViewsAndSheets(new List<ElementId> { view.Id });

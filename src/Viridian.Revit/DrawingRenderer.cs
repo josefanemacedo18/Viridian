@@ -270,6 +270,14 @@ public sealed class DrawingRenderer
         }
     }
 
+    /// <summary>Estilo de linha de uma caneta do Viridian (criado se faltar), para outras ferramentas. Precisa de transação.</summary>
+    public static GraphicsStyle? PenStyle(Document document, View view, LinePen pen)
+    {
+        var renderer = new DrawingRenderer(document, view);
+        renderer.EnsureLineStyles();
+        return renderer._styles.GetValueOrDefault(pen);
+    }
+
     /// <summary>Estilos de linha do Viridian (subcategorias de Linhas), um por caneta.</summary>
     private void EnsureLineStyles()
     {

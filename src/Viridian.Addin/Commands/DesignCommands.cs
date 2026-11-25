@@ -485,7 +485,7 @@ public sealed class MemorialCommand : CommandBase
 
         try
         {
-            DocxWriter.Write(dialog.FileName, MemorialBuilder.Build(input), "Memorial descritivo de paisagismo");
+            DocxWriter.Write(dialog.FileName, MemorialBuilder.Build(input), "Memorial descritivo de paisagismo" + (string.IsNullOrWhiteSpace(input.Project.Name) ? string.Empty : " — " + input.Project.Name));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
