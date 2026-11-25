@@ -44,7 +44,9 @@ NOVIDADES DA 2.2
   novas no alto, luz de contorno, traço à mão, flores em cachos (mais
   ralas nas fases jovens) e casca do tronco por tipo (sulcos, lisa,
   acúleos, anéis nas palmeiras).
-- O desenho segue a altura e a copa da ficha de cada espécie.
+- O desenho segue a altura e a copa da ficha de cada espécie (bromélias,
+  agaves, samambaias, fórmio, espada-de-são-jorge e aquáticas ajustadas;
+  flores do lótus e afins no alto da haste).
 - Maciços com variação natural de porte entre as plantas.
 - Projetos existentes: as imagens são refeitas sozinhas (não é preciso
   Atualizar Dados).

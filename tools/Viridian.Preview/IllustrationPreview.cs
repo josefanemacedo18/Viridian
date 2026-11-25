@@ -116,7 +116,9 @@ internal static class IllustrationPreview
                 // Conferência com a ficha: altura e copa da planta adulta x o desenho (sem contorno e flores soltas).
                 lines.Add(string.Join(";", s.Category, s.Code, s.PopularName, s.ScientificName, watch.ElapsedMilliseconds, side.TriangleCount, top.TriangleCount, "",
                     s.AdultHeightM.ToString("0.00", CultureInfo.InvariantCulture), side.MaxY.ToString("0.00", CultureInfo.InvariantCulture),
-                    s.CrownDiameterM.ToString("0.00", CultureInfo.InvariantCulture), (top.MaxX - top.MinX).ToString("0.00", CultureInfo.InvariantCulture)));
+                    s.CrownDiameterM.ToString("0.00", CultureInfo.InvariantCulture),
+                    // Copa: a maior largura entre a vista de cima e as de lado (plantas em leque, como a estrelítzia, são estreitas de cima).
+                    Math.Max(top.MaxX - top.MinX, Enumerable.Range(0, 4).Max(v => { SpriteMesh m = plant.Get(adult.Code, v * 4); return m.MaxX - m.MinX; })).ToString("0.00", CultureInfo.InvariantCulture)));
             }
             catch (Exception ex)
             {

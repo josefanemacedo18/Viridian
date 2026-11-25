@@ -95,7 +95,8 @@ public enum BarkKind
 /// Como desenhar a espécie no nível de detalhe: formato e tamanho das folhas, casca, chão sob a planta e quantidade de
 /// flores (menos nas fases jovens). <see cref="Basic"/> é o desenho simples, sem folhas individuais.
 /// </summary>
-public sealed record CardStyle(Profiles.LeafShape Leaf, double LeafScale, BarkKind Bark, bool Ground, double FlowerDensity, bool Detailed)
+/// <param name="RosetteLeaves">Roseta de folhas grossas (agaves): toda peça alongada é folha, mesmo grande.</param>
+public sealed record CardStyle(Profiles.LeafShape Leaf, double LeafScale, BarkKind Bark, bool Ground, double FlowerDensity, bool Detailed, bool RosetteLeaves = false)
 {
     public static readonly CardStyle Basic = new(Profiles.LeafShape.Eliptica, 1, BarkKind.Fissurada, false, 1, false);
 }

@@ -95,7 +95,7 @@ public static class CardArtist
                 {
                     woods.Add((depth, WoodTone(part.Color), TrisOf(piece.Triangles), piece.Part == MeshPart.Tronco && !top));
                 }
-                else if (!decoration && Elongated(piece) && Extent(piece) < 0.25 * Math.Max(height, 2 * reach))
+                else if (!decoration && Elongated(piece) && (style.RosetteLeaves || Extent(piece) < 0.25 * Math.Max(height, 2 * reach) || Middle(piece) < 0.1 * Math.Max(height, 2 * reach)))
                 {
                     // Folha alongada e fechada (agave, rosetas): forma própria na cor da folhagem, não massa nem madeira.
                     leaves.Add((depth, part.Color, bias, TrisOf(piece.Triangles), false));
@@ -103,6 +103,11 @@ public static class CardArtist
                 else if (decoration)
                 {
                     decors.Add((part.Color, piece.Vertices.Select(Proj).ToList()));
+                }
+                else if (style.RosetteLeaves)
+                {
+                    // Roseta de folhas grossas: as peças de folhagem são folhas, desenhadas inteiras.
+                    leaves.Add((depth, part.Color, bias, TrisOf(piece.Triangles), false));
                 }
                 else
                 {
@@ -908,6 +913,15 @@ public static class CardArtist
             var end = new Point2(basePoint.X + (tip.X - basePoint.X) * 0.82, basePoint.Y + (tip.Y - basePoint.Y) * 0.82);
             art.Ops.Add(new ArtOp(ArtOpKind.Line, color, new[] { basePoint, end }, 0.7 * px, false));
         }
+    }
+
+    /// <summary>Segunda maior medida da peça: folhas longas são estreitas; copas cônicas, largas.</summary>
+    private static double Middle(MeshPiece piece)
+    {
+        (Vec3 min, Vec3 max) = piece.Bounds();
+        double[] e = { max.X - min.X, max.Y - min.Y, max.Z - min.Z };
+        Array.Sort(e);
+        return e[1];
     }
 
     private static double Extent(MeshPiece piece)

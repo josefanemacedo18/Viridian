@@ -118,7 +118,7 @@ public sealed class PlantSprites
 public static class PlantSpritesPlanner
 {
     /// <summary>Versão do desenho: aumente quando o traço mudar.</summary>
-    public const int Version = 4;
+    public const int Version = 6;
 
     /// <summary>Parâmetros do traço (entram na assinatura).</summary>
     public const string Style = "rpc16-topo-nivel1-folhas-por-especie-luz-profundidade-contorno-casca-chao-idade-traco-flores-fase-grade600-dp0.95-escala-geom0.4-tom0.3";
@@ -179,34 +179,50 @@ public static class PlantSpritesPlanner
             3 => 0.85,
             _ => 1.0,
         };
-        return new CardStyle(leaf, scale, bark, false, flowers, true);
+        return new CardStyle(leaf, scale, bark, false, flowers, true, profile.Architecture == PlantArchitecture.RosetaRigida);
     }
 
     /// <summary>
-    /// Fidelidade à ficha: quando a planta gerada sai bem mais baixa ou mais estreita que a altura e a copa da
-    /// espécie (acontece com rosetas, herbáceas de folhas eretas e aquáticas emergentes), ela é esticada até as
-    /// medidas da ficha. O esticamento é limitado (4,5 vezes na altura, 1,5 vez na largura) e não vale para as
-    /// flutuantes, que são rentes à água por natureza.
+    /// Fidelidade à ficha: quando a planta gerada sai bem mais baixa, mais alta ou mais estreita que a altura e a
+    /// copa da espécie (acontece com rosetas, samambaias, bromélias, herbáceas de folhas eretas e aquáticas), ela é
+    /// ajustada às medidas da ficha, dentro de limites.
     /// </summary>
     internal static List<MeshPiece> FitToData(IReadOnlyList<MeshPiece> pieces, double heightM, double crownM, PlantCategory category, PlantArchitecture architecture)
     {
+        // A largura conta só a folhagem e os galhos: flores que se projetam (estrelítzia) não são copa.
         double maxZ = 0, reach = 0;
         foreach (MeshPiece piece in pieces)
         {
+            bool decoration = piece.Part is MeshPart.Flor or MeshPart.Fruto;
             foreach (Vec3 v in piece.Vertices)
             {
                 maxZ = Math.Max(maxZ, v.Z);
-                reach = Math.Max(reach, Math.Sqrt(v.X * v.X + v.Y * v.Y));
+                if (!decoration)
+                {
+                    reach = Math.Max(reach, Math.Sqrt(v.X * v.X + v.Y * v.Y));
+                }
             }
         }
 
-        bool floating = category == PlantCategory.Aquatica && maxZ < 0.12;
-        // Rosetas rígidas (agaves, iúcas baixas) têm folhas grossas: esticadas demais virariam uma bola; a altura da ficha
-        // costuma incluir a haste floral.
-        double limit = architecture == PlantArchitecture.RosetaRigida ? 1.35 : 4.5;
-        double fz = !floating && heightM > 0 && maxZ > 1e-6 && maxZ < 0.82 * heightM ? Math.Min(heightM / maxZ, limit) : 1;
+        // Altura: estica até a ficha quando sai bem menor (até 4,5 vezes; nas aquáticas, cujas folhas saem rentes à água
+        // no modelo, até 12) e encolhe quando passa muito (até a metade).
+        double limit = category == PlantCategory.Aquatica ? 12 : 4.5;
+        double fz = 1;
+        if (heightM > 0 && maxZ > 1e-6)
+        {
+            if (maxZ < 0.82 * heightM)
+            {
+                fz = Math.Min(heightM / maxZ, limit);
+            }
+            else if (maxZ > 1.25 * heightM)
+            {
+                fz = Math.Max(heightM / maxZ, 0.5);
+            }
+        }
+
+        // Largura: abre até a copa da ficha quando sai bem mais estreita (até 2,5 vezes).
         double width = 2 * reach;
-        double fxy = crownM > 0 && width > 1e-6 && width < 0.7 * crownM ? Math.Min(crownM / width, 1.5) : 1;
+        double fxy = crownM > 0 && width > 1e-6 && width < 0.7 * crownM ? Math.Min(crownM / width, 2.5) : 1;
         if (fz == 1 && fxy == 1)
         {
             return pieces.ToList();
@@ -216,6 +232,53 @@ public static class PlantSpritesPlanner
         foreach (MeshPiece piece in pieces)
         {
             var copy = new MeshPiece(piece.Part, piece.Closed);
+
+            // Flores e frutos não se deformam: sobem (ou descem) inteiros com a planta. Quando sobem muito acima da
+            // folhagem (lótus, aquáticas), ganham uma haste fina até a água.
+            if (piece.Part is MeshPart.Flor or MeshPart.Fruto && piece.Vertices.Count > 0)
+            {
+                double cx = piece.Vertices.Average(v => v.X), cy = piece.Vertices.Average(v => v.Y);
+                double low = piece.Vertices.Min(v => v.Z), top = piece.Vertices.Max(v => v.Z), lift = low * (fz - 1);
+
+                // Aquáticas: a flor fica no alto da planta (a altura da ficha é a da haste floral).
+                if (category == PlantCategory.Aquatica && fz > 1 && heightM > top)
+                {
+                    lift = Math.Max(lift, heightM - top);
+                }
+
+                foreach (Vec3 v in piece.Vertices)
+                {
+                    copy.Add(new Vec3(cx * fxy + (v.X - cx), cy * fxy + (v.Y - cy), v.Z + lift));
+                }
+
+                foreach (Tri t in piece.Triangles)
+                {
+                    copy.Triangle(t.A, t.B, t.C);
+                }
+
+                result.Add(copy);
+                if (lift > 0.15)
+                {
+                    var stem = new MeshPiece(MeshPart.Folhagem, closed: false);
+                    double w = 0.006;
+                    int a = stem.Add(new Vec3(cx * fxy - w, cy * fxy, 0.02));
+                    int b = stem.Add(new Vec3(cx * fxy + w, cy * fxy, 0.02));
+                    int c = stem.Add(new Vec3(cx * fxy + w, cy * fxy, low + lift));
+                    int d = stem.Add(new Vec3(cx * fxy - w, cy * fxy, low + lift));
+                    stem.Triangle(a, b, c);
+                    stem.Triangle(a, c, d);
+                    int e = stem.Add(new Vec3(cx * fxy, cy * fxy - w, 0.02));
+                    int f = stem.Add(new Vec3(cx * fxy, cy * fxy + w, 0.02));
+                    int g = stem.Add(new Vec3(cx * fxy, cy * fxy + w, low + lift));
+                    int h = stem.Add(new Vec3(cx * fxy, cy * fxy - w, low + lift));
+                    stem.Triangle(e, f, g);
+                    stem.Triangle(e, g, h);
+                    result.Add(stem);
+                }
+
+                continue;
+            }
+
             foreach (Vec3 v in piece.Vertices)
             {
                 copy.Add(new Vec3(v.X * fxy, v.Y * fxy, v.Z * fz));
