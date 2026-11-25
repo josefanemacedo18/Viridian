@@ -57,6 +57,12 @@ public sealed class ProjectData
 
     /// <summary>Quantidades já compradas (comparativo de aquisição).</summary>
     public Viridian.Core.Reports.PurchaseLedger Purchases { get; set; } = new();
+
+    /// <summary>
+    /// Norte verdadeiro indicado na planta pelo comando Indicar Norte (graus a partir do eixo Y do modelo, anti-horário).
+    /// Nulo: vale o norte verdadeiro do Revit (Gerenciar > Posição) e a correção das configurações.
+    /// </summary>
+    public double? TrueNorthDeg { get; set; }
 }
 
 /// <summary>

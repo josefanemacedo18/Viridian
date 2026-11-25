@@ -114,7 +114,7 @@ public sealed class SolarStudyCommand : CommandBase
         ctx.RequireModule(ctx.Settings.Modules.Solar, "Estudo solar");
         ViewPlan view = ctx.RequirePlanView();
         ProjectSite project = SolarService.ReadSite(ctx.Doc, ctx.Settings.Solar);
-        var window = new SolarStudyWindow(project.Site, project.LooksUndefined, project.TrueNorthDeg, ctx.Settings.Solar);
+        var window = new SolarStudyWindow(project.Site, project.LooksUndefined, project.TrueNorthDeg, ctx.Settings.Solar, project.NorthFromPick);
         if (!ctx.ShowDialog(window) || window.Site is not SolarSite site)
         {
             return Result.Cancelled;
@@ -351,4 +351,81 @@ public sealed class SolarStudyCommand : CommandBase
     }
 
     private static string Percent(int part, int total) => total == 0 ? "0%" : $"{100.0 * part / total:0}%";
+}
+
+/// <summary>
+/// Indicar o norte verdadeiro clicando na planta: o primeiro clique em qualquer ponto, o segundo na direção do norte
+/// verdadeiro. O estudo solar e as sombras passam a seguir essa direção, mesmo que o projeto tenha sido desenhado
+/// girado. Opcionalmente, gira também o norte verdadeiro do Revit (Gerenciar > Posição).
+/// </summary>
+[Transaction(TransactionMode.Manual)]
+[Regeneration(RegenerationOption.Manual)]
+public sealed class IndicateNorthCommand : CommandBase
+{
+    internal override Result Run(ViridianContext ctx)
+    {
+        ctx.RequireModule(ctx.Settings.Modules.Solar, "Estudo solar");
+        ctx.RequirePlanView();
+        (double current, bool picked) = SolarService.EffectiveNorth(ctx.Doc, ctx.Settings.Solar);
+        string now = (picked ? "Indicado na planta: " : "Do Revit: ") + TrueNorth.Describe(current) + ".";
+        if (picked)
+        {
+            var start = new TaskDialog("Viridian — Indicar norte")
+            {
+                MainInstruction = "Indicar o norte verdadeiro",
+                MainContent = "Norte atual do projeto — " + now,
+            };
+            start.AddCommandLink(TaskDialogCommandLinkId.CommandLink1, "Indicar de novo na planta");
+            start.AddCommandLink(TaskDialogCommandLinkId.CommandLink2, "Apagar a indicação", "O estudo solar volta a usar o norte verdadeiro do Revit (Gerenciar > Posição).");
+            start.CommonButtons = TaskDialogCommonButtons.Cancel;
+            TaskDialogResult first = start.Show();
+            if (first == TaskDialogResult.CommandLink2)
+            {
+                Tx.Run(ctx.Doc, "Viridian: apagar norte indicado", () => SolarService.SaveNorth(ctx.Doc, null, false));
+                TaskDialog.Show("Viridian", "Indicação apagada. Norte agora: " + TrueNorth.Describe(SolarService.EffectiveNorth(ctx.Doc, ctx.Settings.Solar).Degrees) + " (do Revit).");
+                return Result.Succeeded;
+            }
+
+            if (first != TaskDialogResult.CommandLink1)
+            {
+                return Result.Cancelled;
+            }
+        }
+
+        IReadOnlyList<Point2> points = RegionPicker.PickPoints(ctx.UiDocument,
+            "Norte verdadeiro: clique em um ponto qualquer e depois na direção do norte verdadeiro (por exemplo, ao longo da seta do norte do levantamento)", 2, 2);
+        if (points.Count < 2)
+        {
+            return Result.Cancelled;
+        }
+
+        if (points[0].DistanceTo(points[1]) < TrueNorth.MinPickDistanceM)
+        {
+            throw new ViridianException("Os dois pontos estão muito próximos. Clique o segundo ponto mais longe, na direção do norte verdadeiro.");
+        }
+
+        double north = TrueNorth.FromPoints(points[0], points[1]);
+        var confirm = new TaskDialog("Viridian — Indicar norte")
+        {
+            MainInstruction = "Usar este norte verdadeiro?",
+            MainContent = $"Indicado: {TrueNorth.Describe(north)}.\nAntes — {now}\n\nO estudo solar, os mapas de sol e as sombras por horário passam a seguir esta direção.",
+        };
+        confirm.AddCommandLink(TaskDialogCommandLinkId.CommandLink1, "Usar no estudo solar do Viridian (recomendado)",
+            "Gravado só nos dados do Viridian deste projeto. As coordenadas do Revit não mudam.");
+        confirm.AddCommandLink(TaskDialogCommandLinkId.CommandLink2, "Girar também o norte verdadeiro do Revit",
+            "Altera Gerenciar > Posição do projeto (afeta o estudo de sol do Revit, vistas orientadas pelo norte verdadeiro e coordenadas compartilhadas com vínculos).");
+        confirm.CommonButtons = TaskDialogCommonButtons.Cancel;
+        TaskDialogResult choice = confirm.Show();
+        if (choice is not (TaskDialogResult.CommandLink1 or TaskDialogResult.CommandLink2))
+        {
+            return Result.Cancelled;
+        }
+
+        bool revit = choice == TaskDialogResult.CommandLink2;
+        Tx.Run(ctx.Doc, "Viridian: indicar norte verdadeiro", () => SolarService.SaveNorth(ctx.Doc, north, revit));
+        TaskDialog.Show("Viridian", $"Norte verdadeiro gravado: {TrueNorth.Describe(north)}"
+                                    + (revit ? " (também no Revit, Gerenciar > Posição)." : ".")
+                                    + "\nRefaça o estudo solar para atualizar mapas e sombras já gerados.");
+        return Result.Succeeded;
+    }
 }

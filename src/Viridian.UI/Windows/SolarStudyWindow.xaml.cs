@@ -14,8 +14,9 @@ public partial class SolarStudyWindow : ViridianWindow
 
     /// <param name="projectSite">Localização lida do projeto (ou as coordenadas padrão das configurações).</param>
     /// <param name="projectUndefined">O projeto não tem localização definida.</param>
-    /// <param name="trueNorthDeg">Ângulo do norte verdadeiro em relação ao norte do projeto (graus).</param>
-    public SolarStudyWindow(SolarSite projectSite, bool projectUndefined, double trueNorthDeg, SolarSettings settings)
+    /// <param name="trueNorthDeg">Norte verdadeiro usado no cálculo, em relação ao topo da planta (graus, anti-horário).</param>
+    /// <param name="northFromPick">O norte foi indicado na planta (comando Indicar Norte).</param>
+    public SolarStudyWindow(SolarSite projectSite, bool projectUndefined, double trueNorthDeg, SolarSettings settings, bool northFromPick = false)
     {
         InitializeComponent();
         _projectSite = projectSite;
@@ -44,9 +45,11 @@ public partial class SolarStudyWindow : ViridianWindow
             SiteStatus.Text = "Coordenadas lidas da localização do projeto. Confira se correspondem ao local da obra.";
         }
 
-        NorthText.Text = Math.Abs(trueNorthDeg) < 0.05
-            ? "Norte do projeto alinhado ao norte verdadeiro. Se a planta não estiver com o norte para cima, ajuste em Gerenciar > Posição > Girar norte verdadeiro."
-            : $"Norte verdadeiro girado {Num.Format(trueNorthDeg, "0.#")}° em relação ao norte do projeto (Gerenciar > Posição): o cálculo já considera esse giro.";
+        NorthText.Text = northFromPick
+            ? $"Norte indicado na planta pelo comando Indicar Norte: {TrueNorth.Describe(trueNorthDeg)}. O sol e as sombras seguem essa direção."
+            : Math.Abs(trueNorthDeg) < 0.05
+                ? "Norte verdadeiro para o topo da planta. Se o projeto foi desenhado girado, use Estudo Solar > Indicar Norte: clique dois pontos na planta, o segundo na direção do norte."
+                : $"Norte do Revit (Gerenciar > Posição): {TrueNorth.Describe(trueNorthDeg)}. Para indicar outro, use Indicar Norte.";
 
         for (int m = 0; m < 12; m++)
         {

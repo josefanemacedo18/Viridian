@@ -170,6 +170,10 @@ public sealed class App : IExternalApplication
             Small<SolarStudyCommand, ProjectAvailability>(assembly, "Estudo Solar", "solar",
                 "Horas de sol direto mês a mês numa região, com a sombra das copas adultas, das edificações e do terreno, pelas coordenadas da obra: calendário de luz, mapas coloridos em cópias da planta e plantas que não recebem a luz que pedem, com sugestões de espécies."));
 
+        Large<IndicateNorthCommand, ProjectAvailability>(composition, assembly, "Indicar\nNorte", "solar",
+            "Indique o norte verdadeiro clicando na planta: um ponto qualquer e depois a direção do norte. O estudo solar e as sombras seguem essa direção, mesmo com o projeto desenhado girado.",
+            "Fica gravado no projeto (só no Viridian) ou, se preferir, gira também o norte verdadeiro do Revit (Gerenciar > Posição).");
+
         RibbonPanel detailing = app.CreateRibbonPanel(TabName, "Detalhamento");
         Large<MemorialCommand, ProjectAvailability>(detailing, assembly, "Memorial\nIlustrado", "memorial",
             "Memorial descritivo em Word editável: capa, partido, paleta vegetal, fichas com foto, calendário de floração, especificações, manutenção e créditos.",

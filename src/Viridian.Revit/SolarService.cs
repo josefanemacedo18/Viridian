@@ -47,7 +47,9 @@ public sealed class SolarReport
 }
 
 /// <summary>Localização lida do projeto, com a indicação de que parece não ter sido definida.</summary>
-public sealed record ProjectSite(SolarSite Site, bool LooksUndefined, double TrueNorthDeg);
+/// <param name="TrueNorthDeg">Norte verdadeiro em relação ao topo da planta (graus, anti-horário), o usado no cálculo.</param>
+/// <param name="NorthFromPick">O norte foi indicado na planta pelo comando Indicar Norte (e não vem do Revit).</param>
+public sealed record ProjectSite(SolarSite Site, bool LooksUndefined, double TrueNorthDeg, bool NorthFromPick = false);
 
 /// <summary>
 /// Estudo solar no Revit: posição do sol pela latitude do projeto, sombra das copas da vegetação do Viridian e
@@ -71,20 +73,13 @@ public static class SolarService
     /// </summary>
     public static ProjectSite ReadSite(Document document, SolarSettings settings)
     {
-        double north = 0;
-        try
-        {
-            north = Geo.RadToDeg(document.ActiveProjectLocation.GetProjectPosition(XYZ.Zero).Angle);
-        }
-        catch (Exception ex)
-        {
-            ViridianLog.Warn("Estudo solar: norte do projeto", ex);
-        }
+        (double north, bool picked) = EffectiveNorth(document, settings);
+        ProjectSite Site(SolarSite s, bool undefined) => new(s, undefined, north, picked);
 
         if (!settings.UseProjectLocation)
         {
             // O escritório preferiu as coordenadas das configurações: sem aviso de localização ausente.
-            return new ProjectSite(new SolarSite(settings.LatitudeDeg, settings.LongitudeDeg, settings.TimeZoneHours, settings.PlaceName, SiteSource.Digitado), false, north);
+            return Site(new SolarSite(settings.LatitudeDeg, settings.LongitudeDeg, settings.TimeZoneHours, settings.PlaceName, SiteSource.Digitado), false);
         }
 
         try
@@ -98,7 +93,7 @@ public static class SolarService
             if (!undefined)
             {
                 double tz = double.IsFinite(site.TimeZone) ? site.TimeZone : SolarSite.SuggestTimeZone(lon);
-                return new ProjectSite(new SolarSite(lat, lon, tz, name, SiteSource.Projeto), false, north);
+                return Site(new SolarSite(lat, lon, tz, name, SiteSource.Projeto), false);
             }
         }
         catch (Exception ex)
@@ -106,7 +101,7 @@ public static class SolarService
             ViridianLog.Warn("Estudo solar: localização do projeto", ex);
         }
 
-        return new ProjectSite(new SolarSite(settings.LatitudeDeg, settings.LongitudeDeg, settings.TimeZoneHours, settings.PlaceName, SiteSource.Digitado), true, north);
+        return Site(new SolarSite(settings.LatitudeDeg, settings.LongitudeDeg, settings.TimeZoneHours, settings.PlaceName, SiteSource.Digitado), true);
     }
 
     /// <summary>Grava as coordenadas na localização do projeto (Gerenciar > Localização). Precisa de transação.</summary>
@@ -146,23 +141,65 @@ public static class SolarService
     }
 
     /// <summary>
-    /// Converte direções do norte verdadeiro para as coordenadas internas do modelo, pelo ângulo do norte do projeto
-    /// (Gerenciar > Localização > Girar norte verdadeiro) e pela correção das configurações.
+    /// Norte verdadeiro usado no cálculo, em graus a partir do topo da planta (anti-horário): o indicado na planta pelo
+    /// comando Indicar Norte, gravado no projeto; sem ele, o do Revit (Gerenciar > Posição > Girar norte verdadeiro) com
+    /// a correção geral das configurações.
     /// </summary>
-    public static Func<Vec3, Vec3> ToModel(Document document, SolarSettings settings)
+    public static (double Degrees, bool FromPick) EffectiveNorth(Document document, SolarSettings settings)
     {
-        double angle = 0;
+        if (ElementData.ReadProject(document).TrueNorthDeg is double picked && double.IsFinite(picked))
+        {
+            return (TrueNorth.Normalize(picked), true);
+        }
+
+        return (TrueNorth.Normalize(Geo.RadToDeg(-RevitNorthAngle(document)) + settings.NorthAdjustDeg), false);
+    }
+
+    /// <summary>Ângulo do norte verdadeiro do Revit (posição do projeto), em radianos.</summary>
+    public static double RevitNorthAngle(Document document)
+    {
         try
         {
-            angle = document.ActiveProjectLocation.GetProjectPosition(XYZ.Zero).Angle;
+            return document.ActiveProjectLocation.GetProjectPosition(XYZ.Zero).Angle;
         }
         catch (Exception ex)
         {
             ViridianLog.Warn("Estudo solar: norte do projeto", ex);
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Converte direções do norte verdadeiro para as coordenadas internas do modelo, pelo norte efetivo do projeto
+    /// (<see cref="EffectiveNorth"/>).
+    /// </summary>
+    public static Func<Vec3, Vec3> ToModel(Document document, SolarSettings settings)
+    {
+        double rotation = Geo.DegToRad(EffectiveNorth(document, settings).Degrees);
+        return v => v.RotateZ(rotation);
+    }
+
+    /// <summary>
+    /// Grava o norte verdadeiro indicado na planta. Com <paramref name="alsoRevit"/>, gira também o norte verdadeiro da
+    /// posição do projeto no Revit (o mesmo de Gerenciar > Posição), e o projeto passa a seguir o Revit. Nulo apaga a
+    /// indicação. Precisa de transação.
+    /// </summary>
+    public static void SaveNorth(Document document, double? degrees, bool alsoRevit)
+    {
+        ProjectData data = ElementData.ReadProject(document);
+        if (degrees is double d && alsoRevit)
+        {
+            ProjectLocation location = document.ActiveProjectLocation;
+            ProjectPosition position = location.GetProjectPosition(XYZ.Zero);
+            location.SetProjectPosition(XYZ.Zero, new ProjectPosition(position.EastWest, position.NorthSouth, position.Elevation, -Geo.DegToRad(d)));
+            data.TrueNorthDeg = null;
+        }
+        else
+        {
+            data.TrueNorthDeg = degrees;
         }
 
-        double rotation = -angle + Geo.DegToRad(settings.NorthAdjustDeg);
-        return v => v.RotateZ(rotation);
+        ElementData.WriteProject(document, data);
     }
 
     /// <summary>Vista 3D temporária para as consultas de obstrução e terreno. Precisa de transação.</summary>
