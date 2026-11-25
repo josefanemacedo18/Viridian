@@ -14,7 +14,7 @@ public readonly record struct SpriteVertex(double X, double Y, double Z, Rgb Col
 public sealed class SpriteMesh
 {
     /// <summary>Distância entre as camadas de cor (m). Como a imagem fica sempre de frente, a diferença não aparece.</summary>
-    public const double LayerStep = 0.002;
+    public const double LayerStep = 0.0012;
 
     private SpriteMesh(List<SpriteVertex> vertices, List<int> triangles, List<int> outlineTriangles, CardRegions regions, CardArt art)
     {

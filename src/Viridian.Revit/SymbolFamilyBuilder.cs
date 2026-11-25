@@ -509,7 +509,7 @@ public static class SymbolFamilyBuilder
     }
 }
 
-/// <summary>O que aconteceu com os cartões 3D ao montar a família.</summary>
+/// <summary>O que aconteceu com a preparação da vegetação ilustrada (eixo de seleção e parâmetros) ao montar a família.</summary>
 public sealed class VolumeBuildResult
 {
     /// <summary>A família foi montada com volume nesta chamada (falso quando veio do cache).</summary>

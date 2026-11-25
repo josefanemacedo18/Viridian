@@ -27,7 +27,7 @@ public sealed class CardRegions
 public static class CardRaster
 {
     /// <param name="referenceSize">Porte de referência (o adulto): as fases menores usam célula proporcional, nunca menor que a de uma fração do adulto.</param>
-    public static CardRegions Flatten(CardArt art, int cellsAcross = 420, double minCell = 0.0025, double referenceSize = 0)
+    public static CardRegions Flatten(CardArt art, int cellsAcross = 600, double minCell = 0.0025, double referenceSize = 0)
     {
         ArgumentNullException.ThrowIfNull(art);
         double cell = Math.Max(minCell, CardArtist.Scale(art.Size, referenceSize) / cellsAcross);
@@ -55,10 +55,10 @@ public static class CardRaster
         int w = (int)Math.Ceiling((maxU + margin - minU) / cell) + 1;
         int h = (int)Math.Ceiling((maxV + margin - minV) / cell) + 1;
         var grid = new Grid(w, h, minU, minV, cell);
-        double line = Math.Max(art.Outline, 1.5 * cell);
         foreach (ArtOp op in art.Ops)
         {
             byte color = (byte)Math.Min(op.Color, 255);
+            double opLine = Math.Max(op.Width > 0 ? op.Width : art.Outline, 1.1 * cell);
             switch (op.Kind)
             {
                 case ArtOpKind.Fill:
@@ -67,18 +67,18 @@ public static class CardRaster
                     {
                         for (int i = 0; i < op.Points.Count; i++)
                         {
-                            grid.Stroke(op.Points[i], op.Points[(i + 1) % op.Points.Count], line, CardArt.Black);
+                            grid.Stroke(op.Points[i], op.Points[(i + 1) % op.Points.Count], opLine, CardArt.Black);
                         }
                     }
 
                     break;
                 case ArtOpKind.Union:
                     // Traço grosso preto em volta de cada triângulo e, por cima, o preenchimento: só a silhueta fica preta.
-                    for (int i = 0; i + 2 < op.Points.Count; i += 3)
+                    for (int i = 0; op.Outline && i + 2 < op.Points.Count; i += 3)
                     {
-                        grid.Stroke(op.Points[i], op.Points[i + 1], 2 * line, CardArt.Black);
-                        grid.Stroke(op.Points[i + 1], op.Points[i + 2], 2 * line, CardArt.Black);
-                        grid.Stroke(op.Points[i + 2], op.Points[i], 2 * line, CardArt.Black);
+                        grid.Stroke(op.Points[i], op.Points[i + 1], 2 * opLine, CardArt.Black);
+                        grid.Stroke(op.Points[i + 1], op.Points[i + 2], 2 * opLine, CardArt.Black);
+                        grid.Stroke(op.Points[i + 2], op.Points[i], 2 * opLine, CardArt.Black);
                     }
 
                     for (int i = 0; i + 2 < op.Points.Count; i += 3)

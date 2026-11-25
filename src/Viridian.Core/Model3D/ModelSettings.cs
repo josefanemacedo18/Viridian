@@ -54,8 +54,8 @@ public sealed class ModelSettings
     public bool ShowEdges { get; set; }
 
     /// <summary>
-    /// Vegetação ilustrada nas famílias: as espécies com cartões (piloto) ganham a árvore em dois planos cruzados
-    /// dentro da própria família, visível nas vistas 3D, cortes e elevações (a planta baixa continua com o símbolo).
+    /// Vegetação ilustrada como RPC: as espécies do piloto aparecem nas vistas 3D, cortes e elevações como uma imagem
+    /// sempre de frente para a câmera (a planta baixa continua com o símbolo).
     /// </summary>
     public bool IllustratedFamilies { get; set; } = true;
 

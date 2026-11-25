@@ -122,7 +122,7 @@ public static class PlantSpritesPlanner
     public const int Version = 2;
 
     /// <summary>Parâmetros do traço (entram na assinatura).</summary>
-    public const string Style = "rpc16-topo-dente12-massa2.2-grade420-dp0.95-escala-geom0.4-folhalonga-tom0.3";
+    public const string Style = "rpc16-topo-volume3-fundo-copa-foliolos-verdes-marcas-cachos-traco-variavel-grade600-dp0.95-escala-geom0.4-tom0.3";
 
     /// <summary>Fase mostrada quando o exemplar não escolhe outra.</summary>
     public const int DefaultStage = 4;

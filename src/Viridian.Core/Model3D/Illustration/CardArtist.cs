@@ -64,8 +64,8 @@ public static class CardArtist
         var art = new CardArt { Size = size, Outline = 1.3 * px };
         var random = new DeterministicRandom(DeterministicRandom.Combine(seed, 6151));
 
-        var woods = new List<(double Depth, int Color, List<Point2> Tris)>();
-        var leaves = new List<(double Depth, Rgb Color, double Bias, List<Point2> Tris)>();
+        var woods = new List<(double Depth, Rgb Color, List<Point2> Tris, bool Stem)>();
+        var leaves = new List<(double Depth, Rgb Color, double Bias, List<Point2> Tris, bool Fine)>();
         var clusters = new List<(Rgb Color, double Bias, List<Point2> Points)>();
         var decors = new List<(Rgb Color, List<Point2> Points)>();
         Rgb? flowerColor = null;
@@ -92,12 +92,12 @@ public static class CardArtist
                 double depth = piece.Vertices.Average(v => v.Dot(toEye));
                 if (wood)
                 {
-                    woods.Add((depth, art.ColorIndex(WoodTone(part.Color)), TrisOf(piece.Triangles)));
+                    woods.Add((depth, WoodTone(part.Color), TrisOf(piece.Triangles), piece.Part == MeshPart.Tronco && !top));
                 }
                 else if (!decoration && Elongated(piece))
                 {
                     // Folha alongada e fechada (agave, rosetas): forma própria na cor da folhagem, não massa nem madeira.
-                    leaves.Add((depth, part.Color, bias, TrisOf(piece.Triangles)));
+                    leaves.Add((depth, part.Color, bias, TrisOf(piece.Triangles), false));
                 }
                 else if (decoration)
                 {
@@ -121,7 +121,7 @@ public static class CardArtist
                 double depth = comp.Average(t => (piece.Vertices[t.A] + piece.Vertices[t.B] + piece.Vertices[t.C]).Dot(toEye) / 3);
                 if (wood)
                 {
-                    woods.Add((depth, art.ColorIndex(WoodTone(part.Color)), pts));
+                    woods.Add((depth, WoodTone(part.Color), pts, false));
                 }
                 else if (Math.Max(w, h) < 40 * px)
                 {
@@ -129,13 +129,21 @@ public static class CardArtist
                 }
                 else
                 {
-                    leaves.Add((depth, part.Color, bias, pts));
+                    // Folhas longas e finas (dracena, gramíneas) recebem o mesmo traço leve dos folíolos.
+                    double area = 0;
+                    for (int i = 0; i + 2 < pts.Count; i += 3)
+                    {
+                        area += Math.Abs((pts[i + 1].X - pts[i].X) * (pts[i + 2].Y - pts[i].Y) - (pts[i + 1].Y - pts[i].Y) * (pts[i + 2].X - pts[i].X)) / 2;
+                    }
+
+                    bool thin = area < 0.08 * Math.Max(w, h) * Math.Max(w, h) || Math.Min(w, h) < 14 * px;
+                    leaves.Add((depth, part.Color, bias, pts, thin));
                 }
             }
 
             if (small.Count > 0)
             {
-                leaves.Add((piece.Vertices.Average(v => v.Dot(toEye)), part.Color, bias, TrisOf(small)));
+                leaves.Add((piece.Vertices.Average(v => v.Dot(toEye)), part.Color, bias, TrisOf(small), true));
             }
         }
 
@@ -143,27 +151,61 @@ public static class CardArtist
         double massRadius = Math.Clamp(plantWidth * 0.08, 0.026 * unit, 0.075 * unit);
         double tooth = 12 * px;
 
-        // Tronco e galhos.
-        foreach ((double _, int color, List<Point2> tris) in woods.OrderBy(w => w.Depth))
+        // Traço com peso variado: madeira mais marcada, folhas e flores mais leves.
+        double woodLine = 1.5 * px, massLine = 1.05 * px, leafLine = 0.95 * px, flowerLine = 0.8 * px;
+
+        // Tronco e galhos, com um realce claro ao longo do tronco (dá volume ao cilindro).
+        foreach ((double _, Rgb color, List<Point2> tris, bool stem) in woods.OrderBy(w => w.Depth))
         {
-            art.Ops.Add(new ArtOp(ArtOpKind.Union, color, tris, art.Outline, true));
+            art.Ops.Add(new ArtOp(ArtOpKind.Union, art.ColorIndex(color), tris, woodLine, true));
+            if (stem && StemHighlight(tris) is List<Point2> highlight)
+            {
+                art.Ops.Add(new ArtOp(ArtOpKind.Union, art.ColorIndex(color.Tint(0.32)), highlight, 0, false));
+            }
         }
 
-        // Fundo da copa (tom escuro, sem contorno): fecha os vãos grandes entre as massas, como na referência.
+        // Fundo da copa inteira e de cada grupo (tons escuros, sem contorno): fecha os vãos entre as massas.
+        if (clusters.Count > 1)
+        {
+            List<Point2> all = Hull(clusters.SelectMany(c => c.Points).ToList());
+            if (all.Count >= 3)
+            {
+                double ax = all.Average(p => p.X), ay = all.Average(p => p.Y);
+                Rgb deep = clusters.OrderBy(c => c.Color.Luminance).First().Color.Shade(0.45);
+                art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(deep), all.Select(p => new Point2(ax + (p.X - ax) * 0.78, ay + (p.Y - ay) * 0.78)).ToList(), 0, false));
+            }
+        }
+
         foreach ((Rgb color, double _, List<Point2> points) in clusters)
         {
             List<Point2> hull = Hull(points);
             if (hull.Count >= 3)
             {
                 double cx = hull.Average(p => p.X), cy = hull.Average(p => p.Y);
-                art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(color.Shade(0.35)), hull.Select(p => new Point2(cx + (p.X - cx) * 0.82, cy + (p.Y - cy) * 0.82)).ToList(), 0, false));
+                art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(color.Shade(0.38)), hull.Select(p => new Point2(cx + (p.X - cx) * 0.82, cy + (p.Y - cy) * 0.82)).ToList(), 0, false));
             }
         }
 
         // Folhas inteiras (palmeiras, rosetas, herbáceas), das mais distantes às mais próximas.
-        foreach ((double _, Rgb color, double bias, List<Point2> tris) in leaves.OrderBy(l => l.Depth))
+        foreach ((double _, Rgb color, double bias, List<Point2> tris, bool fine) in leaves.OrderBy(l => l.Depth))
         {
-            art.Ops.Add(new ArtOp(ArtOpKind.Union, art.ColorIndex(Tone(color, bias, tone, random)), tris, art.Outline, true));
+            Rgb leaf = Tone(color, bias, tone, random);
+            if (!fine)
+            {
+                art.Ops.Add(new ArtOp(ArtOpKind.Union, art.ColorIndex(leaf), tris, leafLine, true));
+                continue;
+            }
+
+            // Folíolos miúdos (palmeiras, dracena): contorno verde-escuro em vez de preto, para não virar um rabisco.
+            int edge = art.ColorIndex(leaf.Shade(0.5));
+            for (int i = 0; i + 2 < tris.Count; i += 3)
+            {
+                art.Ops.Add(new ArtOp(ArtOpKind.Line, edge, new[] { tris[i], tris[i + 1] }, 2 * leafLine, false));
+                art.Ops.Add(new ArtOp(ArtOpKind.Line, edge, new[] { tris[i + 1], tris[i + 2] }, 2 * leafLine, false));
+                art.Ops.Add(new ArtOp(ArtOpKind.Line, edge, new[] { tris[i + 2], tris[i] }, 2 * leafLine, false));
+            }
+
+            art.Ops.Add(new ArtOp(ArtOpKind.Union, art.ColorIndex(leaf.Tint(0.1)), tris, 0, false));
         }
 
         // Massas de folhas: cada grupo da copa vira várias massas pequenas e sobrepostas; as de baixo cobrem as de cima.
@@ -201,43 +243,122 @@ public static class CardArtist
             }
         }
 
+        double crownTop = masses.Count > 0 ? masses.Max(m => m.Center.Y + m.Radius) : 0;
+        double crownBottom = masses.Count > 0 ? masses.Min(m => m.Center.Y - m.Radius) : 0;
         foreach ((Point2 center, double radius, Rgb color, double bias, bool flower) in masses.OrderByDescending(m => m.Center.Y))
         {
-            Rgb fill = flower ? (tone > 0 ? color.Tint(0.08) : color.Shade(0.12)) : Tone(color, bias, tone, random);
-            int fillIndex = art.ColorIndex(fill);
-            art.Ops.Add(new ArtOp(ArtOpKind.Fill, fillIndex, Serrate(Blob(center, radius, random), tooth, random), 0, true));
-            if (!flower && random.NextDouble() < 0.22)
+            List<Point2> outline = Serrate(Blob(center, radius, random), tooth, random);
+            if (flower)
             {
-                int hatch = art.ColorIndex(fill.Shade(0.4));
-                int lines = 3 + random.NextInt(0, 3);
-                for (int i = 0; i < lines; i++)
+                Rgb petal = tone > 0 ? color.Tint(0.08) : color.Shade(0.12);
+                art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(petal.Shade(0.16)), outline, massLine, true));
+                art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(petal), Inset(outline, center, radius, 0.78, 0.12), 0, false));
+                continue;
+            }
+
+            // Volume em três camadas: a massa inteira no tom de sombra (com o contorno), o tom médio um pouco acima e,
+            // nas massas mais claras, um brilho no alto. As camadas de dentro repetem o recorte da borda.
+            Rgb mid = Vary(Tone(color, bias, tone, random), random);
+            art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(mid.Shade(0.2)), outline, massLine, true));
+            art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(mid), Inset(outline, center, radius, 0.8, 0.13), 0, false));
+
+            // Mais luz no alto da copa, menos embaixo.
+            double height01 = crownTop > crownBottom ? (center.Y - crownBottom) / (crownTop - crownBottom) : 0.5;
+            if (mid.Luminance > 0.22 && random.NextDouble() < 0.35 + 0.5 * height01)
+            {
+                art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(mid.Tint(0.2)), Inset(outline, new Point2(center.X - radius * 0.08, center.Y), radius, 0.46, 0.3), 0, false));
+            }
+
+            // Marcas de folhas soltas na parte de baixo da massa (no lugar das hachuras retas).
+            if (random.NextDouble() < 0.4)
+            {
+                int marks = 2 + random.NextInt(0, 3);
+                int markColor = art.ColorIndex(mid.Shade(0.34));
+                for (int i = 0; i < marks; i++)
                 {
-                    double x = center.X - radius * 0.5 + i * radius * 0.17;
-                    double y = center.Y + radius * 0.45;
-                    double len = radius * (0.25 + 0.2 * random.NextDouble());
-                    art.Ops.Add(new ArtOp(ArtOpKind.Line, hatch, new[] { new Point2(x, y), new Point2(x - len * 0.2, y - len) }, art.Outline * 0.8, false));
+                    double ang = -Math.PI / 2 + (random.NextDouble() - 0.5) * 1.8;
+                    double rho = radius * (0.28 + 0.32 * random.NextDouble());
+                    var at = new Point2(center.X + Math.Cos(ang) * rho, center.Y + Math.Sin(ang) * rho * 0.86);
+                    art.Ops.Add(new ArtOp(ArtOpKind.Fill, markColor, Leaf(at, radius * (0.16 + 0.08 * random.NextDouble()), random.NextDouble() * Math.PI), 0, false));
                 }
             }
 
-            if (!flower && flowerColor is Rgb petals && random.NextDouble() < 0.85)
+            // Flores em cachos pequenos, mais nas massas de cima e da borda.
+            if (flowerColor is Rgb petals && random.NextDouble() < 0.45 + 0.45 * height01)
             {
-                int count = 1 + (random.NextDouble() < 0.35 ? 1 : 0);
-                for (int d = 0; d < count; d++)
+                int bunches = 1 + (random.NextDouble() < 0.3 ? 1 : 0);
+                for (int b = 0; b < bunches; b++)
                 {
-                    double rho = Math.Sqrt(random.NextDouble()) * radius * 0.6;
+                    double rho = Math.Sqrt(random.NextDouble()) * radius * 0.62;
                     double theta = random.NextDouble() * Geo.TwoPi;
-                    Rgb dotColor = fill.Luminance < 0.4 ? petals.Shade(0.12) : petals;
-                    art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(dotColor), Pentagon(new Point2(center.X + Math.Cos(theta) * rho, center.Y + Math.Sin(theta) * rho), 6.5 * px, random), 0, true));
+                    var c0 = new Point2(center.X + Math.Cos(theta) * rho, center.Y + Math.Sin(theta) * rho);
+                    Rgb dotColor = mid.Luminance < 0.3 ? petals.Shade(0.1) : petals;
+                    int dotsInBunch = 2 + random.NextInt(0, 3);
+                    for (int d = 0; d < dotsInBunch; d++)
+                    {
+                        double a = random.NextDouble() * Geo.TwoPi, r = d == 0 ? 0 : 5.5 * px * (0.8 + 0.5 * random.NextDouble());
+                        var at = new Point2(c0.X + Math.Cos(a) * r, c0.Y + Math.Sin(a) * r);
+                        art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(d == 0 ? dotColor.Tint(0.18) : dotColor), Pentagon(at, (4.2 + 1.6 * random.NextDouble()) * px, random), flowerLine, true));
+                    }
                 }
             }
         }
 
         foreach ((Point2 center, Rgb color) in dots)
         {
-            art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(color), Pentagon(center, 6.5 * px, random), 0, true));
+            art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(color), Pentagon(center, 5.5 * px, random), flowerLine, true));
         }
 
         return art;
+    }
+
+    /// <summary>Cópia reduzida do contorno, deslocada para cima (fica sempre dentro da forma original).</summary>
+    private static List<Point2> Inset(List<Point2> outline, Point2 center, double radius, double scale, double lift) =>
+        outline.Select(p => new Point2(center.X + (p.X - center.X) * scale, center.Y + radius * lift + (p.Y - center.Y) * scale)).ToList();
+
+    /// <summary>Folha pequena (losango alongado) para as marcas dentro das massas.</summary>
+    private static List<Point2> Leaf(Point2 center, double length, double angle)
+    {
+        double c = Math.Cos(angle), s = Math.Sin(angle), w = length * 0.32;
+        Point2 At(double u, double v) => new(center.X + u * c - v * s, center.Y + u * s + v * c);
+        return new List<Point2> { At(-length / 2, 0), At(-length * 0.1, w / 2), At(length / 2, 0), At(-length * 0.1, -w / 2) };
+    }
+
+    /// <summary>Variação sutil de matiz entre massas (umas mais quentes, outras mais frias), para a copa não parecer repetida.</summary>
+    private static Rgb Vary(Rgb color, DeterministicRandom random)
+    {
+        double r = random.NextDouble();
+        return r < 0.3 ? color.Mix(new Rgb(0xC9, 0xC2, 0x4A), 0.1) : r < 0.55 ? color.Mix(new Rgb(0x2F, 0x6E, 0x6A), 0.08) : color;
+    }
+
+    /// <summary>Realce do tronco: uma faixa estreita à esquerda do eixo, dentro da silhueta. Nulo em troncos curtos.</summary>
+    private static List<Point2>? StemHighlight(List<Point2> tris)
+    {
+        double minX = tris.Min(p => p.X), maxX = tris.Max(p => p.X), minY = tris.Min(p => p.Y), maxY = tris.Max(p => p.Y);
+        double width = maxX - minX, height = maxY - minY;
+        if (width <= 0 || height < 2.5 * width)
+        {
+            return null;
+        }
+
+        // Só a parte de baixo do tronco (onde ele é reto); a faixa vai até 80% da altura.
+        double cx = (minX + maxX) / 2;
+        var result = new List<Point2>();
+        for (int i = 0; i + 2 < tris.Count; i += 3)
+        {
+            Point2 a = tris[i], b = tris[i + 1], c = tris[i + 2];
+            if (Math.Max(a.Y, Math.Max(b.Y, c.Y)) > minY + height * 0.8)
+            {
+                continue;
+            }
+
+            Point2 F(Point2 p) => new(cx - width * 0.16 + (p.X - cx) * 0.28, p.Y);
+            result.Add(F(a));
+            result.Add(F(b));
+            result.Add(F(c));
+        }
+
+        return result.Count >= 3 ? result : null;
     }
 
     private static void AddMasses(List<(Point2 Center, double Radius, Rgb Color, double Bias, bool Flower)> masses, List<Point2> points, Rgb color, double bias,

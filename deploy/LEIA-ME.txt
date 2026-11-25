@@ -39,17 +39,19 @@ PRIMEIROS PASSOS
    Compras nos relatórios.
 
 NOVIDADES DA 2.0
-- Vegetação ilustrada nas famílias (piloto com 8 espécies: ipê-amarelo,
+- Vegetação ilustrada como RPC (piloto com 8 espécies: ipê-amarelo,
   flamboyant, jerivá, palmeira-azul, araucária, agave-dragão, estrelítzia e
-  dracena-de-madagascar). A família da espécie traz, além do símbolo 2D, a
-  planta desenhada em dois planos cruzados (quatro faces), no estilo dos
-  símbolos. Planta baixa: só o símbolo. Vista 3D comum, cortes e elevações:
-  a planta ilustrada. Não precisa da Maquete 3D.
+  dracena-de-madagascar). Nas vistas 3D, cortes e elevações, a planta é uma
+  imagem ilustrada sempre de frente para a câmera (16 direções e vista de
+  cima), com as mesmas cores em Sombreado, Cores consistentes e Realista.
+  Planta baixa: só o símbolo. Não precisa da Maquete 3D.
+- As cores da planta baixa não aparecem mais no chão das vistas 3D.
 - Parâmetro de exemplar "VIR Fase 3D": 1 Plantio, 2 Aos 3 anos, 3 Aos 6
   anos, 4 Adulta (padrão), 5 Adulta sem folhas (decíduas). As tabelas
-  continuam com uma linha por espécie. "VIR 3D visível" desliga o desenho
-  num exemplar; a subcategoria "VIR Volume 3D" liga e desliga por vista.
-- Projetos existentes: rode Atualizar Dados para regerar as famílias do
+  continuam com uma linha por espécie. "VIR 3D visível" esconde a imagem
+  num exemplar; a subcategoria "VIR Volume 3D" esconde todas na vista.
+  Para selecionar a planta numa vista 3D, clique no tronco.
+- Projetos existentes: rode Atualizar Dados para preparar as famílias do
   piloto. Configurações > "Vegetação ilustrada em 3D nas famílias" liga e
   desliga o recurso.
 - A Maquete 3D não duplica as espécies do piloto.

@@ -4,17 +4,20 @@ O código foi compilado contra a API oficial do Revit 2027 e a lógica sem depen
 
 Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Viridian\Logs` (Viridian > Sobre abre a pasta).
 
-## Conferência da versão 2.0 — vegetação ilustrada nas famílias (piloto, cerca de 15 minutos)
+## Conferência da versão 2.0 — vegetação ilustrada como RPC (piloto, cerca de 15 minutos)
 
 Nada precisa ser enviado: é só para você ver o resultado. Espécies do piloto: ipê-amarelo, flamboyant, jerivá, palmeira-azul, araucária, agave-dragão, estrelítzia e dracena-de-madagascar.
 
-1. Num projeto de teste, insira algumas espécies do piloto e algumas fora dele. Em um projeto que já tinha essas espécies, rode **Atualizar Dados** antes (Verificar Projeto mostra "símbolo ou cartões 3D" desatualizados). Na primeira vez cada espécie do piloto leva alguns segundos a mais; depois a família vem do cache.
+1. Num projeto de teste, insira algumas espécies do piloto e algumas fora dele. Em um projeto que já tinha essas espécies, rode **Atualizar Dados** antes (Verificar Projeto mostra "símbolo ou vegetação ilustrada" desatualizados).
 2. **Planta baixa:** os símbolos continuam iguais.
-3. Abra a **vista 3D padrão** (a casinha), um **corte** e uma **elevação**: as espécies do piloto aparecem desenhadas em dois planos cruzados; as outras, como antes. Gire a vista: o desenho tem quatro faces.
-4. Selecione um exemplar: é o mesmo elemento da planta. Mude **VIR Fase 3D** para 1, 2, 3 e 4 (e 5 no ipê ou flamboyant): o desenho muda de fase; a tabela continua com uma linha por espécie. Desmarque **VIR 3D visível**: o desenho some só nesse exemplar.
-5. Visibilidade/Gráficos > Vegetação > **VIR Volume 3D** liga e desliga os desenhos na vista. Se os discos coloridos da copa aparecerem no chão das vistas 3D, desligue as subcategorias de preenchimento e floração nessa vista.
-6. Gere a **Maquete 3D**: as espécies do piloto não são duplicadas (o resumo diz quantas aparecem pela própria família).
-7. Em **Configurações**, desmarque "Vegetação ilustrada em 3D nas famílias" e rode Atualizar Dados: as famílias voltam a ser só 2D.
+3. Abra a **vista 3D padrão** (a casinha): as espécies do piloto aparecem como imagens ilustradas. Gire a vista em volta e de cima a baixo: a planta fica sempre de frente, sem faces aparentes; a imagem muda um pouco a cada 22,5° e, olhando bem de cima, passa à vista da copa. Na primeira vez pode levar um ou dois segundos até cada espécie aparecer.
+4. Troque o estilo visual: **Sombreado, Cores consistentes e Realista** com as mesmas cores; **Linha oculta** em preto e branco; **Estrutura de arame** só com o contorno. Confira que não há disco colorido no chão sob as plantas.
+5. Abra um **corte** e uma **elevação**: as plantas aparecem de frente para a vista.
+6. Clique no **tronco** de uma planta na vista 3D: é o mesmo elemento da planta (mesmo código, mesma etiqueta, mesma linha na tabela). Mude **VIR Fase 3D** para 1, 2, 3 e 4 (e 5 no ipê ou flamboyant): a imagem muda de fase. Desmarque **VIR 3D visível**: a imagem some só nesse exemplar.
+7. Visibilidade/Gráficos > Vegetação > **VIR Volume 3D** esconde as imagens na vista.
+8. Gere a **Maquete 3D**: as espécies do piloto não são duplicadas.
+9. Se quiser, confira a **impressão em PDF** de uma vista 3D com as plantas (com processamento como imagem) e anote se as imagens saem.
+10. Em **Configurações**, desmarque "Vegetação ilustrada em 3D nas famílias": as imagens somem (rode Atualizar Dados para as famílias voltarem a ser só 2D).
 
 ## Teste da versão 1.9 — motor 3D botânico (cerca de 30 minutos)
 
