@@ -11,10 +11,10 @@ namespace Viridian.Revit.Illustrated;
 /// <summary>
 /// Servidor do serviço DirectContext3D: a cada quadro desenhado pelo Revit, põe a imagem de cada exemplar de frente
 /// para a câmera (regra em <see cref="SpriteBillboard"/>) e envia os triângulos coloridos. As cores são as dos
-/// vértices, por isso não dependem de material. Em Sombreado e Cores consistentes vão sem normais e sem luz (cor exata);
-/// no Realista vão com normais (o Realista só desenha geometria iluminável), sem cores fixadas no efeito, para que a
-/// cor de cada vértice seja respeitada. Em Linha oculta a imagem fica em preto e branco (contorno e fundo branco) e em
-/// Estrutura de arame só o contorno.
+/// vértices, por isso não dependem de material. Em Sombreado e Cores consistentes vão sem normais e sem luz (cor exata).
+/// O Realista só desenha geometria com normais e ignora a cor dos vértices (usa a cor do efeito): nele cada cor vai num
+/// lote próprio, com um efeito daquela cor. Em Linha oculta a imagem fica em preto e branco (contorno e fundo branco)
+/// e em Estrutura de arame só o contorno.
 /// </summary>
 internal sealed class SpriteServer : IDirectContext3DServer
 {
@@ -29,7 +29,7 @@ internal sealed class SpriteServer : IDirectContext3DServer
     private VertexFormat? _format;
     private EffectInstance? _effect;
     private VertexFormat? _litFormat;
-    private EffectInstance? _litEffect;
+    private readonly Dictionary<Viridian.Core.Colors.Rgb, EffectInstance> _litEffects = new();
     private bool _errorLogged;
 
     public Guid GetServerId() => ServerId;
@@ -87,16 +87,15 @@ internal sealed class SpriteServer : IDirectContext3DServer
                     _effect = new EffectInstance(VertexFormatBits.PositionColored);
                 }
 
-                // Realista: com normais, que ele exige. Nenhuma cor é fixada no efeito: cores fixadas (como a difusa
-                // preta da 2.2.1) passam por cima das cores dos vértices e deixavam a vegetação preta ou cinza.
-                if (_litFormat is null || _litEffect is null || !_litFormat.IsValid() || !_litEffect.IsValid())
+                // Realista: com normais, que ele exige; a cor vem do efeito de cada lote de cor (LitEffect).
+                if (_litFormat is null || !_litFormat.IsValid())
                 {
-                    _litFormat = new VertexFormat(VertexFormatBits.PositionNormalColored);
-                    _litEffect = new EffectInstance(VertexFormatBits.PositionNormalColored);
+                    _litFormat = new VertexFormat(VertexFormatBits.PositionNormal);
                 }
 
                 VertexFormat format = mode == Mode.Lit ? _litFormat : _format;
-                EffectInstance effect = mode == Mode.Lit ? _litEffect : _effect;
+                EffectInstance effect = _effect;
+                Func<Viridian.Core.Colors.Rgb, EffectInstance> lit = LitEffect;
 
                 // Tapetes dos maciços, no lugar (sem transformação).
                 DrawContext.SetWorldTransform(Transform.Identity);
@@ -107,7 +106,7 @@ internal sealed class SpriteServer : IDirectContext3DServer
                         break;
                     }
 
-                    _carpets.GetValue(carpet, c => new GpuSprite(c.Mesh.Vertices, c.Mesh.Triangles, Array.Empty<int>(), c.BaseFeet)).Draw(mode, format, effect);
+                    _carpets.GetValue(carpet, c => new GpuSprite(c.Mesh.Vertices, c.Mesh.Triangles, Array.Empty<int>(), c.BaseFeet)).Draw(mode, format, effect, lit);
                 }
 
                 foreach (SpriteInstance instance in snapshot.Instances)
@@ -132,7 +131,7 @@ internal sealed class SpriteServer : IDirectContext3DServer
                     transform.BasisY = ToXyz(frame.Up);
                     transform.BasisZ = ToXyz(frame.Normal);
                     DrawContext.SetWorldTransform(transform);
-                    gpu.Draw(mode, format, effect);
+                    gpu.Draw(mode, format, effect, lit);
                 }
 
                 DrawContext.SetWorldTransform(Transform.Identity);
@@ -146,6 +145,37 @@ internal sealed class SpriteServer : IDirectContext3DServer
                 ViridianLog.Error("Vegetação ilustrada: falha ao desenhar na vista " + dBView?.Name + ".", ex);
             }
         }
+    }
+
+    /// <summary>
+    /// Efeito de uma cor para o Realista: ambiente, difusa e emissiva na cor (a emissiva mantém a cor visível qualquer
+    /// que seja a luz da vista). Um por cor, reaproveitado entre quadros.
+    /// </summary>
+    private EffectInstance LitEffect(Viridian.Core.Colors.Rgb color)
+    {
+        if (_litEffects.TryGetValue(color, out EffectInstance? effect) && effect.IsValid())
+        {
+            return effect;
+        }
+
+        var c = new Color(color.R, color.G, color.B);
+        effect = new EffectInstance(VertexFormatBits.PositionNormal);
+        effect.SetColor(c);
+        effect.SetAmbientColor(c);
+        effect.SetDiffuseColor(c);
+        effect.SetEmissiveColor(c);
+        effect.SetSpecularColor(new Color(0, 0, 0));
+        effect.SetGlossiness(0);
+        effect.SetTransparency(0);
+        _litEffects[color] = effect;
+        return effect;
+    }
+
+    /// <summary>Cores arredondadas (passo de 16) nos lotes do Realista: poucos lotes por imagem, sem diferença visível na luz do Realista.</summary>
+    private static Viridian.Core.Colors.Rgb Quantize(Viridian.Core.Colors.Rgb c)
+    {
+        static byte Q(byte v) => (byte)Math.Min(255, (v + 8) / 16 * 16);
+        return new Viridian.Core.Colors.Rgb(Q(c.R), Q(c.G), Q(c.B));
     }
 
     private static Vec3 ToVec(XYZ p) => new(p.X, p.Y, p.Z);
@@ -182,7 +212,7 @@ internal sealed class SpriteServer : IDirectContext3DServer
             _baseFeet = baseFeet;
         }
 
-        public void Draw(Mode mode, VertexFormat format, EffectInstance effect)
+        public void Draw(Mode mode, VertexFormat format, EffectInstance effect, Func<Viridian.Core.Colors.Rgb, EffectInstance> lit)
         {
             if (!_chunks.TryGetValue(mode, out List<Chunk>? chunks) || chunks.Any(c => !c.IsValid))
             {
@@ -200,13 +230,44 @@ internal sealed class SpriteServer : IDirectContext3DServer
 
             foreach (Chunk chunk in chunks)
             {
-                DrawContext.FlushBuffer(chunk.Vertices, chunk.VertexCount, chunk.Indices, chunk.IndexCount, format, effect, PrimitiveType.TriangleList, 0, chunk.Primitives);
+                EffectInstance used = mode == Mode.Lit && chunk.Color is Viridian.Core.Colors.Rgb color ? lit(color) : effect;
+                DrawContext.FlushBuffer(chunk.Vertices, chunk.VertexCount, chunk.Indices, chunk.IndexCount, format, used, PrimitiveType.TriangleList, 0, chunk.Primitives);
             }
         }
 
         private List<Chunk> Build(Mode mode)
         {
-            IReadOnlyList<int> triangles = mode == Mode.Wire ? _outline : _triangles;
+            if (mode != Mode.Lit)
+            {
+                return Build(mode, mode == Mode.Wire ? _outline : _triangles, null);
+            }
+
+            // Realista: um lote por cor (o efeito do lote dá a cor).
+            var byColor = new Dictionary<Viridian.Core.Colors.Rgb, List<int>>();
+            for (int i = 0; i + 2 < _triangles.Count; i += 3)
+            {
+                Viridian.Core.Colors.Rgb color = Quantize(_vertices[_triangles[i]].Color);
+                if (!byColor.TryGetValue(color, out List<int>? list))
+                {
+                    byColor[color] = list = new List<int>();
+                }
+
+                list.Add(_triangles[i]);
+                list.Add(_triangles[i + 1]);
+                list.Add(_triangles[i + 2]);
+            }
+
+            var all = new List<Chunk>();
+            foreach ((Viridian.Core.Colors.Rgb color, List<int> list) in byColor)
+            {
+                all.AddRange(Build(mode, list, color));
+            }
+
+            return all;
+        }
+
+        private List<Chunk> Build(Mode mode, IReadOnlyList<int> triangles, Viridian.Core.Colors.Rgb? color)
+        {
             var result = new List<Chunk>();
             var map = new Dictionary<int, int>();
             var vertices = new List<int>();
@@ -225,13 +286,13 @@ internal sealed class SpriteServer : IDirectContext3DServer
                 if (mode == Mode.Lit)
                 {
                     // Normal na direção da câmera (o eixo Z da imagem aponta para ela).
-                    vb = new VertexBuffer(vertexCount * VertexPositionNormalColored.GetSizeInFloats());
-                    vb.Map(vertexCount * VertexPositionNormalColored.GetSizeInFloats());
-                    VertexStreamPositionNormalColored vs = vb.GetVertexStreamPositionNormalColored();
+                    vb = new VertexBuffer(vertexCount * VertexPositionNormal.GetSizeInFloats());
+                    vb.Map(vertexCount * VertexPositionNormal.GetSizeInFloats());
+                    VertexStreamPositionNormal vs = vb.GetVertexStreamPositionNormal();
                     foreach (int index in vertices)
                     {
                         SpriteVertex v = _vertices[index];
-                        vs.AddVertex(new VertexPositionNormalColored(new XYZ(v.X * k, v.Y * k, v.Z * k + _baseFeet), XYZ.BasisZ, new ColorWithTransparency(v.Color.R, v.Color.G, v.Color.B, 0)));
+                        vs.AddVertex(new VertexPositionNormal(new XYZ(v.X * k, v.Y * k, v.Z * k + _baseFeet), XYZ.BasisZ));
                     }
                 }
                 else
@@ -263,7 +324,7 @@ internal sealed class SpriteServer : IDirectContext3DServer
                 }
 
                 ib.Unmap();
-                result.Add(new Chunk(vb, vertexCount, ib, indexCount, primitives));
+                result.Add(new Chunk(vb, vertexCount, ib, indexCount, primitives, color));
                 map.Clear();
                 vertices.Clear();
                 local.Clear();
@@ -295,7 +356,7 @@ internal sealed class SpriteServer : IDirectContext3DServer
         }
     }
 
-    private sealed record Chunk(VertexBuffer Vertices, int VertexCount, IndexBuffer Indices, int IndexCount, int Primitives) : IDisposable
+    private sealed record Chunk(VertexBuffer Vertices, int VertexCount, IndexBuffer Indices, int IndexCount, int Primitives, Viridian.Core.Colors.Rgb? Color) : IDisposable
     {
         public bool IsValid => Vertices.IsValid() && Indices.IsValid();
 

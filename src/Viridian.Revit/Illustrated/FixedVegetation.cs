@@ -92,21 +92,26 @@ public static class FixedVegetation
         XYZ eye = orientation.EyePosition, forward = orientation.ForwardDirection, up = orientation.UpDirection;
         bool perspective = view.IsPerspective;
         double forwardFeet = RevitUnits.ToFeet(IllustratedVegetation.ForwardM);
+        double tolerance = document.Application.ShortCurveTolerance;
         ElementId category = Category(document);
         string tag = TagOf(view);
         int plants = 0, carpets = 0, failed = 0;
+
+        // Triângulos agrupados por cor: uma forma por cor, com as arestas pintadas na mesma cor (senão o Revit desenha
+        // a aresta preta de cada triângulo e a planta parece preta em Sombreado, Cores consistentes e Linha oculta).
+        var buckets = new Dictionary<Rgb, List<List<XYZ[]>>>();
+        double k = RevitUnits.ToFeet(1);
         foreach (SpriteInstance instance in snapshot.Instances)
         {
             SpriteFrame frame = SpriteBillboard.Place(instance.BaseFeet, instance.Rotation, instance.HeightFeet, ToVec(eye), ToVec(forward), ToVec(up), perspective, forwardFeet);
             SpriteMesh mesh = instance.Sprites.Get(instance.Stage, frame.View);
-            double k = RevitUnits.ToFeet(1);
             XYZ At(SpriteVertex v)
             {
                 Vec3 w = frame.ToWorld(v.X * k, v.Y * k, v.Z * k);
                 return new XYZ(w.X, w.Y, w.Z);
             }
 
-            if (Shape(document, category, tag, mesh.Vertices, mesh.Triangles, At, materials, ToXyz(instance.BaseFeet)))
+            if (Collect(buckets, mesh.Vertices, mesh.Triangles, At, tolerance) > 0)
             {
                 plants++;
             }
@@ -118,10 +123,9 @@ public static class FixedVegetation
 
         foreach (CarpetItem carpet in snapshot.Carpets)
         {
-            double k = RevitUnits.ToFeet(1);
-            XYZ At(SpriteVertex v) => new(v.X * k, v.Y * k, v.Z * k + carpet.BaseFeet);
-            SpriteVertex first = carpet.Mesh.Vertices.Count > 0 ? carpet.Mesh.Vertices[0] : default;
-            if (Shape(document, category, tag, carpet.Mesh.Vertices, carpet.Mesh.Triangles, At, materials, At(first)))
+            double baseFeet = carpet.BaseFeet;
+            XYZ At(SpriteVertex v) => new(v.X * k, v.Y * k, v.Z * k + baseFeet);
+            if (Collect(buckets, carpet.Mesh.Vertices, carpet.Mesh.Triangles, At, tolerance) > 0)
             {
                 carpets++;
             }
@@ -129,6 +133,18 @@ public static class FixedVegetation
             {
                 failed++;
             }
+        }
+
+        foreach ((Rgb color, List<List<XYZ[]>> sets) in buckets)
+        {
+            DirectShape? shape = Shape(document, category, tag, sets, MaterialOf(document, color, materials));
+            if (shape is null)
+            {
+                failed++;
+                continue;
+            }
+
+            BlendEdges(view, shape.Id, color);
         }
 
         HideOthers(document, view);
@@ -320,17 +336,12 @@ public static class FixedVegetation
         return DirectShape.IsValidCategoryId(entourage, document) ? entourage : new ElementId(BuiltInCategory.OST_GenericModel);
     }
 
-    private static bool Shape(Document document, ElementId category, string tag, IReadOnlyList<SpriteVertex> vertices, IReadOnlyList<int> triangles,
-        Func<SpriteVertex, XYZ> at, Dictionary<Rgb, ElementId> materials, XYZ anchor)
+    /// <summary>Junta os triângulos de uma imagem aos grupos por cor (um conjunto de faces por imagem). Retorna quantos entraram.</summary>
+    private static int Collect(Dictionary<Rgb, List<List<XYZ[]>>> buckets, IReadOnlyList<SpriteVertex> vertices, IReadOnlyList<int> triangles,
+        Func<SpriteVertex, XYZ> at, double tolerance)
     {
-        if (triangles.Count < 3)
-        {
-            return false;
-        }
-
-        var builder = new TessellatedShapeBuilder { Target = TessellatedShapeBuilderTarget.AnyGeometry, Fallback = TessellatedShapeBuilderFallback.Mesh };
-        builder.OpenConnectedFaceSet(false);
-        double tolerance = document.Application.ShortCurveTolerance;
+        var local = new Dictionary<Rgb, List<XYZ[]>>();
+        int count = 0;
         for (int i = 0; i + 2 < triangles.Count; i += 3)
         {
             SpriteVertex va = vertices[triangles[i]], vb = vertices[triangles[i + 1]], vc = vertices[triangles[i + 2]];
@@ -340,15 +351,56 @@ public static class FixedVegetation
                 continue;
             }
 
-            builder.AddFace(new TessellatedFace(new List<XYZ> { a, b, c }, MaterialOf(document, Quantize(va.Color), materials)));
+            Rgb color = Quantize(va.Color);
+            if (!local.TryGetValue(color, out List<XYZ[]>? list))
+            {
+                local[color] = list = new List<XYZ[]>();
+            }
+
+            list.Add(new[] { a, b, c });
+            count++;
         }
 
-        builder.CloseConnectedFaceSet();
+        foreach ((Rgb color, List<XYZ[]> list) in local)
+        {
+            if (!buckets.TryGetValue(color, out List<List<XYZ[]>>? sets))
+            {
+                buckets[color] = sets = new List<List<XYZ[]>>();
+            }
+
+            sets.Add(list);
+        }
+
+        return count;
+    }
+
+    /// <summary>Forma direta de uma cor, com um conjunto de faces por imagem.</summary>
+    private static DirectShape? Shape(Document document, ElementId category, string tag, List<List<XYZ[]>> sets, ElementId material)
+    {
+        var builder = new TessellatedShapeBuilder { Target = TessellatedShapeBuilderTarget.AnyGeometry, Fallback = TessellatedShapeBuilderFallback.Mesh };
+        XYZ? anchor = null;
+        foreach (List<XYZ[]> set in sets)
+        {
+            builder.OpenConnectedFaceSet(false);
+            foreach (XYZ[] t in set)
+            {
+                anchor ??= t[0];
+                builder.AddFace(new TessellatedFace(new List<XYZ> { t[0], t[1], t[2] }, material));
+            }
+
+            builder.CloseConnectedFaceSet();
+        }
+
+        if (anchor is null)
+        {
+            return null;
+        }
+
         builder.Build();
         using TessellatedShapeBuilderResult built = builder.GetBuildResult();
         if (built.Outcome == TessellatedShapeBuilderOutcome.Nothing || !built.AreObjectsAvailable)
         {
-            return false;
+            return null;
         }
 
         DirectShape shape = DirectShape.CreateElement(document, category);
@@ -369,7 +421,24 @@ public static class FixedVegetation
         }
 
         shape.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS)?.Set(tag);
-        return true;
+        return shape;
+    }
+
+    /// <summary>Arestas da forma na cor da própria forma (somem na superfície), só nesta vista.</summary>
+    private static void BlendEdges(View view, ElementId shape, Rgb color)
+    {
+        try
+        {
+            var c = new Color(color.R, color.G, color.B);
+            var settings = new OverrideGraphicSettings();
+            settings.SetProjectionLineColor(c);
+            settings.SetCutLineColor(c);
+            view.SetElementOverrides(shape, settings);
+        }
+        catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+        {
+            ViridianLog.Warn("Vegetação fixa: cor das arestas na vista " + view.Name, ex);
+        }
     }
 
     /// <summary>Cores arredondadas (passo de 8): a paleta das imagens vira algumas centenas de materiais, não milhares.</summary>
@@ -393,15 +462,23 @@ public static class FixedVegetation
             id = collector.OfClass(typeof(Material)).Cast<Material>().FirstOrDefault(m => m.Name == name)?.Id;
         }
 
-        if (id is null)
+        id ??= Material.Create(document, name);
+
+        // Também nos materiais já existentes: os criados antes podem ter ficado sem aparência (cinza no Realista).
+        if (document.GetElement(id) is Material material)
         {
-            id = Material.Create(document, name);
-            if (document.GetElement(id) is Material material)
+            var c = new Color(color.R, color.G, color.B);
+            if (!SameColor(material.Color, c))
             {
-                material.Color = new Color(color.R, color.G, color.B);
-                material.Shininess = 0;
-                material.Smoothness = 0;
-                material.UseRenderAppearanceForShading = false;
+                material.Color = c;
+            }
+
+            material.Shininess = 0;
+            material.Smoothness = 0;
+            material.UseRenderAppearanceForShading = false;
+            if (material.AppearanceAssetId == ElementId.InvalidElementId || document.GetElement(material.AppearanceAssetId) is null
+                || !AppearanceTextures.IsPlainColor(document, material, color))
+            {
                 AppearanceTextures.SetPlainColor(document, material, color);
             }
         }
@@ -409,6 +486,8 @@ public static class FixedVegetation
         materials[color] = id;
         return id;
     }
+
+    private static bool SameColor(Color? a, Color b) => a is not null && a.IsValid && a.Red == b.Red && a.Green == b.Green && a.Blue == b.Blue;
 
     private static Vec3 ToVec(XYZ p) => new(p.X, p.Y, p.Z);
 

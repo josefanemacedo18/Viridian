@@ -4,6 +4,15 @@ O código foi compilado contra a API oficial do Revit 2027 e a lógica sem depen
 
 Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Viridian\Logs` (Viridian > Sobre abre a pasta).
 
+## Conferência da versão 2.3.2 — cores no 3D, prancha e faixa nova (cerca de 15 minutos)
+
+Num projeto onde já rodou Vegetação nas Pranchas em versão anterior, rode de novo (as formas e os materiais são refeitos).
+
+1. **Desenho ao vivo:** numa vista 3D com vegetação, passe por **Sombreado**, **Cores consistentes** e **Realista**: as plantas aparecem coloridas nos três. No Realista a cor segue a luz da vista (pode ficar um pouco mais clara).
+2. **Prancha:** coloque a vista 3D numa prancha e rode **Maquete 3D > Vegetação nas Pranchas** (fixar nas vistas das pranchas). Abra a vista fixada em Sombreado, Cores consistentes e Realista: as plantas ficam **coloridas, sem preto** (as arestas saem na cor de cada parte). Exporte o **PDF** da prancha: saem coloridas.
+3. **Faixa:** nove painéis só com botões grandes. Confira os menus (setinha) de Cadastro, Alterar Plantio, Ajustar Maciço, Modelos de Canteiro, Estudo Solar, Gerador de Pisos, Etiquetar, Legenda, Quadros e Exportação, Detalhes e Memorial, Relatórios, Maquete 3D e Configurar: todas as ferramentas de antes estão lá.
+4. Se algo ainda sair preto ou cinza, anote o estilo visual e a vista (ao vivo ou fixada) e me envie uma imagem e o registro mais recente de `%APPDATA%\Viridian\Logs`.
+
 ## Conferência da versão 2.3.1 — cores da vegetação no 3D e faixa reorganizada (cerca de 10 minutos)
 
 1. Abra uma vista 3D com vegetação e passe por **Sombreado**, **Cores consistentes** e **Realista**: as plantas aparecem coloridas nos três (nada preto ou cinza). No Realista a cor pode ficar um pouco mais clara ou escura conforme a luz da vista.

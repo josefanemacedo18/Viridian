@@ -22,7 +22,21 @@ Antes de usar em projetos reais, siga o [roteiro de testes](docs/ROTEIRO_DE_TEST
 
 ## Módulos e ferramentas
 
-A aba **Viridian** tem treze painéis. **Buscar Espécie** é a biblioteca completa (consulta, filtros e cadastro); **Inserir** é a inserção rápida.
+A aba **Viridian** tem nove painéis, só com botões grandes; ferramentas da mesma família ficam juntas num **menu** (setinha embaixo do botão):
+
+| Painel | Botões (e o que fica no menu) |
+|---|---|
+| Biblioteca | Buscar Espécie · **Cadastro** (Nova Vegetação, Importar Família, Atualizar Dados) |
+| Plantio | Inserir · Distribuir · Plantio Linear · **Alterar Plantio** (Substituir, Editar) |
+| Maciços e Canteiros | Criar Maciço · **Ajustar Maciço** (Editar Maciço, Ajustar Contorno, Recalcular) · Compor Canteiro · **Modelos de Canteiro** (Salvar Canteiro, Inserir Modelo) |
+| Composição | Ateliê de Paletas · Floração · **Estudo Solar** (e Indicar Norte) · Verificar Canteiro |
+| Pisos e Drenagem | **Gerador de Pisos** (e Pedras e Coberturas) · Jardim de Chuva |
+| Documentação | **Etiquetar** (Atualizar Etiquetas, Codificar) · **Legenda** (Quadro de Fotos) · Prancha Automática · **Quadros e Exportação** (Quadro de Especificação, Tabelas Nativas, Exportar CAD) · **Detalhes e Memorial** (Memorial Ilustrado, Detalhe de Plantio, Corte Esquemático, Crescimento 2D) |
+| Quantitativos e Verificação | **Relatórios** (Aquisição, Orçamento, Manutenção) · Verificar Projeto · Interferências |
+| Maquete 3D | **Maquete 3D** (Atualizar, Remover) · Vegetação nas Pranchas |
+| Configurações | **Configurar** (Configurações, Escalas, Sobre, Diagnóstico 3D) |
+
+Nos botões com menu, clicar no desenho do botão executa a ação principal e a setinha mostra as demais. **Buscar Espécie** é a biblioteca completa (consulta, filtros e cadastro); **Inserir** é a inserção rápida. As seções abaixo descrevem as ferramentas por assunto.
 
 ### Biblioteca
 
@@ -169,7 +183,7 @@ Os valores de cova, camada de solo, tutoramento e crescimento são **referência
 | **Maquete 3D** | Cria a vista "Viridian - Maquete 3D" com a vegetação **em volume**. A janela da maquete escolhe o recorte (**projeto inteiro** ou **uma região** da planta), o **motor** (botânico ou o gerador simples das versões anteriores), a **qualidade** (Simplificada, Intermediária ou Detalhada), a **época do ano** (folhagem, flores e frutos do mês escolhido), a **fase de crescimento** (plantio, 3 anos, 6 anos ou maturidade) e se mostra flores, frutos e arestas. Uma estimativa de peso (triângulos) é atualizada a cada escolha. As plantas são **assentadas sobre o terreno** (toposólido ou superfície topográfica, também em vínculos); em lajes, coberturas e pisos, ficam sobre eles. |
 | **Atualizar Maquete** | Refaz a maquete com o mesmo recorte e as mesmas escolhas, depois de mudanças no plantio. Maquetes criadas em versões anteriores continuam no gerador simples (a aparência só muda se você gerar de novo pela janela). |
 | **Remover Maquete** | Apaga a maquete, os materiais criados para ela e a vista (quando não está em uma prancha). |
-| **Diagnóstico 3D** (painel Configurações) | Opcional: confere no seu Revit uma família com símbolo 2D e árvore 3D (inserida, conferida vista a vista e por nível de detalhe, 25 exemplares e recarga) e as texturas do ipê na vista realista, e guarda um relatório para consulta. Não é preciso enviar nada. Por padrão o projeto volta a ficar como estava. |
+| **Diagnóstico 3D** (menu Configurar) | Opcional: confere no seu Revit uma família com símbolo 2D e árvore 3D (inserida, conferida vista a vista e por nível de detalhe, 25 exemplares e recarga) e as texturas do ipê na vista realista, e guarda um relatório para consulta. Não é preciso enviar nada. Por padrão o projeto volta a ficar como estava. |
 
 **Motor botânico (1.9).** Cada espécie recebe um **perfil 3D** pela arquitetura da planta: árvores de copa arredondada, espalhada, colunar, cônica ou irregular (copa formada por grupos de folhagem sobre galhos primários e secundários, cônicas em andares), palmeiras de estipe único, em leque ou em touceira (folhas pinadas com folíolos ou leques plissados, palmito, cachos de frutos), arbustos, trepadeiras conduzidas, forrações, gramíneas e touceiras de folhas em fita, rosetas (agave, bromélias, inclusive as de tanque com o centro colorido na floração), herbáceas de folhas largas (helicônias, filodendros, estrelítzia com a flor ave-do-paraíso, árvore-do-viajante) e aquáticas. Há perfis de referência para ipê, flamboyant, araucária, jerivá, palmeira-imperial, agave e estrelítzia. O perfil é escolhido automaticamente pelo gênero, pela categoria e pela forma da copa, ou na ficha da espécie (campo **Perfil 3D**); os perfis ficam em `Dados\perfis-3d.json`.
 
@@ -194,7 +208,7 @@ A maquete é **opcional e não altera o que já existe**: as formas são geradas
 - **Projetos existentes:** rode **Atualizar Dados** uma vez para preparar as famílias (Verificar Projeto as aponta como "símbolo ou vegetação ilustrada" desatualizados). Plantas inseridas depois já entram prontas.
 - A **Maquete 3D não duplica** as plantas nem os maciços ilustrados. Onde o terreno está mais de 15 cm acima ou abaixo do exemplar, a maquete esconde a imagem e põe a planta em volume sobre o terreno.
 - Em **Configurações**, a opção "Vegetação ilustrada em 3D (RPC)" liga e desliga o recurso.
-- **Pranchas, impressão, PDF e Realista:** o desenho ao vivo aparece nas vistas abertas e nas janelas de vista das pranchas abertas, em todos os estilos (inclusive Realista). Para a vegetação sair na **impressão, no PDF, nas imagens exportadas e na renderização**, use **Maquete 3D > Vegetação nas Pranchas**: o desenho de cada vista 3D das pranchas (ou da vista ativa) vira formas reais de frente para a câmera da vista, com materiais de cor própria (também no Realista). As formas de uma vista ficam ocultas nas outras vistas e nas plantas (filtros "VIR Vegetação fixa"), e os eixos de seleção e as cores da planta baixa são escondidos nessas vistas. Depois de mudar o plantio ou girar a vista, rode de novo; a mesma janela desfaz a fixação.
+- **Pranchas, impressão, PDF e Realista:** o desenho ao vivo aparece nas vistas abertas e nas janelas de vista das pranchas abertas, em todos os estilos (inclusive Realista). Para a vegetação sair na **impressão, no PDF, nas imagens exportadas e na renderização**, use **Maquete 3D > Vegetação nas Pranchas**: o desenho de cada vista 3D das pranchas (ou da vista ativa) vira formas reais de frente para a câmera da vista, uma por cor, com materiais de cor e aparência próprias (também no Realista) e arestas na mesma cor da forma (sem o traço preto de cada triângulo). As formas de uma vista ficam ocultas nas outras vistas e nas plantas (filtros "VIR Vegetação fixa"), e os eixos de seleção e as cores da planta baixa são escondidos nessas vistas. Depois de mudar o plantio ou girar a vista, rode de novo; a mesma janela desfaz a fixação.
 - **Não é um arquivo .rpc da ArchVision** (formato proprietário que só a ferramenta deles cria): é o mesmo comportamento, feito pelo Viridian. Por isso as imagens aparecem só com o Viridian carregado; sem ele, as plantas ficam só com o símbolo 2D e o eixo.
 
 ![Vegetação ilustrada — plantas e maciços sempre de frente para a câmera](docs/img/vegetacao-ilustrada.jpg)

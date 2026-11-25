@@ -63,6 +63,28 @@ public static class AppearanceTextures
         : UnitUtils.ConvertToInternalUnits(meters, UnitTypeId.Meters);
 
     /// <summary>Aparência genérica da biblioteca do Revit, usada como ponto de partida (nula se não houver).</summary>
+    /// <summary>Uma aparência genérica (com cor difusa) já existente no projeto, para copiar.</summary>
+    private static AppearanceAssetElement? ProjectGenericAsset(Document document)
+    {
+        using var collector = new FilteredElementCollector(document);
+        foreach (AppearanceAssetElement element in collector.OfClass(typeof(AppearanceAssetElement)).Cast<AppearanceAssetElement>())
+        {
+            try
+            {
+                if (element.GetRenderingAsset() is Asset asset && asset.FindByName(Generic.GenericDiffuse) is not null)
+                {
+                    return element;
+                }
+            }
+            catch (Autodesk.Revit.Exceptions.ApplicationException)
+            {
+                // Aparência ilegível: tenta a próxima.
+            }
+        }
+
+        return null;
+    }
+
     public static Asset? GenericTemplate(Autodesk.Revit.ApplicationServices.Application app) =>
         app.GetAssets(AssetType.Appearance)
             .Where(a => a.FindByName(Generic.GenericDiffuse) is not null)
@@ -145,6 +167,12 @@ public static class AppearanceTextures
         }
     }
 
+    /// <summary>O material já usa a aparência lisa desta cor.</summary>
+    public static bool IsPlainColor(Document document, Material material, Rgb color) =>
+        document.GetElement(material.AppearanceAssetId) is AppearanceAssetElement asset && asset.Name == PlainColorName(color);
+
+    private static string PlainColorName(Rgb color) => "VIR Cor - " + color.Hex;
+
     /// <summary>
     /// Aparência de cor lisa (sem imagem) no material, para o estilo Realista e a renderização mostrarem a cor do
     /// material em vez do cinza padrão. Precisa de transação. Falhas ficam só no registro.
@@ -153,17 +181,26 @@ public static class AppearanceTextures
     {
         try
         {
-            string assetName = "VIR Cor - " + color.Hex;
+            string assetName = PlainColorName(color);
             AppearanceAssetElement? asset = AppearanceAssetElement.GetAppearanceAssetElementByName(document, assetName);
             if (asset is null)
             {
                 Asset? template = GenericTemplate(document.Application);
-                if (template is null)
+                if (template is not null)
                 {
+                    asset = AppearanceAssetElement.Create(document, assetName, template);
+                }
+                else if (ProjectGenericAsset(document) is AppearanceAssetElement source)
+                {
+                    // Sem a biblioteca de materiais do Revit instalada: copia uma aparência genérica do próprio projeto.
+                    asset = source.Duplicate(assetName);
+                }
+                else
+                {
+                    ViridianLog.Warn("Aparência de cor: nenhum modelo genérico disponível (biblioteca de materiais do Revit ausente e projeto sem aparência genérica).");
                     return;
                 }
 
-                asset = AppearanceAssetElement.Create(document, assetName, template);
                 using var scope = new AppearanceAssetEditScope(document);
                 Asset editable = scope.Start(asset.Id);
                 if (editable.FindByName(Generic.GenericDiffuse) is AssetPropertyDoubleArray4d diffuse)
