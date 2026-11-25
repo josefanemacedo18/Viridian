@@ -16,13 +16,24 @@ public sealed class DrawingRenderer
     public const string HeavyStyleName = "VIR Traço grosso";
     public const string ThinStyleName = "VIR Traço fino";
 
+    /// <summary>Estilos de linha por caneta: nome, espessura (1 a 16) e cor na criação.</summary>
+    private static readonly Dictionary<LinePen, (string Name, int Weight, Rgb Color)> Pens = new()
+    {
+        [LinePen.Fina] = (ThinStyleName, 1, new Rgb(0x4A, 0x55, 0x4E)),
+        [LinePen.Media] = ("VIR Traço médio", 3, new Rgb(0x34, 0x45, 0x3A)),
+        [LinePen.Grossa] = (HeavyStyleName, 5, new Rgb(0x2E, 0x4A, 0x36)),
+        [LinePen.Textura] = ("VIR Traço textura", 1, new Rgb(0x7E, 0x8C, 0x7C)),
+        [LinePen.Cota] = ("VIR Traço cota", 1, new Rgb(0x55, 0x5B, 0x57)),
+        [LinePen.Agua] = ("VIR Traço água", 3, new Rgb(0x3D, 0x7F, 0xB8)),
+    };
+
     private readonly Document _document;
     private readonly View _view;
     private readonly double _textMm;
     private readonly double _shortCurve;
-    private GraphicsStyle? _heavy;
-    private GraphicsStyle? _thin;
-    private readonly Dictionary<int, ElementId> _textTypes = new();
+    private readonly Dictionary<LinePen, GraphicsStyle?> _styles = new();
+    private bool _stylesReady;
+    private readonly Dictionary<(int Size, TextStyle Style), ElementId> _textTypes = new();
 
     /// <param name="textMm">Altura do texto no papel, em milímetros.</param>
     public DrawingRenderer(Document document, View view, double textMm = 2.0)
@@ -52,9 +63,10 @@ public sealed class DrawingRenderer
         {
             Point2 a = line.A + origin;
             Point2 b = line.B + origin;
+            LinePen pen = line.EffectivePen;
             if (!line.Dashed)
             {
-                count += Line(a, b, line.Heavy) ? 1 : 0;
+                count += Line(a, b, pen) ? 1 : 0;
                 continue;
             }
 
@@ -62,7 +74,7 @@ public sealed class DrawingRenderer
             Point2 dir = (b - a) / Math.Max(length, 1e-12);
             for (double t = 0; t < length; t += dash * 1.6)
             {
-                count += Line(a + dir * t, a + dir * Math.Min(length, t + dash), line.Heavy) ? 1 : 0;
+                count += Line(a + dir * t, a + dir * Math.Min(length, t + dash), pen) ? 1 : 0;
             }
         }
 
@@ -91,7 +103,7 @@ public sealed class DrawingRenderer
             points.RemoveAt(points.Count - 1);
         }
 
-        if (points.Count < 3 || HatchService.EnsureSolidRegionType(_document, fill.Color) is not FilledRegionType type)
+        if (points.Count < 3 || RegionType(fill) is not FilledRegionType type)
         {
             return false;
         }
@@ -119,7 +131,25 @@ public sealed class DrawingRenderer
         }
     }
 
-    private bool Line(Point2 a, Point2 b, bool heavy)
+    /// <summary>Tipo de região: cor lisa ou, com hachura de material, a hachura sobre o fundo na cor.</summary>
+    private FilledRegionType? RegionType(DrawFill fill)
+    {
+        if (Core.Hatch.MaterialHatches.Find(fill.Pattern) is Core.Hatch.HatchPattern pattern)
+        {
+            try
+            {
+                return HatchService.EnsureRegionType(_document, pattern, new RegionPaint(fill.PatternColor ?? DrawingStyle.HatchInk(fill.Color), fill.Color));
+            }
+            catch (Exception ex) when (ex is Autodesk.Revit.Exceptions.ApplicationException or ViridianException)
+            {
+                ViridianLog.Warn("Hachura de material indisponível; usando a cor lisa.", ex);
+            }
+        }
+
+        return HatchService.EnsureSolidRegionType(_document, fill.Color);
+    }
+
+    private bool Line(Point2 a, Point2 b, LinePen pen)
     {
         XYZ p = RevitUnits.ToXyz(a, ElevationFeet);
         XYZ q = RevitUnits.ToXyz(b, ElevationFeet);
@@ -131,7 +161,7 @@ public sealed class DrawingRenderer
         try
         {
             DetailCurve curve = _document.Create.NewDetailCurve(_view, Autodesk.Revit.DB.Line.CreateBound(p, q));
-            GraphicsStyle? style = heavy ? _heavy : _thin;
+            GraphicsStyle? style = _styles.GetValueOrDefault(pen) ?? _styles.GetValueOrDefault(LinePen.Fina);
             if (style is not null)
             {
                 curve.LineStyle = style;
@@ -154,7 +184,7 @@ public sealed class DrawingRenderer
 
         try
         {
-            using var options = new TextNoteOptions(TextType(text.SizeFactor))
+            using var options = new TextNoteOptions(TextType(text.SizeFactor, text.Style))
             {
                 HorizontalAlignment = text.Align switch
                 {
@@ -174,17 +204,26 @@ public sealed class DrawingRenderer
         }
     }
 
-    /// <summary>Tipo de texto do desenho na altura pedida (arredondada a 0,5 mm).</summary>
-    private ElementId TextType(double factor)
+    /// <summary>Tipo de texto do desenho na altura pedida (arredondada a 0,5 mm) e no estilo.</summary>
+    private ElementId TextType(double factor, TextStyle style)
     {
         double mm = Math.Round(_textMm * Math.Clamp(factor, 0.6, 3.0) * 2) / 2;
-        int key = (int)(mm * 10);
-        if (_textTypes.TryGetValue(key, out ElementId? cached))
+        int size = (int)(mm * 10);
+        if (_textTypes.TryGetValue((size, style), out ElementId? cached))
         {
             return cached;
         }
 
-        string name = "VIR Desenho " + mm.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " mm";
+        string suffix = style switch
+        {
+            TextStyle.Titulo => " título",
+            TextStyle.Subtitulo => " negrito",
+            TextStyle.Nota => " nota",
+            TextStyle.Cientifico => " itálico",
+            TextStyle.Claro => " claro",
+            _ => string.Empty,
+        };
+        string name = "VIR Desenho " + mm.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " mm" + suffix;
         using var collector = new FilteredElementCollector(_document);
         List<TextNoteType> types = collector.OfClass(typeof(TextNoteType)).Cast<TextNoteType>().ToList();
         TextNoteType? type = types.FirstOrDefault(t => string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase));
@@ -197,9 +236,19 @@ public sealed class DrawingRenderer
             Set(type, BuiltInParameter.TEXT_SIZE, RevitUnits.MmToFeet(mm));
             Set(type, BuiltInParameter.TEXT_BACKGROUND, 1);
             Set(type, BuiltInParameter.TEXT_BOX_VISIBILITY, 0);
+            Set(type, BuiltInParameter.TEXT_STYLE_BOLD, style is TextStyle.Titulo or TextStyle.Subtitulo or TextStyle.Claro ? 1 : 0);
+            Set(type, BuiltInParameter.TEXT_STYLE_ITALIC, style == TextStyle.Cientifico ? 1 : 0);
+            Rgb color = style switch
+            {
+                TextStyle.Titulo => DrawingStyle.Primary,
+                TextStyle.Nota => DrawingStyle.Muted,
+                TextStyle.Claro => Rgb.White,
+                _ => DrawingStyle.Ink,
+            };
+            Set(type, BuiltInParameter.LINE_COLOR, color.R + color.G * 256 + color.B * 65536);
         }
 
-        _textTypes[key] = type.Id;
+        _textTypes[(size, style)] = type.Id;
         return type.Id;
     }
 
@@ -221,23 +270,36 @@ public sealed class DrawingRenderer
         }
     }
 
-    /// <summary>Estilos de linha do Viridian (subcategorias de Linhas): traço grosso e traço fino.</summary>
+    /// <summary>Estilos de linha do Viridian (subcategorias de Linhas), um por caneta.</summary>
     private void EnsureLineStyles()
     {
-        if (_heavy is not null && _thin is not null)
+        if (_stylesReady)
         {
             return;
         }
 
+        _stylesReady = true;
+        Category lines;
         try
         {
-            Category lines = Category.GetCategory(_document, BuiltInCategory.OST_Lines);
-            _heavy = Subcategory(lines, HeavyStyleName, 5, new Rgb(0x2E, 0x4A, 0x36));
-            _thin = Subcategory(lines, ThinStyleName, 1, new Rgb(0x4A, 0x55, 0x4E));
+            lines = Category.GetCategory(_document, BuiltInCategory.OST_Lines);
         }
         catch (Autodesk.Revit.Exceptions.ApplicationException ex)
         {
             ViridianLog.Warn("Estilos de linha do desenho indisponíveis; usando o estilo padrão.", ex);
+            return;
+        }
+
+        foreach ((LinePen pen, (string name, int weight, Rgb color)) in Pens)
+        {
+            try
+            {
+                _styles[pen] = Subcategory(lines, name, weight, color);
+            }
+            catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+            {
+                ViridianLog.Warn("Estilo de linha " + name + " indisponível.", ex);
+            }
         }
     }
 

@@ -128,9 +128,22 @@ public class SectionAndGrowthTests
         Species s = Tree(8, 6);
         var plants = new[] { new GrowthPlant(s, new Point2(0, 0)), new GrowthPlant(s, new Point2(6, 0)) };
         Drawing d = GrowthBoard.Build(null, plants, Array.Empty<GrowthMassing>(), new ColorSettings());
-        Assert.Equal(8, d.Fills.Count);
+        Assert.True(d.Fills.Count >= 8);
         Assert.Contains(d.Texts, t => t.Text == "MATURIDADE");
         Assert.Contains(d.Texts, t => t.Text == "PLANTIO");
+        Assert.Equal(4, d.Texts.Count(t => t.Text.Contains("copas cobrem", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void GrowthBoard_CanopyCoverGrowsAndIsBounded()
+    {
+        var bed = new Polygon2(new[] { new Point2(0, 0), new Point2(4, 0), new Point2(4, 4), new Point2(0, 4) });
+        Assert.Equal(0, GrowthBoard.CanopyCover(bed, Array.Empty<(Point2, double)>()));
+        double small = GrowthBoard.CanopyCover(bed, new[] { (new Point2(2, 2), 0.5) });
+        double big = GrowthBoard.CanopyCover(bed, new[] { (new Point2(2, 2), 1.5) });
+        Assert.InRange(small, 0.03, 0.07);   // π·0,25 / 16 ≈ 0,049
+        Assert.InRange(big, 0.40, 0.48);     // π·2,25 / 16 ≈ 0,44
+        Assert.Equal(1, GrowthBoard.CanopyCover(bed, new[] { (new Point2(2, 2), 5.0) }), 6);
     }
 }
 

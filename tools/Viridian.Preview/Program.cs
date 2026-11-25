@@ -39,6 +39,22 @@ if (args.Contains("--catalogo"))
 }
 
 
+if (args.Contains("--desenhos"))
+{
+    // Só os desenhos técnicos (detalhes, cortes, quadros), para conferência rápida.
+    foreach ((string name, Viridian.Core.Detailing.Drawing drawing, double k) in SvgSheets.Stage1Drawings())
+    {
+        File.WriteAllText(Path.Combine(outDir, name + ".svg"), SvgSheets.DrawingSvg(drawing, k, name.StartsWith("detalhe", StringComparison.Ordinal) ? 20 : name == "corte" ? 100 : name == "crescimento" ? 200 : 0));
+    }
+
+    foreach ((string name, Viridian.Core.Detailing.Drawing drawing, double k, double scale) in SvgSheets.ExtraDrawings())
+    {
+        File.WriteAllText(Path.Combine(outDir, name + ".svg"), SvgSheets.DrawingSvg(drawing, k, scale));
+    }
+
+    return;
+}
+
 File.WriteAllText(Path.Combine(outDir, "estilos.svg"), SvgSheets.StyleSheet());
 File.WriteAllText(Path.Combine(outDir, "perfis.svg"), SvgSheets.ProfileSheet());
 File.WriteAllText(Path.Combine(outDir, "variantes.svg"), SvgSheets.VariantSheet());
@@ -47,7 +63,7 @@ File.WriteAllText(Path.Combine(outDir, "distribuicoes.svg"), SvgSheets.Distribut
 File.WriteAllText(Path.Combine(outDir, "cores.svg"), SvgSheets.ColorSheet(args.Length > 1 ? args[1] : null));
 foreach ((string name, Viridian.Core.Detailing.Drawing drawing, double k) in SvgSheets.Stage1Drawings())
 {
-    File.WriteAllText(Path.Combine(outDir, name + ".svg"), SvgSheets.DrawingSvg(drawing, k));
+    File.WriteAllText(Path.Combine(outDir, name + ".svg"), SvgSheets.DrawingSvg(drawing, k, name.StartsWith("detalhe", StringComparison.Ordinal) ? 20 : 0));
 }
 
 SvgSheets.MemorialSample(Path.Combine(outDir, "memorial-exemplo.docx"), Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "Viridian.Addin", "Fotos")));
@@ -229,9 +245,28 @@ internal static class SvgSheets
         Species jeriva = Find("Syagrus romanzoffiana");
         Species amendoim = Find("Arachis repens");
         Species pitanga = all.First(s => s.Category == PlantCategory.Arbusto);
-        yield return ("detalhe-arvore", Viridian.Core.Detailing.PlantingDetails.Draw(ipe, colors), 180);
-        yield return ("detalhe-palmeira", Viridian.Core.Detailing.PlantingDetails.Draw(jeriva, colors), 150);
-        yield return ("detalhe-forracao", Viridian.Core.Detailing.PlantingDetails.Draw(amendoim, colors), 250);
+        var specs = new Viridian.Core.Detailing.SpecificationSettings();
+        specs.Normalize();
+        Viridian.Core.Detailing.Drawing Detail(Species s)
+        {
+            var d = Viridian.Core.Detailing.PlantingDetails.Draw(s, colors);
+            var kind = Viridian.Core.Detailing.PlantingDetails.KindFor(s.Category);
+            Viridian.Core.Detailing.DrawingFrame.Compose(d, 20, 2.0, ((int)kind + 1).ToString(Inv),
+                Viridian.Core.Detailing.PlantingDetails.Name(kind) + " — " + s.Code + " " + s.PopularName,
+                "escavação " + Viridian.Core.Detailing.PlantingDetails.ExcavationText(Viridian.Core.Detailing.PlantingDetails.Dimensions(s)),
+                new[]
+                {
+                    new Viridian.Core.Detailing.NoteBlock("Especificação", new[] { specs.General, Viridian.Core.Detailing.SpecificationTemplates.Render(specs, s) }),
+                    new Viridian.Core.Detailing.NoteBlock("Observação", new[] { "Dimensões de referência: confira com as normas locais e com o responsável técnico." }),
+                });
+            return d;
+        }
+
+        yield return ("detalhe-arvore", Detail(ipe), 300);
+        yield return ("detalhe-palmeira", Detail(jeriva), 300);
+        yield return ("detalhe-forracao", Detail(amendoim), 300);
+        yield return ("detalhe-arbusto", Detail(pitanga), 300);
+        yield return ("detalhe-gramado", Detail(Find("Zoysia japonica")), 300);
 
         var rng = new DeterministicRandom(3);
         var plants = new List<Viridian.Core.Detailing.SectionPlant>();
@@ -245,11 +280,14 @@ internal static class SvgSheets
 
         var bed = new Polygon2(new[] { new Point2(10, -1.5), new Point2(18, -1.5), new Point2(18, 1.5), new Point2(10, 1.5) });
         var section = Viridian.Core.Detailing.SchematicSection.Build(new Point2(0, 0), new Point2(30, 0), plants,
-            new[] { new Viridian.Core.Detailing.SectionMassing(amendoim, amendoim.Code, bed) }, colors, 3);
-        yield return ("corte", section, 30);
+            new[] { new Viridian.Core.Detailing.SectionMassing(Find("Russelia equisetiformis"), "HE-012", bed) }, colors, 3, 100);
+        Viridian.Core.Detailing.DrawingFrame.Compose(section, 100, 2.0, "C", "Corte esquemático da vegetação", "Na maturidade · extensão 30,0 m");
+        yield return ("corte", section, 45);
         var region = new Polygon2(new[] { new Point2(0, 0), new Point2(30, 0), new Point2(30, 12), new Point2(0, 12) });
-        yield return ("crescimento", Viridian.Core.Detailing.GrowthBoard.Build(region, growth,
-            new[] { new Viridian.Core.Detailing.GrowthMassing(amendoim, new Polygon2(new[] { new Point2(3, 1), new Point2(12, 1), new Point2(12, 4), new Point2(3, 4) })) }, colors), 9);
+        var growthBoard = Viridian.Core.Detailing.GrowthBoard.Build(region, growth,
+            new[] { new Viridian.Core.Detailing.GrowthMassing(amendoim, new Polygon2(new[] { new Point2(3, 1), new Point2(12, 1), new Point2(12, 4), new Point2(3, 4) })) }, colors, 200);
+        Viridian.Core.Detailing.DrawingFrame.Compose(growthBoard, 200, 2.0, "G", "Simulação de crescimento", "canteiro de exemplo");
+        yield return ("crescimento", growthBoard, 14);
         var cal = Viridian.Core.Composition.FloweringCalendar.Build(all.Where(s => !string.IsNullOrEmpty(s.FlowerColor)).Take(14).Select(s => (s, s.Code, 1.0)));
         yield return ("calendario", Viridian.Core.Composition.CalendarDrawing.Build(cal, colors, "Calendário de floração"), 6000);
         var specItems = new[] { ipe, jeriva, Find("Plinia cauliflora"), pitanga, amendoim, Find("Bauhinia variegata") }
@@ -257,8 +295,20 @@ internal static class SvgSheets
         yield return ("quadro-especificacao", Viridian.Core.Detailing.SpecificationBoard.Build(specItems, new Viridian.Core.Detailing.SpecificationSettings(), 2.0), 5500);
     }
 
-    /// <summary>SVG de um desenho do Viridian (metros × fator em pixels).</summary>
-    public static string DrawingSvg(Viridian.Core.Detailing.Drawing d, double k)
+    /// <summary>Desenhos de pisos, jardim de chuva e folha (conferência rápida): nome, desenho, px/m e escala de papel.</summary>
+    public static IEnumerable<(string Name, Viridian.Core.Detailing.Drawing Drawing, double K, double Scale)> ExtraDrawings()
+    {
+        foreach (string id in new[] { "vir-paver-10x20-espinha", "vir-deck-cumaru", "vir-drenante-bloco", "vir-fulget-moldado" })
+        {
+            var piso = Viridian.Core.Paving.PavingDefaults.Create().First(t => t.Id == id);
+            yield return ("detalhe-" + id, Viridian.Core.Paving.PavingDetail.Draw(piso), 1100, 10);
+        }
+
+        yield return ("jardim-de-chuva", WaterSolarPreview.RainGarden(), 260, 25);
+    }
+
+    /// <summary>SVG de um desenho do Viridian (metros × fator em pixels). <paramref name="scale"/>: escala de papel das hachuras.</summary>
+    public static string DrawingSvg(Viridian.Core.Detailing.Drawing d, double k, double scale = 0)
     {
         Bounds2 e = d.Extent();
         foreach (var t in d.Texts)
@@ -268,26 +318,104 @@ internal static class SvgSheets
             e = new Bounds2(Math.Min(e.MinX, x0), e.MinY, Math.Max(e.MaxX, x0 + w), e.MaxY);
         }
 
+        // Escala de papel: 1 mm do papel = scale/1000 m. Sem informação, a que dá ~11 px por linha de texto de 2 mm.
+        bool scaleGiven = scale > 0;
+        if (!(scale > 0))
+        {
+            scale = 11.0 / 2.0 / k * 1000;
+        }
+
+        double mm = scale / 1000;
+        bool real = scaleGiven;
         double pad = Math.Max(e.Width, e.Height) * 0.03 + 0.005;
         e = e.Expand(pad);
         double W(double x) => (x - e.MinX) * k;
         double H(double y) => (e.MaxY - y) * k;
-        double text = Math.Max(9, Math.Min(14, 2.0 / 1000 * k * (k > 1000 ? 1 : 100) ));
         var sb = Begin(e.Width * k, e.Height * k);
+        int clip = 0;
         foreach (var f in d.Fills)
         {
-            sb.Append(Inv, $"<polygon points=\"{string.Join(" ", f.Outline.Select(p => $"{W(p.X):0.#},{H(p.Y):0.#}"))}\" fill=\"{f.Color.Hex}\" stroke=\"none\"/>");
+            string pts = string.Join(" ", f.Outline.Select(p => $"{W(p.X).ToString("0.#", Inv)},{H(p.Y).ToString("0.#", Inv)}"));
+            sb.Append(Inv, $"<polygon points=\"{pts}\" fill=\"{f.Color.Hex}\" stroke=\"none\"/>");
+            if (Viridian.Core.Hatch.MaterialHatches.Find(f.Pattern) is Viridian.Core.Hatch.HatchPattern pattern)
+            {
+                clip++;
+                string ink = (f.PatternColor ?? Viridian.Core.Detailing.DrawingStyle.HatchInk(f.Color)).Hex;
+                sb.Append(Inv, $"<clipPath id=\"c{clip}\"><polygon points=\"{pts}\"/></clipPath><g clip-path=\"url(#c{clip})\" stroke=\"{ink}\" stroke-width=\"0.6\">");
+                Bounds2 b = Bounds2.FromPoints(f.Outline);
+                double reach = Math.Sqrt(b.Width * b.Width + b.Height * b.Height);
+                foreach (var g in pattern.Grids)
+                {
+                    double a = g.AngleDeg * Math.PI / 180;
+                    var u = new Point2(Math.Cos(a), Math.Sin(a));
+                    var v = u.Perp();
+                    double offset = Math.Abs(g.Offset) * mm, shift = g.Shift * mm;
+                    var o = new Point2(g.OriginX * mm, g.OriginY * mm);
+                    // Linhas que cobrem o retângulo do contorno.
+                    double cv = (b.Center - o).Dot(v), cu = (b.Center - o).Dot(u);
+                    int i0 = (int)Math.Floor((cv - reach) / offset), i1 = (int)Math.Ceiling((cv + reach) / offset);
+                    if (i1 - i0 > 400)
+                    {
+                        continue;
+                    }
+
+                    double period = g.Segments.Count == 0 ? 0 : g.Segments.Sum() * mm;
+                    for (int i = i0; i <= i1; i++)
+                    {
+                        Point2 lineOrigin = o + v * (i * offset) + u * (i * shift);
+                        if (period <= 0)
+                        {
+                            Point2 p0 = lineOrigin + u * (cu - reach), p1 = lineOrigin + u * (cu + reach);
+                            sb.Append(Inv, $"<line x1=\"{W(p0.X):0.#}\" y1=\"{H(p0.Y):0.#}\" x2=\"{W(p1.X):0.#}\" y2=\"{H(p1.Y):0.#}\"/>");
+                            continue;
+                        }
+
+                        double start = Math.Floor((cu - reach - (lineOrigin - o).Dot(u)) / period) * period;
+                        for (double t = start; t < cu + reach - (lineOrigin - o).Dot(u) && t - start < reach * 3; t += period)
+                        {
+                            double pos = t;
+                            for (int s = 0; s + 1 < g.Segments.Count; s += 2)
+                            {
+                                double dash = g.Segments[s] * mm;
+                                Point2 p0 = lineOrigin + u * pos, p1 = lineOrigin + u * (pos + Math.Max(dash, mm * 0.25));
+                                sb.Append(Inv, $"<line x1=\"{W(p0.X):0.#}\" y1=\"{H(p0.Y):0.#}\" x2=\"{W(p1.X):0.#}\" y2=\"{H(p1.Y):0.#}\" stroke-linecap=\"round\"/>");
+                                pos += dash + g.Segments[s + 1] * mm;
+                            }
+                        }
+                    }
+                }
+
+                sb.Append("</g>");
+            }
         }
 
         foreach (var l in d.Lines)
         {
-            sb.Append(Inv, $"<line x1=\"{W(l.A.X):0.#}\" y1=\"{H(l.A.Y):0.#}\" x2=\"{W(l.B.X):0.#}\" y2=\"{H(l.B.Y):0.#}\" stroke=\"{(l.Heavy ? "#2E4A36" : "#4A554E")}\" stroke-width=\"{(l.Heavy ? 1.8 : 0.8)}\"{(l.Dashed ? " stroke-dasharray='6 4'" : string.Empty)}/>");
+            (string color, double width) = l.EffectivePen switch
+            {
+                Viridian.Core.Detailing.LinePen.Grossa => ("#2E4A36", 2.2),
+                Viridian.Core.Detailing.LinePen.Media => ("#34453A", 1.3),
+                Viridian.Core.Detailing.LinePen.Textura => ("#7E8C7C", 0.6),
+                Viridian.Core.Detailing.LinePen.Cota => ("#555B57", 0.7),
+                Viridian.Core.Detailing.LinePen.Agua => ("#3D7FB8", 1.4),
+                _ => ("#4A554E", 0.8),
+            };
+            sb.Append(Inv, $"<line x1=\"{W(l.A.X):0.#}\" y1=\"{H(l.A.Y):0.#}\" x2=\"{W(l.B.X):0.#}\" y2=\"{H(l.B.Y):0.#}\" stroke=\"{color}\" stroke-width=\"{width}\" stroke-linecap=\"round\"{(l.Dashed ? " stroke-dasharray='6 4'" : string.Empty)}/>");
         }
 
         foreach (var t in d.Texts)
         {
             string anchor = t.Align == 0 ? "middle" : t.Align > 0 ? "end" : "start";
-            sb.Append(Inv, $"<text x=\"{W(t.At.X):0.#}\" y=\"{H(t.At.Y) + 4:0.#}\" font-family=\"Arial\" font-size=\"{11 * t.SizeFactor:0.#}\" text-anchor=\"{anchor}\" fill=\"#222\">{System.Net.WebUtility.HtmlEncode(t.Text)}</text>");
+            (string fill, string weight, string style) = t.Style switch
+            {
+                Viridian.Core.Detailing.TextStyle.Titulo => ("#2E4A36", "bold", "normal"),
+                Viridian.Core.Detailing.TextStyle.Subtitulo => ("#2B312D", "bold", "normal"),
+                Viridian.Core.Detailing.TextStyle.Nota => ("#6B746D", "normal", "normal"),
+                Viridian.Core.Detailing.TextStyle.Cientifico => ("#2B312D", "normal", "italic"),
+                Viridian.Core.Detailing.TextStyle.Claro => ("#FFFFFF", "bold", "normal"),
+                _ => ("#2B312D", "normal", "normal"),
+            };
+            sb.Append(Inv, $"<text x=\"{W(t.At.X):0.#}\" y=\"{H(t.At.Y) + 4:0.#}\" font-family=\"Arial\" font-size=\"{(real ? 2.0 * mm * k : 11) * t.SizeFactor:0.#}\" font-weight=\"{weight}\" font-style=\"{style}\" text-anchor=\"{anchor}\" fill=\"{fill}\">{System.Net.WebUtility.HtmlEncode(t.Text)}</text>");
         }
 
         return End(sb);

@@ -356,9 +356,11 @@ public sealed class SectionCommand : CommandBase
         var massings = DesignFlows.Massings(ctx, view)
             .Select(m => new SectionMassing(m.Species, ctx.ProjectCode(m.Species), m.Info.Boundary!))
             .ToList();
-        Drawing drawing = SchematicSection.Build(line[0], line[1], plants, massings, ctx.Settings.Colors, depthM: 3);
-        drawing.Text(new Point2(0, drawing.Extent().MaxY + 1.0), $"CORTE ESQUEMÁTICO — {GrowthModel.Name(stage.Value).ToUpperInvariant()}", -1, 1.4);
-        int scale = DesignService.FitScale(drawing);
+        // Primeiro a geometria para achar a escala; depois o desenho final com os rótulos nessa escala.
+        int scale = DesignService.FitScale(SchematicSection.Build(line[0], line[1], plants, massings, ctx.Settings.Colors, depthM: 3));
+        Drawing drawing = SchematicSection.Build(line[0], line[1], plants, massings, ctx.Settings.Colors, depthM: 3, scale: scale);
+        DrawingFrame.Compose(drawing, scale, ctx.Settings.Labels.TextSizeMm, "C", "Corte esquemático da vegetação",
+            GrowthModel.Name(stage.Value) + $" · extensão {line[0].DistanceTo(line[1]).ToString("0.0", System.Globalization.CultureInfo.GetCultureInfo("pt-BR"))} m");
         var design = new DesignService(ctx.Settings.Labels.TextSizeMm);
         ViewDrafting created = ctx.Grouped("Viridian: corte esquemático", () =>
             Tx.Run(ctx.Doc, "Viridian: corte esquemático", () =>
@@ -407,8 +409,9 @@ public sealed class GrowthCommand : CommandBase
             throw new ViridianException("Não há vegetação do catálogo dentro da região escolhida.");
         }
 
-        Drawing drawing = GrowthBoard.Build(region.Polygon, plants, massings, ctx.Settings.Colors);
-        int scale = DesignService.FitScale(drawing, 0.75);
+        int scale = DesignService.FitScale(GrowthBoard.Build(region.Polygon, plants, massings, ctx.Settings.Colors), 0.75);
+        Drawing drawing = GrowthBoard.Build(region.Polygon, plants, massings, ctx.Settings.Colors, scale);
+        DrawingFrame.Compose(drawing, scale, ctx.Settings.Labels.TextSizeMm, "G", "Simulação de crescimento", region.Source);
         var design = new DesignService(ctx.Settings.Labels.TextSizeMm);
         ViewDrafting created = ctx.Grouped("Viridian: simulação de crescimento", () =>
             Tx.Run(ctx.Doc, "Viridian: simulação de crescimento", () =>

@@ -50,36 +50,24 @@ public sealed class DesignService
         Species labeled = main.Clone();
         labeled.Code = mainCode;
         Drawing drawing = PlantingDetails.Draw(labeled, colors);
-        Bounds2 extent = drawing.Extent();
         const int scale = 20;
-        double line = _textMm * 1.8 * scale / 1000.0; // altura de uma linha de texto no modelo
-
-        // Título e notas abaixo do desenho.
-        double y = extent.MinY - line * 2;
-        drawing.Text(new Point2(extent.MinX, extent.MaxY + line * 2), PlantingDetails.Name(kind).ToUpperInvariant() + (group.Count == 1 ? " — " + mainCode + " " + main.PopularName : string.Empty), -1, 1.4);
-        drawing.Text(new Point2(extent.MinX, y), "ESPECIFICAÇÃO", -1, 1.15);
-        y -= line * 1.5;
-        foreach (string paragraph in Wrap(specs.General, 110))
-        {
-            drawing.Text(new Point2(extent.MinX, y), paragraph);
-            y -= line;
-        }
-
-        y -= line * 0.5;
+        var specLines = new List<string> { specs.General };
         foreach ((Species s, string code) in group.OrderBy(g => g.Code, StringComparer.OrdinalIgnoreCase))
         {
             Species withCode = s.Clone();
             withCode.Code = code;
-            foreach (string paragraph in Wrap(SpecificationTemplates.Render(specs, withCode), 110))
-            {
-                drawing.Text(new Point2(extent.MinX, y), paragraph);
-                y -= line;
-            }
-
-            y -= line * 0.5;
+            specLines.Add(SpecificationTemplates.Render(specs, withCode));
         }
 
-        drawing.Text(new Point2(extent.MinX, y - line * 0.5), "Dimensões de referência: confira com as normas locais e com o responsável técnico.", -1, 0.85);
+        string title = PlantingDetails.Name(kind) + (group.Count == 1 ? " — " + mainCode + " " + main.PopularName : string.Empty);
+        PlantingDimensions dims = PlantingDetails.Dimensions(main);
+        DrawingFrame.Compose(drawing, scale, _textMm, ((int)kind + 1).ToString(System.Globalization.CultureInfo.InvariantCulture), title,
+            "escavação " + PlantingDetails.ExcavationText(dims),
+            new[]
+            {
+                new NoteBlock("Especificação", specLines),
+                new NoteBlock("Observação", new[] { "Dimensões de referência: confira com as normas locais e com o responsável técnico." }),
+            });
         string name = group.Count == 1
             ? $"Viridian - Detalhe - {mainCode} {main.PopularName}"
             : $"Viridian - Detalhe - {PlantingDetails.Name(kind)}";

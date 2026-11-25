@@ -22,8 +22,9 @@ public static class SchematicSection
 
     /// <param name="a">Início da linha de corte (em planta).</param>
     /// <param name="b">Fim da linha de corte.</param>
-    /// <param name="depthM">Profundidade de vista além da linha: plantas até essa distância também aparecem (atrás, em traço fino).</param>
-    public static Drawing Build(Point2 a, Point2 b, IReadOnlyList<SectionPlant> plants, IReadOnlyList<SectionMassing> massings, ColorSettings colors, double depthM = 0)
+    /// <param name="depthM">Profundidade de vista além da linha: plantas até essa distância também aparecem (atrás, em tom claro).</param>
+    /// <param name="scale">Escala de apresentação (1:scale), para o tamanho dos rótulos; zero = estimada pelo comprimento.</param>
+    public static Drawing Build(Point2 a, Point2 b, IReadOnlyList<SectionPlant> plants, IReadOnlyList<SectionMassing> massings, ColorSettings colors, double depthM = 0, int scale = 0)
     {
         double length = a.DistanceTo(b);
         var drawing = new Drawing { Title = "Corte esquemático da vegetação" };
@@ -32,29 +33,15 @@ public static class SchematicSection
             return drawing;
         }
 
+        // 1 mm do papel em metros: rótulos e réguas com tamanho constante na prancha.
+        double mm = (scale > 0 ? scale : Math.Clamp(length * 1000 / 500, 20, 500)) / 1000.0;
         Point2 dir = (b - a) / length;
         Point2 normal = dir.Perp();
 
-        // Linha do terreno.
-        drawing.Line(new Point2(0, 0), new Point2(length, 0), heavy: true);
-        for (double x = 0.1; x < length; x += 0.3)
-        {
-            drawing.Line(new Point2(x, -0.02), new Point2(x - 0.12, -0.14));
-        }
-
-        // Maciços: faixas onde a linha de corte atravessa o polígono.
-        foreach (SectionMassing m in massings)
-        {
-            double h = Math.Clamp(m.Species.AdultHeightM > 0 ? m.Species.AdultHeightM : 0.3, 0.05, 3.0);
-            Rgb color = VegetationPalette.CrownFill(m.Species, colors);
-            foreach ((double from, double to) in Spans(m.Boundary, a, b))
-            {
-                var band = new List<Point2> { new(from, 0), new(to, 0), new(to, h * 0.8), new((from + to) / 2, h), new(from, h * 0.8) };
-                drawing.Fills.Add(new DrawFill(band, color));
-                drawing.Polyline(band, true);
-                drawing.Text(new Point2((from + to) / 2, h + 0.25), m.Code, 0, 0.9);
-            }
-        }
+        // Terreno em corte (com a figura humana de escala à esquerda).
+        double left = -2.2;
+        Sketch.Ground(drawing, left, length + 0.5, 0, Math.Max(0.35, 6 * mm));
+        Sketch.Person(drawing, new Point2(-1.2, 0));
 
         // Exemplares: os mais afastados primeiro, para os da frente ficarem por cima.
         var placed = new List<(SectionPlant Plant, double U, double Distance)>();
@@ -72,30 +59,77 @@ public static class SchematicSection
             placed.Add((p, u, d));
         }
 
-        foreach ((SectionPlant p, double u, double distance) in placed.OrderByDescending(x => x.Distance))
+        foreach ((SectionPlant p, double u, double distance) in placed.Where(x => x.Distance > x.Plant.CrownDiameterM / 2).OrderByDescending(x => x.Distance))
         {
-            bool cut = distance <= p.CrownDiameterM / 2;
-            Silhouette(drawing, p, u, cut ? distance : 0, colors, behind: !cut);
+            Silhouette(drawing, p, u, 0, colors, behind: true);
         }
 
-        // Escala de alturas e nomes.
-        double maxHeight = placed.Count == 0 ? 3 : placed.Max(x => x.Plant.HeightM);
-        double step = maxHeight > 15 ? 5 : maxHeight > 6 ? 2 : 1;
-        for (double y = step; y <= maxHeight + 1e-9; y += step)
+        var labels = new List<(double U, string Code, Species Species)>();
+
+        // Maciços cortados: touceiras recortadas na altura da espécie, por cima das plantas de trás.
+        foreach (SectionMassing m in massings)
         {
-            drawing.Line(new Point2(-0.6, y), new Point2(-0.3, y));
-            drawing.Text(new Point2(-0.7, y), y.ToString("0", Pt) + " m", 1, 0.85);
+            double h = Math.Clamp(m.Species.AdultHeightM > 0 ? m.Species.AdultHeightM : 0.3, 0.05, 3.0);
+            Rgb color = VegetationPalette.Foliage(m.Species, colors);
+            Rgb? flower = VegetationPalette.Flower(m.Species, colors);
+            foreach ((double from, double to) in Spans(m.Boundary, a, b))
+            {
+                double step = Math.Clamp(h * 0.9, 0.15, 1.2);
+                int i = 0;
+                for (double x = from + step / 2; x < to; x += step * 0.8, i++)
+                {
+                    double w = Math.Min(step, (to - from));
+                    Sketch.Shrub(drawing, new Point2(Math.Min(x, to - w / 2), 0), h * (0.85 + 0.15 * ((i * 7) % 3) / 2.0), w, i % 2 == 0 ? color : color.Shade(0.08), m.Species.EffectiveSymbolSeed + i, flower);
+                }
+
+                labels.Add(((from + to) / 2, m.Code, m.Species));
+            }
         }
 
-        drawing.Line(new Point2(-0.45, 0), new Point2(-0.45, Math.Ceiling(maxHeight / step) * step));
-        foreach ((SectionPlant p, double u, double distance) in placed.Where(x => x.Distance <= x.Plant.CrownDiameterM / 2).OrderBy(x => x.U))
+        foreach ((SectionPlant p, double u, double distance) in placed.Where(x => x.Distance <= x.Plant.CrownDiameterM / 2).OrderByDescending(x => x.Distance))
         {
-            drawing.Text(new Point2(u, -0.45), p.Code, 0, 0.9);
-            drawing.Text(new Point2(u, -0.85), p.Species.PopularName, 0, 0.75);
+            Silhouette(drawing, p, u, distance, colors, behind: false);
         }
 
-        drawing.Text(new Point2(length / 2, -1.35), "Alturas e copas na fase indicada; silhuetas esquemáticas", 0, 0.75);
+        // Régua de alturas.
+        double maxHeight = placed.Count == 0 ? 3 : Math.Max(2, placed.Max(x => x.Plant.HeightM));
+        double rule = maxHeight > 15 ? 5 : maxHeight > 6 ? 2 : 1;
+        double rx = left - 0.4;
+        double top = Math.Ceiling(maxHeight / rule) * rule;
+        drawing.Stroke(new Point2(rx, 0), new Point2(rx, top), LinePen.Cota);
+        for (double y = 0; y <= top + 1e-9; y += rule)
+        {
+            drawing.Stroke(new Point2(rx - 1.5 * mm, y), new Point2(rx + 1.5 * mm, y), LinePen.Media);
+            drawing.Text(new Point2(rx - 2.5 * mm, y), y.ToString("0", Pt) + " m", TextStyle.Nota, 1, 0.85);
+            if (y > 0)
+            {
+                drawing.Stroke(new Point2(rx + 2 * mm, y), new Point2(length + 0.5, y), LinePen.Textura, dashed: true);
+            }
+        }
+
+        labels.AddRange(placed.Where(x => x.Distance <= x.Plant.CrownDiameterM / 2).Select(x => (x.U, x.Plant.Code, x.Plant.Species)));
+
+        // Rótulos em duas linhas alternadas quando ficariam encostados (menos de 22 mm no papel).
+        double last = double.NegativeInfinity;
+        int row = 0;
+        foreach ((double u, string code, Species species) in labels.OrderBy(l => l.U))
+        {
+            row = u - last < 22 * mm ? 1 - row : 0;
+            Label(drawing, u, mm, code, species, row);
+            last = u;
+        }
+
+        drawing.Text(new Point2(left, -Math.Max(0.35, 6 * mm) - 19 * mm), "Alturas e copas na fase indicada; silhuetas esquemáticas. Figura humana de 1,70 m como referência de escala.", TextStyle.Nota, -1, 0.85);
         return drawing;
+    }
+
+    /// <summary>Rótulo abaixo do terreno: código em destaque e o nome popular.</summary>
+    private static void Label(Drawing d, double u, double mm, string code, Species species, int row = 0)
+    {
+        double y = -Math.Max(0.35, 6 * mm) - 3 * mm - row * 8 * mm;
+        d.Text(new Point2(u, y), code, TextStyle.Subtitulo, 0, 0.95);
+        d.Text(new Point2(u, y - 3.4 * mm), species.PopularName, TextStyle.Nota, 0, 0.8);
+        d.Stroke(new Point2(u, 0), new Point2(u, -Math.Max(0.35, 6 * mm) + 0.5 * mm), LinePen.Textura, dashed: true);
     }
 
     /// <summary>Silhueta conforme a categoria e a forma da copa, com a largura do corte à distância informada do eixo.</summary>
@@ -105,65 +139,78 @@ public static class SchematicSection
         double radius = Math.Max(0.05, p.CrownDiameterM / 2);
         double half = Math.Sqrt(Math.Max(0, radius * radius - offset * offset));
         half = Math.Max(half, radius * 0.25);
-        Rgb color = VegetationPalette.CrownFill(p.Species, colors);
+        Species s = p.Species;
+        int seed = s.EffectiveSymbolSeed + (int)(u * 100);
+        Rgb color = VegetationPalette.Foliage(s, colors);
+        Rgb? flower = VegetationPalette.Flower(s, colors);
         if (behind)
         {
-            color = color.Tint(0.45);
+            // Planta atrás do plano de corte: silhueta lisa, clara e sem detalhes.
+            color = color.Tint(0.5);
+            flower = null;
         }
 
-        Species s = p.Species;
         switch (s.Category)
         {
             case PlantCategory.Palmeira:
             {
-                // Estipe levemente afinada e coroa de folhas arqueadas.
-                double top = height * 0.8;
-                double stipe = Math.Clamp(height * 0.018, 0.08, 0.3);
-                g.Line(new Point2(u - stipe, 0), new Point2(u - stipe * 0.7, top), heavy: !behind);
-                g.Line(new Point2(u + stipe, 0), new Point2(u + stipe * 0.7, top), heavy: !behind);
-                double length = Math.Max(half, (height - top) * 1.6);
-                Point2 crown = new(u, top);
-                for (int i = 0; i < 11; i++)
+                if (behind)
                 {
-                    double angle = Math.PI * (0.08 + 0.84 * i / 10.0);
-                    var frond = new List<Point2>();
-                    for (int k = 0; k <= 10; k++)
-                    {
-                        double t = k / 10.0;
-                        double reach = length * t;
-                        frond.Add(crown + new Point2(Math.Cos(angle) * reach * (half / length), Math.Sin(angle) * reach * 0.55 - length * 0.35 * t * t));
-                    }
-
-                    g.Polyline(frond, false, heavy: !behind);
+                    double top = height * 0.86;
+                    g.Fill(new List<Point2> { new(u - 0.08, 0), new(u + 0.08, 0), new(u + 0.06, top), new(u - 0.06, top) }, color);
+                    g.Fill(Drawing.Ellipse(new Point2(u, top), half, (height - top) * 1.2 + 0.3, 30), color);
+                    return;
                 }
 
+                Sketch.Palm(g, new Point2(u, 0), height * 0.86, Math.Max(half * 2, height * 0.35), color, seed);
                 return;
             }
 
             case PlantCategory.Arvore:
             {
                 double crownBase = height * (s.CrownForm == CrownForm.Colunar ? 0.15 : 0.4);
-                double trunk = Math.Clamp(height * 0.012, 0.05, 0.3);
-                g.Line(new Point2(u - trunk, 0), new Point2(u - trunk * 0.6, crownBase), heavy: !behind);
-                g.Line(new Point2(u + trunk, 0), new Point2(u + trunk * 0.6, crownBase), heavy: !behind);
-                List<Point2> crown = CrownShape(s.CrownForm, u, crownBase, height, half);
-                g.Fills.Add(new DrawFill(crown, color));
-                g.Polyline(crown, true, heavy: !behind);
+                double trunk = Math.Clamp(height * 0.025, 0.08, 0.6);
+                double cy = crownBase + (height - crownBase) / 2;
+                double ry = (height - crownBase) / 2;
+                if (behind)
+                {
+                    g.Fill(new List<Point2> { new(u - trunk / 2, 0), new(u + trunk / 2, 0), new(u + trunk * 0.3, cy), new(u - trunk * 0.3, cy) }, color);
+                    g.Fill(CrownShape(s.CrownForm, u, crownBase, height, half), color);
+                    return;
+                }
+
+                Sketch.Trunk(g, new Point2(u, 0), crownBase + ry * 0.2, trunk, seed);
+                switch (s.CrownForm)
+                {
+                    case CrownForm.Piramidal:
+                    case CrownForm.Colunar:
+                    case CrownForm.Espalhada:
+                    {
+                        List<Point2> crown = CrownShape(s.CrownForm, u, crownBase, height, half);
+                        g.Fill(crown, color);
+                        g.Fill(CrownShape(s.CrownForm, u + half * 0.12, crownBase, crownBase + (height - crownBase) * 0.55, half * 0.75), color.Shade(0.18));
+                        g.Strokes(crown, true, LinePen.Media);
+                        break;
+                    }
+
+                    default:
+                        Sketch.Crown(g, new Point2(u, cy), half, ry, color, seed, flower);
+                        break;
+                }
+
                 return;
             }
 
             default:
             {
-                // Arbustos, herbáceas e forrações: touceira em meia-elipse a partir do solo.
-                var mound = new List<Point2>();
-                for (int k = 0; k <= 24; k++)
+                // Arbustos, herbáceas e forrações: touceira a partir do solo.
+                if (behind)
                 {
-                    double t = Math.PI * k / 24;
-                    mound.Add(new Point2(u + half * Math.Cos(t), height * Math.Sin(t)));
+                    g.Fill(Drawing.Ellipse(new Point2(u, height * 0.5), half, height * 0.5, 30), color);
+                    return;
                 }
 
-                g.Fills.Add(new DrawFill(mound, color));
-                g.Polyline(mound, true, heavy: !behind);
+                Sketch.Shrub(g, new Point2(u, 0), height, half * 2, color, seed, flower);
                 return;
             }
         }

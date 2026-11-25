@@ -3,14 +3,64 @@ using Viridian.Core.Geometry;
 
 namespace Viridian.Core.Detailing;
 
+/// <summary>Caneta (espessura e cor) de um traço. Cada uma vira um estilo de linha "VIR Traço ..." no Revit.</summary>
+public enum LinePen
+{
+    /// <summary>Traço fino de desenho (contornos secundários, linhas de chamada).</summary>
+    Fina = 0,
+
+    /// <summary>Traço médio (contornos de elementos, divisões de camadas).</summary>
+    Media = 1,
+
+    /// <summary>Traço grosso (terreno, cortes, molduras, contornos principais).</summary>
+    Grossa = 2,
+
+    /// <summary>Traço leve de textura e sombreamento (folhas, veios, casca).</summary>
+    Textura = 3,
+
+    /// <summary>Cotas e réguas.</summary>
+    Cota = 4,
+
+    /// <summary>Água e fluxo (setas de escoamento, lâmina).</summary>
+    Agua = 5,
+}
+
+/// <summary>Estilo de texto: cada um vira um tipo de texto "VIR Desenho ..." no Revit.</summary>
+public enum TextStyle
+{
+    Normal = 0,
+
+    /// <summary>Títulos: negrito, verde-escuro.</summary>
+    Titulo = 1,
+
+    /// <summary>Subtítulos e cabeçalhos: negrito.</summary>
+    Subtitulo = 2,
+
+    /// <summary>Notas e observações: cinza.</summary>
+    Nota = 3,
+
+    /// <summary>Nome científico: itálico (convenção botânica).</summary>
+    Cientifico = 4,
+
+    /// <summary>Texto claro sobre faixas escuras: negrito, branco.</summary>
+    Claro = 5,
+}
+
 /// <summary>Traço de um desenho 2D gerado (detalhe, corte, crescimento), em metros reais.</summary>
-public sealed record DrawLine(Point2 A, Point2 B, bool Dashed = false, bool Heavy = false);
+/// <param name="Pen">Caneta; nula = fina ou grossa conforme <paramref name="Heavy"/>.</param>
+public sealed record DrawLine(Point2 A, Point2 B, bool Dashed = false, bool Heavy = false, LinePen? Pen = null)
+{
+    public LinePen EffectivePen => Pen ?? (Heavy ? LinePen.Grossa : LinePen.Fina);
+}
 
 /// <summary>Texto do desenho. <paramref name="Align"/>: -1 esquerda, 0 centro, 1 direita.</summary>
-public sealed record DrawText(Point2 At, string Text, int Align = -1, double SizeFactor = 1.0);
+public sealed record DrawText(Point2 At, string Text, int Align = -1, double SizeFactor = 1.0, TextStyle Style = TextStyle.Normal);
 
-/// <summary>Área preenchida (copa, solo, maciço), com cor.</summary>
-public sealed record DrawFill(IReadOnlyList<Point2> Outline, Rgb Color);
+/// <summary>
+/// Área preenchida (copa, solo, maciço): fundo na cor e, opcionalmente, a hachura de material
+/// (<see cref="Hatch.MaterialHatches"/>) por cima, na cor <paramref name="PatternColor"/>.
+/// </summary>
+public sealed record DrawFill(IReadOnlyList<Point2> Outline, Rgb Color, string? Pattern = null, Rgb? PatternColor = null);
 
 /// <summary>Desenho 2D independente do Revit: linhas, textos e preenchimentos, em metros reais.</summary>
 public sealed class Drawing
@@ -46,6 +96,100 @@ public sealed class Drawing
 
     public void Text(Point2 at, string text, int align = -1, double size = 1.0) => Texts.Add(new DrawText(at, text, align, size));
 
+    public void Text(Point2 at, string text, TextStyle style, int align = -1, double size = 1.0) => Texts.Add(new DrawText(at, text, align, size, style));
+
+    /// <summary>Traço com caneta escolhida.</summary>
+    public void Stroke(Point2 a, Point2 b, LinePen pen, bool dashed = false)
+    {
+        if (a.DistanceTo(b) > 1e-6)
+        {
+            Lines.Add(new DrawLine(a, b, dashed, pen == LinePen.Grossa, pen));
+        }
+    }
+
+    public void Strokes(IReadOnlyList<Point2> points, bool closed, LinePen pen, bool dashed = false)
+    {
+        for (int i = 1; i < points.Count; i++)
+        {
+            Stroke(points[i - 1], points[i], pen, dashed);
+        }
+
+        if (closed && points.Count > 2)
+        {
+            Stroke(points[^1], points[0], pen, dashed);
+        }
+    }
+
+    /// <summary>Área com cor de fundo e, se informada, hachura de material por cima.</summary>
+    public void Fill(IReadOnlyList<Point2> outline, Rgb color, string? pattern = null, Rgb? patternColor = null)
+    {
+        if (outline.Count >= 3)
+        {
+            Fills.Add(new DrawFill(outline, color, pattern, patternColor));
+        }
+    }
+
+    /// <summary>Retângulo preenchido (e contornado, se <paramref name="edge"/> for informada).</summary>
+    public void Box(double x0, double y0, double x1, double y1, Rgb color, string? pattern = null, Rgb? patternColor = null, LinePen? edge = null)
+    {
+        var outline = new List<Point2> { new(x0, y0), new(x1, y0), new(x1, y1), new(x0, y1) };
+        Fill(outline, color, pattern, patternColor);
+        if (edge is LinePen pen)
+        {
+            Strokes(outline, true, pen);
+        }
+    }
+
+    public void Circle(Point2 center, double radius, LinePen pen, int sides = 36) => Strokes(Ellipse(center, radius, radius, sides), true, pen);
+
+    /// <summary>Seta com ponta cheia.</summary>
+    public void Arrow(Point2 from, Point2 to, LinePen pen, double head, Rgb headColor)
+    {
+        Point2 dir = (to - from).Normalized();
+        Point2 back = to - dir * head;
+        Stroke(from, back, pen);
+        Point2 side = dir.Perp() * head * 0.42;
+        Fill(new List<Point2> { to, back + side, back - side }, headColor);
+    }
+
+    /// <summary>
+    /// Faixa de título do desenho, padrão de prancha: círculo com o número, título em negrito, traço grosso e, abaixo,
+    /// a escala e um subtítulo. <paramref name="mm"/> é 1 mm do papel em metros do desenho (escala / 1000).
+    /// </summary>
+    public void TitleBar(Point2 at, double width, double mm, string number, string title, string subtitle)
+    {
+        double r = 5.5 * mm;
+        Point2 c = at + new Point2(r, 0);
+        Fills.Add(new DrawFill(Ellipse(c, r, r, 40), DrawingStyle.Primary));
+        Text(c, number, TextStyle.Claro, 0, 1.25);
+        double x = at.X + r * 2 + 3 * mm;
+        Text(new Point2(x, at.Y + 2.2 * mm), title.ToUpperInvariant(), TextStyle.Titulo, -1, 1.45);
+        Stroke(new Point2(x, at.Y - 0.6 * mm), new Point2(at.X + Math.Max(width, r * 2 + 60 * mm), at.Y - 0.6 * mm), LinePen.Grossa);
+        if (subtitle.Length > 0)
+        {
+            Text(new Point2(x, at.Y - 3.6 * mm), subtitle, TextStyle.Nota, -1, 0.95);
+        }
+    }
+
+    /// <summary>Quadro de texto: título numa faixa e linhas abaixo, com fundo claro e moldura.</summary>
+    /// <returns>Altura ocupada (em metros do desenho).</returns>
+    public double TextPanel(Point2 topLeft, double width, double mm, string title, IReadOnlyList<string> lines, double lineMm = 4.2)
+    {
+        double header = 7 * mm;
+        double height = header + (lines.Count * lineMm + 4) * mm;
+        Box(topLeft.X, topLeft.Y - height, topLeft.X + width, topLeft.Y, DrawingStyle.Paper, edge: LinePen.Media);
+        Box(topLeft.X, topLeft.Y - header, topLeft.X + width, topLeft.Y, DrawingStyle.Primary);
+        Text(new Point2(topLeft.X + 3 * mm, topLeft.Y - header / 2), title.ToUpperInvariant(), TextStyle.Claro, -1, 1.05);
+        double y = topLeft.Y - header - 3.6 * mm;
+        foreach (string line in lines)
+        {
+            Text(new Point2(topLeft.X + 3 * mm, y), line);
+            y -= lineMm * mm;
+        }
+
+        return height;
+    }
+
     /// <summary>
     /// Cota: linha com marcas nas pontas e o valor. Em cotas horizontais o valor fica sobre a linha; em cotas
     /// verticais, ao lado dela (texto sempre na horizontal, para leitura direta na prancha).
@@ -57,13 +201,13 @@ public sealed class Drawing
         Point2 p = a + normal;
         Point2 q = b + normal;
         Point2 outward = normal.Normalized();
-        Line(a + outward * Math.Abs(offset) * 0.15, p + outward * Math.Abs(offset) * 0.15);
-        Line(b + outward * Math.Abs(offset) * 0.15, q + outward * Math.Abs(offset) * 0.15);
-        Line(p, q);
+        Stroke(a + outward * Math.Abs(offset) * 0.15, p + outward * Math.Abs(offset) * 0.15, LinePen.Cota);
+        Stroke(b + outward * Math.Abs(offset) * 0.15, q + outward * Math.Abs(offset) * 0.15, LinePen.Cota);
+        Stroke(p, q, LinePen.Cota);
         double tick = Math.Clamp(a.DistanceTo(b) * 0.03, 0.015, 0.05);
         Point2 slash = (dir + dir.Perp()).Normalized() * tick;
-        Line(p - slash, p + slash, heavy: true);
-        Line(q - slash, q + slash, heavy: true);
+        Stroke(p - slash, p + slash, LinePen.Media);
+        Stroke(q - slash, q + slash, LinePen.Media);
         Point2 mid = (p + q) / 2;
         bool vertical = Math.Abs(dir.Y) > Math.Abs(dir.X);
         if (vertical)
@@ -92,9 +236,9 @@ public sealed class Drawing
             double y = previous is double prev ? Math.Min(target.Y, prev - gap) : target.Y;
             previous = y;
             Point2 elbow = new(x - gap * 0.6, y);
-            Line(target, elbow);
-            Line(elbow, new Point2(x - gap * 0.15, y));
-            Fills.Add(new DrawFill(Ellipse(target, gap * 0.12, gap * 0.12, 12), new Rgb(0x2E, 0x4A, 0x36)));
+            Stroke(target, elbow, LinePen.Fina);
+            Stroke(elbow, new Point2(x - gap * 0.15, y), LinePen.Fina);
+            Fills.Add(new DrawFill(Ellipse(target, gap * 0.12, gap * 0.12, 12), DrawingStyle.Accent));
             Text(new Point2(x, y), text);
         }
     }
