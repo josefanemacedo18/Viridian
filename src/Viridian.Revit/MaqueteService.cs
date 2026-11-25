@@ -133,6 +133,13 @@ public static class MaqueteService
         foreach (MassingInfo m in massings)
         {
             Species species = lookup(m.Record.SpeciesId)!;
+
+            // Com a vegetação ilustrada ligada, o maciço já aparece nas vistas 3D (tapete e plantas): a maquete não o duplica.
+            if (options.IllustratedFamilies && Viridian.Core.Model3D.Illustration.PlantSpritesPlanner.IsIllustrated(species))
+            {
+                continue;
+            }
+
             if (species.Category is PlantCategory.Arvore or PlantCategory.Palmeira)
             {
                 if (!plants.Any(p => string.Equals(p.MassingId, m.Record.Id, StringComparison.OrdinalIgnoreCase)))

@@ -6,6 +6,9 @@ using Autodesk.Revit.DB.ExternalService;
 using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Events;
 using Viridian.Core.Config;
+using Viridian.Core.Geometry;
+using Viridian.Core.Massing;
+using Viridian.Core.Reports;
 using Viridian.Core.Model;
 using Viridian.Core.Model3D;
 using Viridian.Core.Model3D.Generation;
@@ -19,8 +22,14 @@ namespace Viridian.Revit.Illustrated;
 /// <summary>Um exemplar a desenhar: ponto de inserção e altura em pés, rotação, imagens da espécie e fase.</summary>
 internal sealed record SpriteInstance(Vec3 BaseFeet, double Rotation, PlantSprites Sprites, int Stage, double HeightFeet);
 
-/// <summary>O que uma vista mostra: os exemplares e a caixa que os envolve (pés).</summary>
-internal sealed record ViewSnapshot(IReadOnlyList<SpriteInstance> Instances, XYZ Min, XYZ Max, long Signature);
+/// <summary>Tapete de um maciço: a malha (em metros, no sistema do projeto) e a cota do chão (pés).</summary>
+internal sealed record CarpetItem(FlatMesh Mesh, double BaseFeet);
+
+/// <summary>Um maciço lido do projeto: tapete, plantas ilustradas e a caixa que o envolve (pés).</summary>
+internal sealed record BedEntry(string Key, CarpetItem? Carpet, IReadOnlyList<SpriteInstance> Plants, XYZ Min, XYZ Max);
+
+/// <summary>O que uma vista mostra: os exemplares, os tapetes dos maciços e a caixa que os envolve (pés).</summary>
+internal sealed record ViewSnapshot(IReadOnlyList<SpriteInstance> Instances, IReadOnlyList<CarpetItem> Carpets, XYZ Min, XYZ Max, long Signature);
 
 /// <summary>
 /// Vegetação ilustrada como RPC: nas vistas 3D, cortes e elevações, cada exemplar das espécies do catálogo é desenhado
@@ -40,6 +49,9 @@ public static class IllustratedVegetation
     private static readonly HashSet<string> ColorsHiddenIn = new(StringComparer.Ordinal);
     private static SpriteServer? _server;
     private static volatile bool _dirty = true;
+    private static volatile bool _bedsDirty = true;
+    private static List<BedEntry> _beds = new();
+    private static string _bedsDocument = string.Empty;
     private static volatile bool _ready;
     private static int _pending;
     private static DateTime _lastScan = DateTime.MinValue;
@@ -101,12 +113,16 @@ public static class IllustratedVegetation
     }
 
     /// <summary>Pede uma releitura (por exemplo, depois de mudar as configurações ou regerar famílias).</summary>
-    public static void Invalidate() => _dirty = true;
+    public static void Invalidate()
+    {
+        _dirty = true;
+        _bedsDirty = true;
+    }
 
     internal static bool TryGetSnapshot(View view, out ViewSnapshot snapshot)
     {
         snapshot = null!;
-        return view is not null && Views.TryGetValue(view.UniqueId, out snapshot!) && snapshot.Instances.Count > 0;
+        return view is not null && Views.TryGetValue(view.UniqueId, out snapshot!) && (snapshot.Instances.Count > 0 || snapshot.Carpets.Count > 0);
     }
 
     /// <summary>Uma imagem foi pedida e ainda não está pronta: calcula a fase inteira em segundo plano.</summary>
@@ -137,7 +153,11 @@ public static class IllustratedVegetation
         });
     }
 
-    private static void OnDocumentChanged(object? sender, DocumentChangedEventArgs e) => _dirty = true;
+    private static void OnDocumentChanged(object? sender, DocumentChangedEventArgs e)
+    {
+        _dirty = true;
+        _bedsDirty = true;
+    }
 
     private static void OnViewActivated(object? sender, ViewActivatedEventArgs e) => _dirty = true;
 
@@ -227,6 +247,22 @@ public static class IllustratedVegetation
         }
 
         Dictionary<ElementId, PlantSprites> symbols = SymbolSprites(doc, sources);
+        string docKey = doc.PathName + "|" + doc.Title;
+        if (_bedsDirty || docKey != _bedsDocument)
+        {
+            _bedsDirty = false;
+            _bedsDocument = docKey;
+            try
+            {
+                _beds = ReadBeds(doc, sources);
+            }
+            catch (Exception ex)
+            {
+                ViridianLog.Warn("Vegetação ilustrada: falha ao ler os maciços.", ex);
+                _beds = new List<BedEntry>();
+            }
+        }
+
         bool changed = false;
         foreach (UIView uiView in uiDoc.GetOpenUIViews())
         {
@@ -235,7 +271,7 @@ public static class IllustratedVegetation
                 continue;
             }
 
-            ViewSnapshot snapshot = Eligible(view) && symbols.Count > 0 ? Read(doc, view, symbols) : Empty;
+            ViewSnapshot snapshot = Eligible(view) && (symbols.Count > 0 || _beds.Count > 0) ? Read(doc, view, symbols, _beds) : Empty;
             Views.TryGetValue(view.UniqueId, out ViewSnapshot? previous);
             if (previous is null || previous.Signature != snapshot.Signature)
             {
@@ -247,7 +283,7 @@ public static class IllustratedVegetation
         return changed;
     }
 
-    private static readonly ViewSnapshot Empty = new(Array.Empty<SpriteInstance>(), XYZ.Zero, XYZ.Zero, 0);
+    private static readonly ViewSnapshot Empty = new(Array.Empty<SpriteInstance>(), Array.Empty<CarpetItem>(), XYZ.Zero, XYZ.Zero, 0);
 
     private static bool Eligible(View view) => !view.IsTemplate && view.ViewType is ViewType.ThreeD or ViewType.Section or ViewType.Elevation or ViewType.Detail;
 
@@ -290,7 +326,7 @@ public static class IllustratedVegetation
         return SpriteCache.GetOrAdd(key, _ => PlantSpritesPlanner.Build(species, variant, sources.Profiles, sources.Settings.Colors, sources.Settings.Model3D.TrunkColor, south));
     }
 
-    private static ViewSnapshot Read(Document doc, View view, Dictionary<ElementId, PlantSprites> symbols)
+    private static ViewSnapshot Read(Document doc, View view, Dictionary<ElementId, PlantSprites> symbols, List<BedEntry> beds)
     {
         var planting = new ElementId(BuiltInCategory.OST_Planting);
         if (view.GetCategoryHidden(planting))
@@ -355,10 +391,165 @@ public static class IllustratedVegetation
             }
         }
 
-        return instances.Count == 0
+        // Maciços: só os que caem dentro da caixa de corte (3D) ou do recorte (cortes e elevações).
+        var carpets = new List<CarpetItem>();
+        BoundingBoxXYZ? box = ClipBox(view);
+        foreach (BedEntry bed in beds)
+        {
+            if (box is not null && !Overlaps(box, bed.Min, bed.Max))
+            {
+                continue;
+            }
+
+            if (bed.Carpet is not null && view.ViewType == ViewType.ThreeD)
+            {
+                carpets.Add(bed.Carpet);
+            }
+
+            instances.AddRange(bed.Plants);
+            foreach (SpriteInstance plant in bed.Plants.Take(1))
+            {
+                if (!plant.Sprites.IsComplete(plant.Stage))
+                {
+                    RequestWarm(plant.Sprites, plant.Stage);
+                }
+            }
+
+            minX = Math.Min(minX, bed.Min.X);
+            minY = Math.Min(minY, bed.Min.Y);
+            minZ = Math.Min(minZ, bed.Min.Z);
+            maxX = Math.Max(maxX, bed.Max.X);
+            maxY = Math.Max(maxY, bed.Max.Y);
+            maxZ = Math.Max(maxZ, bed.Max.Z);
+            unchecked
+            {
+                signature = signature * 31 + bed.Key.GetHashCode(StringComparison.Ordinal);
+            }
+        }
+
+        return instances.Count == 0 && carpets.Count == 0
             ? Empty
-            : new ViewSnapshot(instances, new XYZ(minX, minY, minZ), new XYZ(maxX, maxY, maxZ), signature == 0 ? 1 : signature);
+            : new ViewSnapshot(instances, carpets, new XYZ(minX, minY, minZ), new XYZ(maxX, maxY, maxZ), signature == 0 ? 1 : signature);
     }
+
+    /// <summary>Caixa que limita o que a vista mostra: a caixa de corte da vista 3D ou o recorte do corte/elevação.</summary>
+    private static BoundingBoxXYZ? ClipBox(View view)
+    {
+        try
+        {
+            if (view is View3D v3)
+            {
+                return v3.IsSectionBoxActive ? v3.GetSectionBox() : null;
+            }
+
+            return view.CropBoxActive ? view.CropBox : null;
+        }
+        catch (Autodesk.Revit.Exceptions.ApplicationException)
+        {
+            return null;
+        }
+    }
+
+    private static bool Overlaps(BoundingBoxXYZ box, XYZ min, XYZ max)
+    {
+        Transform inverse = box.Transform.Inverse;
+        double lx = double.MaxValue, ly = double.MaxValue, lz = double.MaxValue, hx = double.MinValue, hy = double.MinValue, hz = double.MinValue;
+        foreach (XYZ corner in new[]
+                 {
+                     new XYZ(min.X, min.Y, min.Z), new XYZ(max.X, min.Y, min.Z), new XYZ(min.X, max.Y, min.Z), new XYZ(max.X, max.Y, min.Z),
+                     new XYZ(min.X, min.Y, max.Z), new XYZ(max.X, min.Y, max.Z), new XYZ(min.X, max.Y, max.Z), new XYZ(max.X, max.Y, max.Z),
+                 })
+        {
+            XYZ p = inverse.OfPoint(corner);
+            lx = Math.Min(lx, p.X);
+            ly = Math.Min(ly, p.Y);
+            lz = Math.Min(lz, p.Z);
+            hx = Math.Max(hx, p.X);
+            hy = Math.Max(hy, p.Y);
+            hz = Math.Max(hz, p.Z);
+        }
+
+        return lx <= box.Max.X && hx >= box.Min.X && ly <= box.Max.Y && hy >= box.Min.Y && lz <= box.Max.Z && hz >= box.Min.Z;
+    }
+
+    private static readonly ConcurrentDictionary<string, BedVisual> BedCache = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Maciços do projeto para a vista 3D. Os que já têm exemplares (modo símbolos) aparecem pelos próprios
+    /// exemplares; os de hachura e os de área (forrações, gramados) ganham tapete e plantas ilustradas.
+    /// </summary>
+    private static List<BedEntry> ReadBeds(Document doc, Sources sources)
+    {
+        var result = new List<BedEntry>();
+        IReadOnlyList<MassingInfo> massings = MassingService.ReadMassings(doc);
+        if (massings.Count == 0)
+        {
+            return result;
+        }
+
+        var withMembers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using (var collector = new FilteredElementCollector(doc))
+        {
+            foreach (FamilyInstance instance in collector.OfCategory(BuiltInCategory.OST_Planting).OfClass(typeof(FamilyInstance)).Cast<FamilyInstance>())
+            {
+                string id = VirParams.GetString(instance, VirParams.MassingId).Trim();
+                if (id.Length > 0)
+                {
+                    withMembers.Add(id);
+                }
+            }
+        }
+
+        bool south = MaqueteService.SouthernHemisphere(doc, sources.Settings);
+        string colorsHash = GeometryHash.Text(ViridianJson.Serialize(sources.Settings.Colors));
+        foreach (MassingInfo massing in ReportBuilderDistinct(massings))
+        {
+            if (massing.Boundary is not { IsEmpty: false } boundary || sources.Catalog.Find(massing.Record.SpeciesId) is not Species species
+                || !PlantSpritesPlanner.IsIllustrated(species))
+            {
+                continue;
+            }
+
+            MassingRecord record = massing.Record;
+            bool hasMembers = withMembers.Contains(record.Id.Trim());
+            bool areaBased = SupplyUnits.IsAreaBased(species.SupplyUnit);
+            bool withCarpet = record.Mode != MassingMode.Simbolos || areaBased || !hasMembers;
+            bool withPlants = !hasMembers;
+            double baseFeet = LevelElevation(doc, massing.ViewId);
+            string key = string.Join("|", massing.ElementId, GeometryHash.Text(ViridianJson.Serialize(record)), boundary.VertexCount,
+                Math.Round(boundary.Area, 4), Math.Round(boundary.Bounds.MinX, 3), Math.Round(boundary.Bounds.MinY, 3), withCarpet, withPlants, colorsHash,
+                GeometryHash.Text(ViridianJson.Serialize(species)), Math.Round(baseFeet, 4));
+            BedVisual visual = BedCache.GetOrAdd(key, _ => BedIllustration.Build(boundary, species, record, sources.Settings.Colors, withCarpet, withPlants));
+
+            var plants = new List<SpriteInstance>();
+            double tallest = 0;
+            for (int i = 0; i < visual.Points.Count; i++)
+            {
+                PlantSprites sprites = SpritesFor(species, i % Math.Max(1, species.EffectiveVariants), sources, south);
+                SpriteStage stage = sprites.StageFor(PlantSpritesPlanner.DefaultStage);
+                Point2 p = visual.Points[i];
+                double height = RevitUnits.ToFeet(stage.HeightM);
+                tallest = Math.Max(tallest, height);
+                plants.Add(new SpriteInstance(new Vec3(RevitUnits.ToFeet(p.X), RevitUnits.ToFeet(p.Y), baseFeet), visual.Rotations[i], sprites, stage.Code, height));
+            }
+
+            Bounds2 b = boundary.Bounds;
+            double margin = RevitUnits.ToFeet(species.CrownDiameterM / 2 + ForwardM);
+            var min = new XYZ(RevitUnits.ToFeet(b.MinX) - margin, RevitUnits.ToFeet(b.MinY) - margin, baseFeet - 0.1);
+            var max = new XYZ(RevitUnits.ToFeet(b.MaxX) + margin, RevitUnits.ToFeet(b.MaxY) + margin, baseFeet + Math.Max(tallest, 0.2) + margin);
+            CarpetItem? carpet = visual.Carpet.TriangleCount > 0 ? new CarpetItem(visual.Carpet, baseFeet) : null;
+            result.Add(new BedEntry(key, carpet, plants, min, max));
+        }
+
+        return result;
+    }
+
+    /// <summary>Um maciço gravado em mais de uma vista (cópias) aparece uma vez só.</summary>
+    private static IEnumerable<MassingInfo> ReportBuilderDistinct(IReadOnlyList<MassingInfo> massings) =>
+        ReportBuilder.DistinctMassings(massings);
+
+    private static double LevelElevation(Document doc, long viewId) =>
+        doc.GetElement(new ElementId(viewId)) is ViewPlan { GenLevel: Level level } ? level.Elevation : 0;
 
     /// <summary>
     /// As cores da planta baixa (copa e floração) são superfícies finas no chão da família: nas vistas 3D ficariam

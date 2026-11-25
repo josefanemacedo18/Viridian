@@ -22,6 +22,7 @@ internal sealed class SpriteServer : IDirectContext3DServer
     private const int MaxVerticesPerChunk = 30000;
 
     private readonly ConditionalWeakTable<SpriteMesh, GpuSprite> _gpu = new();
+    private readonly ConditionalWeakTable<CarpetItem, GpuSprite> _carpets = new();
     private readonly object _lock = new();
     private VertexFormat? _format;
     private EffectInstance? _effect;
@@ -82,6 +83,18 @@ internal sealed class SpriteServer : IDirectContext3DServer
                     _effect = new EffectInstance(VertexFormatBits.PositionColored);
                 }
 
+                // Tapetes dos maciços, no lugar (sem transformação).
+                DrawContext.SetWorldTransform(Transform.Identity);
+                foreach (CarpetItem carpet in snapshot.Carpets)
+                {
+                    if (mode == Mode.Wire)
+                    {
+                        break;
+                    }
+
+                    _carpets.GetValue(carpet, c => new GpuSprite(c.Mesh.Vertices, c.Mesh.Triangles, Array.Empty<int>(), c.BaseFeet)).Draw(mode, _format, _effect);
+                }
+
                 foreach (SpriteInstance instance in snapshot.Instances)
                 {
                     if (DrawContext.IsInterrupted())
@@ -97,7 +110,7 @@ internal sealed class SpriteServer : IDirectContext3DServer
                         continue;
                     }
 
-                    GpuSprite gpu = _gpu.GetValue(mesh, m => new GpuSprite(m));
+                    GpuSprite gpu = _gpu.GetValue(mesh, m => new GpuSprite(m.Vertices, m.Triangles, m.OutlineTriangles, 0));
                     var transform = Transform.Identity;
                     transform.Origin = ToXyz(frame.Origin);
                     transform.BasisX = ToXyz(frame.Right);
@@ -134,10 +147,20 @@ internal sealed class SpriteServer : IDirectContext3DServer
     /// <summary>Os buffers de uma imagem na placa de vídeo, por estilo (feitos na primeira vez que são desenhados).</summary>
     private sealed class GpuSprite
     {
-        private readonly SpriteMesh _mesh;
+        private readonly IReadOnlyList<SpriteVertex> _vertices;
+        private readonly IReadOnlyList<int> _triangles;
+        private readonly IReadOnlyList<int> _outline;
+        private readonly double _baseFeet;
         private readonly Dictionary<Mode, List<Chunk>> _chunks = new();
 
-        public GpuSprite(SpriteMesh mesh) => _mesh = mesh;
+        /// <param name="baseFeet">Cota somada a z (tapetes, que já estão no lugar); zero nas imagens.</param>
+        public GpuSprite(IReadOnlyList<SpriteVertex> vertices, IReadOnlyList<int> triangles, IReadOnlyList<int> outline, double baseFeet)
+        {
+            _vertices = vertices;
+            _triangles = triangles;
+            _outline = outline;
+            _baseFeet = baseFeet;
+        }
 
         public void Draw(Mode mode, VertexFormat format, EffectInstance effect)
         {
@@ -163,7 +186,7 @@ internal sealed class SpriteServer : IDirectContext3DServer
 
         private List<Chunk> Build(Mode mode)
         {
-            IReadOnlyList<int> triangles = mode == Mode.Wire ? _mesh.OutlineTriangles : _mesh.Triangles;
+            IReadOnlyList<int> triangles = mode == Mode.Wire ? _outline : _triangles;
             var result = new List<Chunk>();
             var map = new Dictionary<int, int>();
             var vertices = new List<int>();
@@ -183,10 +206,10 @@ internal sealed class SpriteServer : IDirectContext3DServer
                 VertexStreamPositionColored vs = vb.GetVertexStreamPositionColored();
                 foreach (int index in vertices)
                 {
-                    SpriteVertex v = _mesh.Vertices[index];
+                    SpriteVertex v = _vertices[index];
                     bool white = mode == Mode.Line && !v.Outline;
                     byte r = white ? (byte)255 : v.Color.R, g = white ? (byte)255 : v.Color.G, b = white ? (byte)255 : v.Color.B;
-                    vs.AddVertex(new VertexPositionColored(new XYZ(v.X * k, v.Y * k, v.Z * k), new ColorWithTransparency(r, g, b, 0)));
+                    vs.AddVertex(new VertexPositionColored(new XYZ(v.X * k, v.Y * k, v.Z * k + _baseFeet), new ColorWithTransparency(r, g, b, 0)));
                 }
 
                 vb.Unmap();

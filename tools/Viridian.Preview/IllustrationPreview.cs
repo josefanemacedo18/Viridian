@@ -73,9 +73,25 @@ internal static class IllustrationPreview
             ("cena-perspectiva.svg", new Vec3(16, -14, 1.7), new Vec3(15, 8, 4), true),
             ("cena-quase-de-cima.svg", new Vec3(18, -10, 46), new Vec3(14, 8, 0), false),
         };
+        // Maciços: gramado, forração e canteiro de arbustos (tapete + plantas ilustradas).
+        var beds = new List<(Species Species, Polygon2 Polygon)>();
+        void Bed(string popular, params Point2[] ring)
+        {
+            Species? sp = catalog.FirstOrDefault(x => x.PopularName == popular);
+            if (sp is not null)
+            {
+                beds.Add((sp, new Polygon2(ring)));
+            }
+        }
+
+        Bed("Grama-esmeralda", new(-1.5, -2.5), new(29, -2.5), new(29, 0.2), new(-1.5, 0.2));
+        Bed("Grama-esmeralda", new(-1.5, 5.5), new(12, 5.5), new(12, 8.2), new(-1.5, 8.2));
+        Bed("Grama-amendoim", new(1, 0.8), new(7.5, 0.8), new(7.5, 4.6), new(1, 4.6));
+        Bed("Moreia", new(19.5, 8.5), new(24, 8.5), new(25, 11.5), new(19.5, 12));
+        Bed("Azaleia", new(10, 14.5), new(17, 14.5), new(17, 17), new(10, 17));
         foreach ((string file, Vec3 eye, Vec3 target, bool perspective) in cameras)
         {
-            File.WriteAllText(Path.Combine(folder, file), Scene(layout, sprites, eye, target, perspective));
+            File.WriteAllText(Path.Combine(folder, Path.ChangeExtension(file, ".tri")), Scene(layout, sprites, beds, profiles, eye, target, perspective));
         }
     }
 
@@ -109,7 +125,8 @@ internal static class IllustrationPreview
         Console.WriteLine($"{lines.Count - 1} espécies; erros: {lines.Count(l => l.EndsWith(";", StringComparison.Ordinal) == false) - 1}");
     }
 
-    private static string Scene(List<(string Name, double X, double Y, double Rot, int Stage)> layout, Dictionary<string, PlantSprites> sprites, Vec3 eye, Vec3 target, bool perspective)
+    private static string Scene(List<(string Name, double X, double Y, double Rot, int Stage)> layout, Dictionary<string, PlantSprites> sprites,
+        List<(Species Species, Polygon2 Polygon)> beds, List<Plant3DProfile> profiles, Vec3 eye, Vec3 target, bool perspective)
     {
         const int w = 1400, h = 900;
         Vec3 dir = (target - eye).Normalized();
@@ -127,17 +144,49 @@ internal static class IllustrationPreview
         }
 
         var sb = new StringBuilder();
-        sb.Append(CultureInfo.InvariantCulture, $"<svg xmlns='http://www.w3.org/2000/svg' width='{w}' height='{h}' viewBox='0 0 {w} {h}'><rect width='{w}' height='{h}' fill='#FFFFFF'/>");
+        sb.Append(CultureInfo.InvariantCulture, $"{w} {h}\n");
         Vec3[] lot = { new(-2, -3, 0), new(30, -3, 0), new(30, 18, 0), new(-2, 18, 0) };
-        sb.Append("<path d='");
-        for (int i = 0; i < lot.Length; i++)
+        sb.Append('P');
+        foreach (Vec3 corner in lot)
         {
-            (double x, double y, double _) = Project(lot[i]);
-            sb.Append(CultureInfo.InvariantCulture, $"{(i == 0 ? 'M' : 'L')}{x:0.#},{y:0.#}");
+            (double x, double y, double _) = Project(corner);
+            sb.Append(CultureInfo.InvariantCulture, $" {x:0.#} {y:0.#}");
         }
 
-        sb.Append("Z' fill='#D9D4C7' stroke='#8C877B' stroke-width='1'/>");
+        sb.Append(" #D9D4C7\n");
         var plants = new List<(double Depth, SpriteFrame Frame, SpriteMesh Mesh)>();
+        int bedIndex = 0;
+        foreach ((Species species, Polygon2 polygon) in beds)
+        {
+            var record = new Viridian.Core.Massing.MassingRecord { Id = "M" + bedIndex++, Seed = 11 + bedIndex };
+            BedVisual visual = BedIllustration.Build(polygon, species, record, new ColorSettings(), true, true);
+            FlatMesh carpet = visual.Carpet;
+            for (int i = 0; i + 2 < carpet.Triangles.Count; i += 3)
+            {
+                var pts = new (double X, double Y, double D)[3];
+                for (int k = 0; k < 3; k++)
+                {
+                    SpriteVertex v = carpet.Vertices[carpet.Triangles[i + k]];
+                    pts[k] = Project(new Vec3(v.X, v.Y, v.Z));
+                }
+
+                string color = carpet.Vertices[carpet.Triangles[i]].Color.Hex;
+                sb.Append(CultureInfo.InvariantCulture, $"P {pts[0].X:0.##} {pts[0].Y:0.##} {pts[1].X:0.##} {pts[1].Y:0.##} {pts[2].X:0.##} {pts[2].Y:0.##} {color}\n");
+            }
+
+            if (visual.Points.Count > 0)
+            {
+                PlantSprites bedSprites = PlantSpritesPlanner.Build(species, 0, profiles, new ColorSettings(), "#6B4F3A");
+                SpriteStage stage = bedSprites.StageFor(PlantSpritesPlanner.DefaultStage);
+                for (int i = 0; i < visual.Points.Count; i++)
+                {
+                    Point2 p = visual.Points[i];
+                    SpriteFrame frame = SpriteBillboard.Place(new Vec3(p.X, p.Y, 0), visual.Rotations[i], stage.HeightM, eye, (target - eye).Normalized(), up, perspective, 0.08);
+                    plants.Add((Project(new Vec3(p.X, p.Y, stage.HeightM / 2)).D, frame, bedSprites.Get(stage.Code, frame.View)));
+                }
+            }
+        }
+
         foreach ((string name, double px, double py, double rot, int stageCode) in layout)
         {
             if (!sprites.TryGetValue(name, out PlantSprites? plant))
@@ -169,12 +218,10 @@ internal static class IllustrationPreview
                 }
 
                 string color = mesh.Vertices[mesh.Triangles[i]].Color.Hex;
-                sb.Append(CultureInfo.InvariantCulture,
-                    $"<path d='M{pts[0].X:0.##},{pts[0].Y:0.##}L{pts[1].X:0.##},{pts[1].Y:0.##}L{pts[2].X:0.##},{pts[2].Y:0.##}Z' fill='{color}' stroke='{color}' stroke-width='0.3'/>");
+                sb.Append(CultureInfo.InvariantCulture, $"P {pts[0].X:0.##} {pts[0].Y:0.##} {pts[1].X:0.##} {pts[1].Y:0.##} {pts[2].X:0.##} {pts[2].Y:0.##} {color}\n");
             }
         }
 
-        sb.Append("</svg>");
         return sb.ToString();
     }
 }
