@@ -94,7 +94,7 @@ public static class CardArtist
                 {
                     woods.Add((depth, WoodTone(part.Color), TrisOf(piece.Triangles), piece.Part == MeshPart.Tronco && !top));
                 }
-                else if (!decoration && Elongated(piece))
+                else if (!decoration && Elongated(piece) && Extent(piece) < 0.25 * Math.Max(height, 2 * reach))
                 {
                     // Folha alongada e fechada (agave, rosetas): forma própria na cor da folhagem, não massa nem madeira.
                     leaves.Add((depth, part.Color, bias, TrisOf(piece.Triangles), false));
@@ -136,7 +136,7 @@ public static class CardArtist
                         area += Math.Abs((pts[i + 1].X - pts[i].X) * (pts[i + 2].Y - pts[i].Y) - (pts[i + 1].Y - pts[i].Y) * (pts[i + 2].X - pts[i].X)) / 2;
                     }
 
-                    bool thin = area < 0.08 * Math.Max(w, h) * Math.Max(w, h) || Math.Min(w, h) < 14 * px;
+                    bool thin = area < 0.08 * Math.Max(w, h) * Math.Max(w, h) || Math.Min(w, h) < 14 * px || height < 0.6;
                     leaves.Add((depth, part.Color, bias, pts, thin));
                 }
             }
@@ -164,26 +164,47 @@ public static class CardArtist
             }
         }
 
-        // Fundo da copa inteira e de cada grupo (tons escuros, sem contorno): fecha os vãos entre as massas.
-        if (clusters.Count > 1)
+        // Grupos de copa achatados e baixos (gramados, tapetes): tapete de folhas de grama, não massas.
+        var carpets = leaves.Count == 0 ? clusters.Where(c => IsCarpet(c.Points, height, top)).ToList() : new List<(Rgb Color, double Bias, List<Point2> Points)>();
+        clusters = clusters.Except(carpets).ToList();
+        foreach ((Rgb color, double _, List<Point2> points) in carpets)
         {
-            List<Point2> all = Hull(clusters.SelectMany(c => c.Points).ToList());
-            if (all.Count >= 3)
-            {
-                double ax = all.Average(p => p.X), ay = all.Average(p => p.Y);
-                Rgb deep = clusters.OrderBy(c => c.Color.Luminance).First().Color.Shade(0.45);
-                art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(deep), all.Select(p => new Point2(ax + (p.X - ax) * 0.78, ay + (p.Y - ay) * 0.78)).ToList(), 0, false));
-            }
+            DrawCarpet(art, points, color, top, px, random);
         }
 
-        foreach ((Rgb color, double _, List<Point2> points) in clusters)
+        // Palmeiras, rosetas e herbáceas (com folhas inteiras): os grupos fechados são o miolo da coroa, desenhados
+        // como uma forma escura recortada, sem massas nem flores por cima.
+        double plantSize = Math.Max(height, 2 * reach);
+        bool crownCores = leaves.Count > 0 && clusters.Count > 0
+            && clusters.All(c => Math.Max(c.Points.Max(p => p.X) - c.Points.Min(p => p.X), c.Points.Max(p => p.Y) - c.Points.Min(p => p.Y)) < 0.2 * plantSize);
+        if (crownCores)
         {
-            List<Point2> hull = Hull(points);
-            if (hull.Count >= 3)
+            foreach ((Rgb color, double _, List<Point2> points) in clusters)
             {
-                double cx = hull.Average(p => p.X), cy = hull.Average(p => p.Y);
-                art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(color.Shade(0.38)), hull.Select(p => new Point2(cx + (p.X - cx) * 0.82, cy + (p.Y - cy) * 0.82)).ToList(), 0, false));
+                List<Point2> hull = Hull(points);
+                if (hull.Count >= 3)
+                {
+                    art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(color.Shade(0.3)), Serrate(Densify(hull, tooth * 2), tooth * 0.7, random), leafLine, true));
+                }
             }
+
+            clusters.Clear();
+        }
+
+        // Fundo escuro (sem contorno, borda recortada): fecha os vãos entre as massas. Grupos vizinhos ganham um fundo
+        // comum; grupos distantes (touceiras, colunares), cada um o seu.
+        foreach (List<int> group in NearbyGroups(clusters, massRadius))
+        {
+            List<Point2> hull = Hull(group.SelectMany(i => clusters[i].Points).ToList());
+            if (hull.Count < 3)
+            {
+                continue;
+            }
+
+            double cx = hull.Average(p => p.X), cy = hull.Average(p => p.Y);
+            Rgb deep = group.Select(i => clusters[i].Color).OrderBy(c => c.Luminance).First().Shade(0.4);
+            List<Point2> shrunk = hull.Select(p => new Point2(cx + (p.X - cx) * 0.8, cy + (p.Y - cy) * 0.8)).ToList();
+            art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(deep), Serrate(Densify(shrunk, tooth * 2), tooth, random), 0, false));
         }
 
         // Folhas inteiras (palmeiras, rosetas, herbáceas), das mais distantes às mais próximas.
@@ -193,6 +214,7 @@ public static class CardArtist
             if (!fine)
             {
                 art.Ops.Add(new ArtOp(ArtOpKind.Union, art.ColorIndex(leaf), tris, leafLine, true));
+                AddVeins(art, tris, leaf, px, Math.Max(height, 2 * reach));
                 continue;
             }
 
@@ -259,7 +281,17 @@ public static class CardArtist
             // Volume em três camadas: a massa inteira no tom de sombra (com o contorno), o tom médio um pouco acima e,
             // nas massas mais claras, um brilho no alto. As camadas de dentro repetem o recorte da borda.
             Rgb mid = Vary(Tone(color, bias, tone, random), random);
-            art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(mid.Shade(0.2)), outline, massLine, true));
+            if (height < 0.6)
+            {
+                // Plantas baixas (forrações): contorno no tom escuro da folhagem, sem o preto que pesaria no conjunto.
+                art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(mid.Shade(0.5)), Inset(outline, center, radius, 1.08, 0), 0, false));
+                art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(mid.Shade(0.2)), outline, 0, false));
+            }
+            else
+            {
+                art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(mid.Shade(0.2)), outline, massLine, true));
+            }
+
             art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(mid), Inset(outline, center, radius, 0.8, 0.13), 0, false));
 
             // Mais luz no alto da copa, menos embaixo.
@@ -304,9 +336,13 @@ public static class CardArtist
             }
         }
 
+        // Flores miúdas soltas (espigas, inflorescências): contorno no tom escuro da própria flor, para não virarem
+        // manchas pretas quando estão juntas.
         foreach ((Point2 center, Rgb color) in dots)
         {
-            art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(color), Pentagon(center, 5.5 * px, random), flowerLine, true));
+            List<Point2> petal = Pentagon(center, 5.5 * px, random);
+            art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(color.Shade(0.42)), petal.Select(p => new Point2(center.X + (p.X - center.X) * 1.3, center.Y + (p.Y - center.Y) * 1.3)).ToList(), 0, false));
+            art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(color), petal, 0, false));
         }
 
         return art;
@@ -371,16 +407,159 @@ public static class CardArtist
         }
 
         double cx = hull.Average(p => p.X), cy = hull.Average(p => p.Y);
-        double radius = Math.Sqrt(Math.Max(1e-9, Area(hull)) / Math.PI);
-        int count = radius < massRadius * 1.1 ? 1 : Math.Clamp((int)Math.Round(2.2 * radius * radius / (massRadius * massRadius)), 2, 18);
-        for (int j = 0; j < count; j++)
+        double area = Math.Max(1e-9, Area(hull));
+        double radius = Math.Sqrt(area / Math.PI);
+        if (radius < massRadius * 1.1)
         {
-            double rm = count == 1 ? radius * 1.05 : Math.Min(radius, massRadius * (0.85 + 0.4 * random.NextDouble()));
-            double reach = Math.Max(0, radius - rm * 0.5);
-            double rho = j == 0 && count > 1 ? 0 : Math.Sqrt(random.NextDouble()) * reach;
-            double theta = random.NextDouble() * Geo.TwoPi;
-            masses.Add((new Point2(cx + Math.Cos(theta) * rho, cy + Math.Sin(theta) * rho * 0.9), rm, color, bias, flower));
+            masses.Add((new Point2(cx, cy), radius * 1.05, color, bias, flower));
+            return;
         }
+
+        // As massas ficam dentro da forma do grupo (copa cônica, colunar, espalhada...), não num círculo médio.
+        int count = Math.Clamp((int)Math.Round(2.2 * area / (Math.PI * massRadius * massRadius)), 2, 30);
+        List<Point2> inner = hull.Select(p => new Point2(cx + (p.X - cx) * 0.82, cy + (p.Y - cy) * 0.82)).ToList();
+        double minX = inner.Min(p => p.X), maxX = inner.Max(p => p.X), minY = inner.Min(p => p.Y), maxY = inner.Max(p => p.Y);
+        masses.Add((new Point2(cx, cy), Math.Min(radius, massRadius * 1.05), color, bias, flower));
+        for (int j = 1, tries = 0; j < count && tries < count * 40; tries++)
+        {
+            var at = new Point2(minX + random.NextDouble() * (maxX - minX), minY + random.NextDouble() * (maxY - minY));
+            if (!Geo.PointInRing(inner, at))
+            {
+                continue;
+            }
+
+            double rm = Math.Min(radius, massRadius * (0.85 + 0.4 * random.NextDouble()));
+            masses.Add((at, rm, color, bias, flower));
+            j++;
+        }
+    }
+
+    /// <summary>Junta os grupos de copa que se tocam (ou quase) para receberem um fundo comum.</summary>
+    private static List<List<int>> NearbyGroups(List<(Rgb Color, double Bias, List<Point2> Points)> clusters, double gap)
+    {
+        var boxes = clusters.Select(c => (MinX: c.Points.Min(p => p.X) - gap, MaxX: c.Points.Max(p => p.X) + gap, MinY: c.Points.Min(p => p.Y) - gap, MaxY: c.Points.Max(p => p.Y) + gap)).ToList();
+        var parent = Enumerable.Range(0, clusters.Count).ToArray();
+        int Find(int x) => parent[x] == x ? x : parent[x] = Find(parent[x]);
+        for (int i = 0; i < clusters.Count; i++)
+        {
+            for (int j = i + 1; j < clusters.Count; j++)
+            {
+                if (boxes[i].MinX <= boxes[j].MaxX && boxes[j].MinX <= boxes[i].MaxX && boxes[i].MinY <= boxes[j].MaxY && boxes[j].MinY <= boxes[i].MaxY)
+                {
+                    parent[Find(i)] = Find(j);
+                }
+            }
+        }
+
+        return Enumerable.Range(0, clusters.Count).GroupBy(Find).Select(g => g.ToList()).ToList();
+    }
+
+    /// <summary>Insere pontos nas arestas longas (para o recorte da borda acompanhar todo o contorno).</summary>
+    private static List<Point2> Densify(List<Point2> poly, double step)
+    {
+        var result = new List<Point2>();
+        for (int i = 0; i < poly.Count; i++)
+        {
+            Point2 a = poly[i], b = poly[(i + 1) % poly.Count];
+            result.Add(a);
+            double length = Math.Sqrt((b.X - a.X) * (b.X - a.X) + (b.Y - a.Y) * (b.Y - a.Y));
+            int n = (int)(length / Math.Max(step, 1e-6));
+            for (int k = 1; k < n; k++)
+            {
+                result.Add(new Point2(a.X + (b.X - a.X) * k / n, a.Y + (b.Y - a.Y) * k / n));
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>Grupo achatado e baixo (gramado, tapete de forração): vira tapete de grama.</summary>
+    private static bool IsCarpet(List<Point2> points, double plantHeight, bool top)
+    {
+        if (plantHeight > 0.4)
+        {
+            return false;
+        }
+
+        double w = points.Max(p => p.X) - points.Min(p => p.X), h = points.Max(p => p.Y) - points.Min(p => p.Y);
+        return top || h < 0.5 * w;
+    }
+
+    /// <summary>
+    /// Tapete de grama: de lado, uma faixa com folhas finas de grama em três tons subindo da base; de cima, a área com
+    /// manchas claras e escuras.
+    /// </summary>
+    private static void DrawCarpet(CardArt art, List<Point2> points, Rgb color, bool top, double px, DeterministicRandom random)
+    {
+        List<Point2> hull = Hull(points);
+        if (hull.Count < 3)
+        {
+            return;
+        }
+
+        double minX = hull.Min(p => p.X), maxX = hull.Max(p => p.X), minY = hull.Min(p => p.Y), maxY = hull.Max(p => p.Y);
+        Rgb[] tones = { color.Shade(0.25), color, color.Tint(0.18) };
+        if (top)
+        {
+            art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(color), Serrate(Densify(hull, 10 * px), 4 * px, random), 0.9 * px, true));
+            int specks = Math.Clamp((int)(Area(hull) / Math.Pow(14 * px, 2)), 6, 60);
+            for (int i = 0; i < specks; i++)
+            {
+                var at = new Point2(minX + random.NextDouble() * (maxX - minX), minY + random.NextDouble() * (maxY - minY));
+                if (Geo.PointInRing(hull, at))
+                {
+                    art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(tones[random.NextInt(0, 3)]), Leaf(at, 9 * px, random.NextDouble() * Math.PI), 0, false));
+                }
+            }
+
+            return;
+        }
+
+        // Faixa de base e folhas de grama por cima, das de trás (escuras) às da frente (claras).
+        double baseTop = minY + (maxY - minY) * 0.35;
+        art.Ops.Add(new ArtOp(ArtOpKind.Fill, art.ColorIndex(tones[0]), new List<Point2> { new(minX, minY), new(maxX, minY), new(maxX, baseTop), new(minX, baseTop) }, 0.9 * px, true));
+        for (int layer = 0; layer < 3; layer++)
+        {
+            int index = art.ColorIndex(tones[layer]);
+            for (double x = minX + random.NextDouble() * 3 * px; x < maxX; x += (3.2 + 2.5 * random.NextDouble()) * px)
+            {
+                double tipY = baseTop + (maxY - baseTop) * (0.45 + 0.55 * random.NextDouble()) * (1.6 - 0.25 * layer);
+                double lean = (random.NextDouble() - 0.5) * 6 * px;
+                art.Ops.Add(new ArtOp(ArtOpKind.Fill, index, new List<Point2> { new(x - 1.3 * px, minY), new(x + 1.3 * px, minY), new(x + lean, tipY) }, 0, false));
+            }
+        }
+    }
+
+    /// <summary>Nervuras finas nas folhas grandes: da base da folha (o ponto mais perto do eixo da planta) às pontas.</summary>
+    private static void AddVeins(CardArt art, List<Point2> tris, Rgb leaf, double px, double plantSize)
+    {
+        List<Point2> hull = Hull(tris);
+        if (hull.Count < 3)
+        {
+            return;
+        }
+
+        double w = hull.Max(p => p.X) - hull.Min(p => p.X), h = hull.Max(p => p.Y) - hull.Min(p => p.Y);
+        if (Math.Max(w, h) < 45 * px)
+        {
+            return;
+        }
+
+        // Base: o ponto do contorno mais próximo do eixo vertical da planta e mais baixo.
+        Point2 basePoint = hull.OrderBy(p => Math.Abs(p.X) + 0.3 * p.Y).First();
+        int color = art.ColorIndex(leaf.Shade(0.28));
+        List<Point2> tips = hull.Where(p => p != basePoint).OrderByDescending(p => (p.X - basePoint.X) * (p.X - basePoint.X) + (p.Y - basePoint.Y) * (p.Y - basePoint.Y)).Take(7).ToList();
+        foreach (Point2 tip in tips)
+        {
+            var end = new Point2(basePoint.X + (tip.X - basePoint.X) * 0.82, basePoint.Y + (tip.Y - basePoint.Y) * 0.82);
+            art.Ops.Add(new ArtOp(ArtOpKind.Line, color, new[] { basePoint, end }, 0.7 * px, false));
+        }
+    }
+
+    private static double Extent(MeshPiece piece)
+    {
+        (Vec3 min, Vec3 max) = piece.Bounds();
+        return Math.Max(max.X - min.X, Math.Max(max.Y - min.Y, max.Z - min.Z));
     }
 
     private static Rgb Tone(Rgb color, double bias, double tone, DeterministicRandom random)

@@ -29,17 +29,37 @@ public class SpriteTests
         }
     }
 
-    public static IEnumerable<object[]> PilotNames() => PlantSpritesPlanner.Pilot.Select(n => new object[] { n });
+    public static IEnumerable<object[]> PilotNames() => PlantSpritesPlanner.Showcase.Select(n => new object[] { n });
 
     [Fact]
-    public void Pilot_IsInTheCatalog_AndOnlyPilotSpeciesAreSelected()
+    public void EverySpecies_IsIllustrated_ExceptCustomFamilies()
     {
-        foreach (string name in PlantSpritesPlanner.Pilot)
+        foreach (string name in PlantSpritesPlanner.Showcase)
         {
             Assert.Contains(Catalog, s => s.ScientificName == name);
         }
 
-        Assert.Equal(8, Catalog.Count(PlantSpritesPlanner.IsPilot));
+        Assert.All(Catalog, s => Assert.True(PlantSpritesPlanner.IsIllustrated(s), s.DisplayName));
+        Species custom = Viridian.Core.Config.ViridianJson.Deserialize<Species>(Viridian.Core.Config.ViridianJson.Serialize(Catalog[0]))!;
+        custom.CustomPlantingFamilyFile = "escritorio.rfa";
+        Assert.False(PlantSpritesPlanner.IsIllustrated(custom));
+    }
+
+    [Fact]
+    public void OneSpeciesOfEachCategory_DrawsCleanly_FromTheSideAndFromAbove()
+    {
+        foreach (IGrouping<PlantCategory, Species> group in Catalog.GroupBy(s => s.Category))
+        {
+            Species s = group.OrderBy(x => x.Code).First();
+            PlantSprites sprites = PlantSpritesPlanner.Build(s, 0, Profiles, new ColorSettings(), "#6B4F3A");
+            foreach (int view in new[] { 3, PlantSprites.TopView })
+            {
+                SpriteMesh mesh = sprites.Get(PlantSpritesPlanner.DefaultStage, view);
+                Assert.True(mesh.TriangleCount > 0 && mesh.TriangleCount < 30000, $"{s.DisplayName} v{view}: {mesh.TriangleCount} triângulos");
+                double regions = mesh.Regions.Regions.Sum(r => r.Loops.Sum(l => Geo.SignedArea(l)));
+                Assert.True(Math.Abs(mesh.CoveredArea() - regions) <= regions * 0.03, $"{s.DisplayName} v{view}: área");
+            }
+        }
     }
 
     [Fact]

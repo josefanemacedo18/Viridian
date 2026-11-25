@@ -12,6 +12,13 @@ using Viridian.Library;
 // Uso: Viridian.Preview <pasta de saída>
 string outDir = args.Length > 0 ? args[0] : "preview";
 Directory.CreateDirectory(outDir);
+if (args.Contains("--catalogo"))
+{
+    // Vegetação ilustrada de todo o catálogo (conferência por categoria).
+    IllustrationPreview.Catalog(Path.Combine(outDir, "catalogo"));
+    return;
+}
+
 
 File.WriteAllText(Path.Combine(outDir, "estilos.svg"), SvgSheets.StyleSheet());
 File.WriteAllText(Path.Combine(outDir, "perfis.svg"), SvgSheets.ProfileSheet());

@@ -23,7 +23,7 @@ internal sealed record SpriteInstance(Vec3 BaseFeet, double Rotation, PlantSprit
 internal sealed record ViewSnapshot(IReadOnlyList<SpriteInstance> Instances, XYZ Min, XYZ Max, long Signature);
 
 /// <summary>
-/// Vegetação ilustrada como RPC: nas vistas 3D, cortes e elevações, cada exemplar das espécies do piloto é desenhado
+/// Vegetação ilustrada como RPC: nas vistas 3D, cortes e elevações, cada exemplar das espécies do catálogo é desenhado
 /// como uma imagem que fica sempre de frente para a câmera (sem faces aparentes), com cores próprias em qualquer
 /// estilo visual. A planta baixa não muda (continua o símbolo 2D). O desenho é feito pelo serviço DirectContext3D do
 /// Revit: não cria elementos nem altera o modelo, só o que aparece na tela.
@@ -251,7 +251,7 @@ public static class IllustratedVegetation
 
     private static bool Eligible(View view) => !view.IsTemplate && view.ViewType is ViewType.ThreeD or ViewType.Section or ViewType.Elevation or ViewType.Detail;
 
-    /// <summary>Tipos de vegetação do projeto que têm imagens (espécies do piloto, sem família personalizada).</summary>
+    /// <summary>Tipos de vegetação do projeto que têm imagens (espécies sem família personalizada).</summary>
     private static Dictionary<ElementId, PlantSprites> SymbolSprites(Document doc, Sources sources)
     {
         var result = new Dictionary<ElementId, PlantSprites>();
@@ -259,7 +259,7 @@ public static class IllustratedVegetation
         bool southRead = false;
         foreach ((FamilySymbol symbol, SpeciesLink link) in SpeciesFamilyService.LinkedSymbols(doc))
         {
-            if (link.IsCustom || sources.Catalog.Find(link.SpeciesId) is not Species species || species.HasCustomPlantingFamily || !PlantSpritesPlanner.IsPilot(species))
+            if (link.IsCustom || sources.Catalog.Find(link.SpeciesId) is not Species species || !PlantSpritesPlanner.IsIllustrated(species))
             {
                 continue;
             }

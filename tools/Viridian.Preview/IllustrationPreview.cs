@@ -21,7 +21,7 @@ internal static class IllustrationPreview
         List<Species> catalog = SeedCatalog.CreateSpecies();
         List<Plant3DProfile> profiles = Plant3DProfileDefaults.Create();
         var sprites = new Dictionary<string, PlantSprites>();
-        foreach (string name in PlantSpritesPlanner.Pilot)
+        foreach (string name in PlantSpritesPlanner.Showcase)
         {
             Species? s = catalog.FirstOrDefault(x => string.Equals(x.ScientificName, name, StringComparison.OrdinalIgnoreCase));
             if (s is null)
@@ -77,6 +77,36 @@ internal static class IllustrationPreview
         {
             File.WriteAllText(Path.Combine(folder, file), Scene(layout, sprites, eye, target, perspective));
         }
+    }
+
+    /// <summary>Todas as espécies do catálogo: imagem adulta (direção 2) e de cima, com tempo e triângulos.</summary>
+    public static void Catalog(string folder)
+    {
+        Directory.CreateDirectory(folder);
+        List<Species> catalog = SeedCatalog.CreateSpecies();
+        List<Plant3DProfile> profiles = Plant3DProfileDefaults.Create();
+        var lines = new List<string> { "categoria;codigo;nome;cientifico;ms;triangulos;topo;erro" };
+        foreach (Species s in catalog.OrderBy(x => x.Category).ThenBy(x => x.Code))
+        {
+            var watch = Stopwatch.StartNew();
+            try
+            {
+                PlantSprites plant = PlantSpritesPlanner.Build(s, 0, profiles, new ColorSettings(), "#6B4F3A");
+                SpriteStage adult = plant.StageFor(PlantSpritesPlanner.DefaultStage);
+                SpriteMesh side = plant.Get(adult.Code, 2);
+                SpriteMesh top = plant.Get(adult.Code, PlantSprites.TopView);
+                double size = Math.Max(adult.HeightM, adult.CrownM);
+                File.WriteAllText(Path.Combine(folder, $"{(int)s.Category}-{s.Code}.svg"), CardSvg.Mesh(side, size));
+                lines.Add(string.Join(";", s.Category, s.Code, s.PopularName, s.ScientificName, watch.ElapsedMilliseconds, side.TriangleCount, top.TriangleCount, ""));
+            }
+            catch (Exception ex)
+            {
+                lines.Add(string.Join(";", s.Category, s.Code, s.PopularName, s.ScientificName, watch.ElapsedMilliseconds, 0, 0, ex.GetType().Name + ": " + ex.Message.Replace(';', ',')));
+            }
+        }
+
+        File.WriteAllLines(Path.Combine(folder, "catalogo.csv"), lines);
+        Console.WriteLine($"{lines.Count - 1} espécies; erros: {lines.Count(l => l.EndsWith(";", StringComparison.Ordinal) == false) - 1}");
     }
 
     private static string Scene(List<(string Name, double X, double Y, double Rot, int Stage)> layout, Dictionary<string, PlantSprites> sprites, Vec3 eye, Vec3 target, bool perspective)

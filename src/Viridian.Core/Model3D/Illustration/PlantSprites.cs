@@ -114,15 +114,14 @@ public sealed class PlantSprites
 /// <summary>
 /// Vegetação ilustrada como RPC, no estilo dos símbolos: uma imagem por direção e por fase (plantio, 3 anos, 6 anos,
 /// adulta e, nas decíduas, adulta sem folhas), escolhida em cada exemplar pelo parâmetro "VIR Fase 3D".
-/// Piloto: oito espécies de formas bem diferentes.
 /// </summary>
 public static class PlantSpritesPlanner
 {
     /// <summary>Versão do desenho: aumente quando o traço mudar.</summary>
-    public const int Version = 2;
+    public const int Version = 3;
 
     /// <summary>Parâmetros do traço (entram na assinatura).</summary>
-    public const string Style = "rpc16-topo-volume3-fundo-copa-foliolos-verdes-marcas-cachos-traco-variavel-grade600-dp0.95-escala-geom0.4-tom0.3";
+    public const string Style = "rpc16-topo-volume3-fundo-vizinhos-massas-na-forma-nervuras-tapete-baixas-suaves-grade600-dp0.95-escala-geom0.4-tom0.3";
 
     /// <summary>Fase mostrada quando o exemplar não escolhe outra.</summary>
     public const int DefaultStage = 4;
@@ -130,14 +129,21 @@ public static class PlantSpritesPlanner
     /// <summary>Tom das imagens: um pouco mais de massas claras que escuras, igual em todas as direções.</summary>
     public const double Tone = 0.3;
 
-    public static readonly IReadOnlyList<string> Pilot = new[]
+    /// <summary>
+    /// Espécies de referência (formas bem diferentes entre si), usadas nas prévias e nos testes: árvores de copa
+    /// arredondada e espalhada, palmeiras pinada e em leque, conífera, roseta, herbácea de folha larga e dracena.
+    /// </summary>
+    public static readonly IReadOnlyList<string> Showcase = new[]
     {
         "Handroanthus chrysotrichus", "Delonix regia", "Syagrus romanzoffiana", "Bismarckia nobilis",
         "Araucaria angustifolia", "Agave attenuata", "Strelitzia reginae", "Dracaena marginata",
     };
 
-    public static bool IsPilot(Species species) =>
-        species is not null && Pilot.Any(n => string.Equals(n, species.ScientificName?.Trim(), StringComparison.OrdinalIgnoreCase));
+    /// <summary>
+    /// A espécie ganha a vegetação ilustrada: todas as do catálogo (e as criadas pelo usuário), exceto as que usam
+    /// uma família de plantio própria do escritório.
+    /// </summary>
+    public static bool IsIllustrated(Species species) => species is not null && !species.HasCustomPlantingFamily;
 
     public static PlantSprites Build(Species species, int variant, IReadOnlyList<Plant3DProfile> profiles, ColorSettings colors, string trunkColor, bool southernHemisphere = true)
     {

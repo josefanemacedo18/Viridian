@@ -45,12 +45,12 @@ public sealed class SpeciesFamilyService
 
     /// <summary>
     /// Vegetação ilustrada (RPC) da espécie: a família recebe o eixo de seleção e os parâmetros de exemplar, e a imagem é
-    /// desenhada na vista pelo Viridian. Nulo quando a espécie não está no piloto, tem família própria ou o recurso está
-    /// desligado nas configurações.
+    /// desenhada na vista pelo Viridian. Nulo quando a espécie tem família própria ou o recurso está desligado nas
+    /// configurações.
     /// </summary>
     public SpriteHandle? HandleFor(Species species)
     {
-        if (!_settings.Model3D.IllustratedFamilies || species.HasCustomPlantingFamily || !PlantSpritesPlanner.IsPilot(species))
+        if (!_settings.Model3D.IllustratedFamilies || !PlantSpritesPlanner.IsIllustrated(species))
         {
             return null;
         }
