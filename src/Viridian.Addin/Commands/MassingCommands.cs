@@ -238,3 +238,145 @@ public sealed class MassingRecalculateCommand : CommandBase
         return Result.Succeeded;
     }
 }
+
+/// <summary>
+/// Ajusta os maciços ao contorno editado sem refazer o plantio: os exemplares que continuam dentro ficam onde estão,
+/// com códigos e dados; só a parte acrescentada recebe exemplares novos. Os que ficaram fora são indicados (padrão)
+/// ou removidos.
+/// </summary>
+[Transaction(TransactionMode.Manual)]
+[Regeneration(RegenerationOption.Manual)]
+public sealed class MassingAdjustCommand : CommandBase
+{
+    internal override Result Run(ViridianContext ctx)
+    {
+        List<FilledRegion> regions = ctx.SelectedMassings().ToList();
+        bool all = regions.Count == 0;
+        if (all)
+        {
+            regions = ElementData.ElementsOfKind(ctx.Doc, ElementData.KindMassing).OfType<FilledRegion>().ToList();
+        }
+
+        if (regions.Count == 0)
+        {
+            throw new ViridianException("O projeto não possui maciços do Viridian.");
+        }
+
+        // Pergunta só quando há exemplares fora do novo contorno.
+        int outsideTotal = regions.Sum(r => MassingService.RecordOf(r) is MassingRecord rec ? MassingService.CountOutside(ctx.Doc, r, rec) : 0);
+        OutsidePlants outside = OutsidePlants.Avisar;
+        if (outsideTotal > 0)
+        {
+            var ask = new TaskDialog("Viridian — Ajustar contorno")
+            {
+                MainInstruction = $"{outsideTotal} exemplar(es) ficaram fora do novo contorno",
+                MainContent = "Os exemplares que continuam dentro do maciço não serão movidos. O que fazer com os que ficaram fora?",
+            };
+            ask.AddCommandLink(TaskDialogCommandLinkId.CommandLink1, "Manter e selecionar para eu decidir (recomendado)",
+                "Eles continuam contados no maciço e ficam selecionados ao final: mova, apague ou deixe como estão.");
+            ask.AddCommandLink(TaskDialogCommandLinkId.CommandLink2, "Remover os que ficaram fora",
+                "Apaga apenas os exemplares fora do contorno. Desfazer (Ctrl+Z) recupera.");
+            ask.CommonButtons = TaskDialogCommonButtons.Cancel;
+            TaskDialogResult answer = ask.Show();
+            if (answer is not (TaskDialogResult.CommandLink1 or TaskDialogResult.CommandLink2))
+            {
+                return Result.Cancelled;
+            }
+
+            outside = answer == TaskDialogResult.CommandLink2 ? OutsidePlants.Remover : OutsidePlants.Avisar;
+        }
+
+        var problems = new List<string>();
+        var lines = new List<string>();
+        var toSelect = new List<ElementId>();
+        var added = new List<ElementId>();
+        int unchanged = 0, legacy = 0;
+        int done = ctx.Grouped("Viridian: ajustar contorno dos maciços", () =>
+        {
+            int count = 0;
+            foreach (FilledRegion region in regions)
+            {
+                MassingRecord? record = MassingService.RecordOf(region);
+                if (record is null)
+                {
+                    continue;
+                }
+
+                Species? species = ctx.Lookup(record.SpeciesId);
+                if (species is null)
+                {
+                    problems.Add($"{record.Id}: espécie {record.SpeciesCode} não encontrada no catálogo.");
+                    continue;
+                }
+
+                try
+                {
+                    MassingExecution execution = MassingCommands.BuildExecution(ctx, species, record);
+                    MassingAdjustOutcome result = ctx.Massings.Adjust(ctx.Doc, region, execution, outside);
+                    if (result.Unchanged)
+                    {
+                        unchanged++;
+                        continue;
+                    }
+
+                    count++;
+                    legacy += result.WithoutPrevious ? 1 : 0;
+                    toSelect.AddRange(result.OutsideKept);
+                    added.AddRange(result.AddedIds);
+                    lines.Add($"{record.Id} ({species.PopularName}): {result.Record.AreaM2.ToString("0.00", Viridian.UI.Num.PtBr)} m², "
+                              + $"{result.Kept} mantido(s), {result.Added} novo(s)"
+                              + (result.Removed > 0 ? $", {result.Removed} removido(s)" : string.Empty)
+                              + (result.OutsideKept.Count > 0 ? $", {result.OutsideKept.Count} fora do contorno" : string.Empty));
+                }
+                catch (ViridianException ex)
+                {
+                    problems.Add($"{record.Id}: {ex.Message}");
+                }
+            }
+
+            if (count > 0)
+            {
+                ctx.Labels.UpdateAll(ctx.Doc);
+            }
+
+            return count;
+        }, count => count > 0);
+
+        // Seleciona o que precisa de atenção: os que ficaram fora; senão, os novos.
+        List<ElementId> selection = toSelect.Count > 0 ? toSelect : added;
+        if (selection.Count > 0)
+        {
+            ctx.UiDocument.Selection.SetElementIds(selection);
+        }
+
+        if (done == 0 && problems.Count == 0)
+        {
+            ShowInfo(all ? "Nenhum maciço teve o contorno alterado" : "O contorno dos maciços selecionados não mudou",
+                "Edite o limite da região (Editar limite) e rode o comando de novo. Para refazer toda a distribuição, use Recalcular.");
+            return Result.Succeeded;
+        }
+
+        var text = new List<string>(lines.Take(15));
+        if (toSelect.Count > 0)
+        {
+            text.Add($"\n{toSelect.Count} exemplar(es) fora do contorno estão selecionados.");
+        }
+        else if (added.Count > 0)
+        {
+            text.Add($"\nOs {added.Count} exemplar(es) novos estão selecionados.");
+        }
+
+        if (legacy > 0)
+        {
+            text.Add($"\n{legacy} maciço(s) criados em versão anterior: a área nova foi preenchida pelos vãos longe dos exemplares existentes. Daqui em diante o contorno fica gravado e só a parte acrescentada recebe plantas.");
+        }
+
+        if (problems.Count > 0)
+        {
+            text.Add("\nNão ajustados:\n" + string.Join("\n", problems.Take(10)));
+        }
+
+        ShowInfo($"{done} maciço(s) ajustado(s) ao contorno" + (unchanged > 0 ? $" · {unchanged} sem mudança" : string.Empty), string.Join("\n", text));
+        return Result.Succeeded;
+    }
+}

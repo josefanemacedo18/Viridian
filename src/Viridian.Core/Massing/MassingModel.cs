@@ -1,3 +1,4 @@
+using Viridian.Core.Geometry;
 using Viridian.Core.Distribution;
 
 namespace Viridian.Core.Massing;
@@ -164,7 +165,26 @@ public sealed class MassingRecord
 
     public string Notes { get; set; } = string.Empty;
 
-    public MassingRecord Clone() => (MassingRecord)MemberwiseClone();
+    /// <summary>
+    /// Limite do maciço (anéis em metros) no último cálculo. Serve para o ajuste de contorno saber qual parte
+    /// da região é nova; nulo nos maciços criados antes desta versão.
+    /// </summary>
+    public List<List<Point2>>? Boundary { get; set; }
+
+    public MassingRecord Clone()
+    {
+        var copy = (MassingRecord)MemberwiseClone();
+        copy.Boundary = Boundary?.Select(r => r.ToList()).ToList();
+        return copy;
+    }
+
+    /// <summary>Grava o limite atual no registro.</summary>
+    public void StoreBoundary(Polygon2 polygon) =>
+        Boundary = polygon.IsEmpty ? null : polygon.Rings.Select(r => r.ToList()).ToList();
+
+    /// <summary>Limite gravado no último cálculo, ou nulo quando não há.</summary>
+    public Polygon2? StoredBoundary() =>
+        Boundary is { Count: > 0 } rings && rings.All(r => r is { Count: >= 3 }) ? new Polygon2(rings) : null;
 }
 
 /// <summary>Cálculos de densidade, espaçamento e quantidade de maciços.</summary>

@@ -119,7 +119,9 @@ public sealed class App : IExternalApplication
             Small<MassingEditCommand, ProjectAvailability>(assembly, "Editar Maciço", "massing-edit",
                 "Altera densidade, espaçamento, representação e reserva de um maciço."),
             Small<MassingRecalculateCommand, ProjectAvailability>(assembly, "Recalcular", "recalc",
-                "Recalcula área, quantidade e símbolos dos maciços selecionados (ou de todos) após mudar os limites."));
+                "Refaz toda a distribuição dos maciços selecionados (ou de todos): área, quantidade e símbolos. Exemplares movidos à mão voltam ao padrão."),
+            Small<MassingAdjustCommand, ProjectAvailability>(assembly, "Ajustar Contorno", "massing-edit",
+                "Depois de editar o limite do maciço: mantém os exemplares que continuam dentro (posição, código e dados), planta só a parte acrescentada e indica ou remove os que ficaram fora."));
 
         RibbonPanel identification = app.CreateRibbonPanel(TabName, "Identificação");
         Large<LabelCommand, ProjectAvailability>(identification, assembly, "Etiquetar", "label",

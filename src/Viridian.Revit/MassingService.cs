@@ -31,6 +31,30 @@ public sealed class MassingExecution
     public FamilySymbol? DetailSymbol { get; set; }
 }
 
+/// <summary>Resultado de um ajuste de contorno.</summary>
+public sealed class MassingAdjustOutcome
+{
+    public MassingRecord Record { get; init; } = new();
+
+    /// <summary>O contorno é o mesmo do último cálculo: nada foi alterado.</summary>
+    public bool Unchanged { get; init; }
+
+    public int Kept { get; init; }
+
+    public int Added { get; init; }
+
+    public int Removed { get; init; }
+
+    /// <summary>Exemplares mantidos fora do novo contorno (para selecionar e avisar).</summary>
+    public IReadOnlyList<ElementId> OutsideKept { get; init; } = Array.Empty<ElementId>();
+
+    /// <summary>Exemplares novos, na parte acrescentada.</summary>
+    public IReadOnlyList<ElementId> AddedIds { get; init; } = Array.Empty<ElementId>();
+
+    /// <summary>O maciço não tinha o contorno anterior gravado: o preenchimento usou só a distância aos exemplares.</summary>
+    public bool WithoutPrevious { get; init; }
+}
+
 public sealed class MassingOutcome
 {
     public MassingOutcome(FilledRegion region, MassingRecord record, int symbolsPlaced)
@@ -140,6 +164,139 @@ public sealed class MassingService
 
             return Apply(document, view, region, polygon, execution);
         }, suppressWarnings: true);
+    }
+
+    /// <summary>
+    /// Ajusta o maciço ao contorno atual da região sem refazer o plantio: os exemplares que continuam dentro não se
+    /// movem nem perdem código e dados; a parte acrescentada recebe exemplares no mesmo padrão; os que ficaram fora
+    /// são mantidos (e indicados) ou removidos, conforme <paramref name="outside"/>. Hachura e unidades por área só
+    /// atualizam área e quantidade.
+    /// </summary>
+    public MassingAdjustOutcome Adjust(Document document, FilledRegion region, MassingExecution execution, OutsidePlants outside)
+    {
+        View view = document.GetElement(region.OwnerViewId) as View
+            ?? throw new ViridianException("A vista do maciço não foi encontrada.");
+        Polygon2 polygon = BoundaryReader.FromLoops(region.GetBoundaries());
+        if (polygon.IsEmpty)
+        {
+            throw new ViridianException("A região do maciço não possui um limite fechado válido.");
+        }
+
+        if (polygon.HasSelfIntersections())
+        {
+            throw new ViridianException("O novo contorno do maciço cruza a si mesmo. Corrija o contorno e tente novamente.");
+        }
+
+        MassingRecord record = execution.Record;
+        Polygon2? previous = record.StoredBoundary();
+        if (MassingAdjust.SameBoundary(previous, polygon))
+        {
+            return new MassingAdjustOutcome { Record = record, Unchanged = true, Kept = record.Quantity };
+        }
+
+        // Maciço anterior a esta versão com a mesma área: o contorno não mudou. Só grava o limite para os próximos ajustes.
+        if (previous is null && record.AreaM2 > 0 && Math.Abs(AreaOf(region, polygon) - record.AreaM2) <= Math.Max(0.01, record.AreaM2 * 0.001))
+        {
+            Tx.Run(document, "Viridian: gravar contorno do maciço", () =>
+            {
+                record.StoreBoundary(polygon);
+                ElementData.Write(region, ElementData.KindMassing, record);
+            });
+            return new MassingAdjustOutcome { Record = record, Unchanged = true, Kept = record.Quantity };
+        }
+
+        return Tx.Run(document, "Viridian: ajustar contorno do maciço", () =>
+        {
+            document.Regenerate();
+            record.AreaM2 = AreaOf(region, polygon);
+            bool areaBased = SupplyUnits.IsAreaBased(execution.Species.SupplyUnit);
+            if (record.Mode == MassingMode.Hachura || areaBased)
+            {
+                record.Quantity = areaBased
+                    ? (int)Math.Min(int.MaxValue, Math.Ceiling(record.AreaM2 - 1e-9))
+                    : MassingCalculator.Quantity(record.AreaM2, MassingCalculator.EffectiveDensity(record));
+                record.StoreBoundary(polygon);
+                ElementData.Write(region, ElementData.KindMassing, record);
+                return new MassingAdjustOutcome { Record = record, Kept = record.Quantity, WithoutPrevious = previous is null };
+            }
+
+            List<Element> members = Members(document, record.Id);
+            var positions = new List<Point2>(members.Count);
+            var located = new List<Element>(members.Count);
+            foreach (Element member in members)
+            {
+                if (member.Location is LocationPoint point)
+                {
+                    positions.Add(RevitUnits.ToPoint2(point.Point));
+                    located.Add(member);
+                }
+            }
+
+            DistributionRequest request = Request(record);
+            DistributionResult layout = PlantDistributor.Distribute(polygon, request);
+            if (layout.Exceeded)
+            {
+                throw new ViridianException(layout.Message + "\nUse o modo Hachura para maciços muito densos.");
+            }
+
+            double spacing = request.SpacingM > 0 ? request.SpacingM : MassingCalculator.SpacingFromDensity(record.DensityPerM2, request.Pattern);
+            MassingAdjustPlan plan = MassingAdjust.Plan(polygon, previous, positions, layout.Points, spacing, outside);
+
+            var outsideIds = plan.Outside.Select(i => located[i].Id).ToList();
+            int removed = 0;
+            if (outside == OutsidePlants.Remover && outsideIds.Count > 0)
+            {
+                document.Delete(outsideIds);
+                removed = outsideIds.Count;
+                outsideIds.Clear();
+            }
+
+            IReadOnlyList<ElementId> addedIds = plan.Added.Count == 0
+                ? Array.Empty<ElementId>()
+                : PlacePoints(document, view, plan.Added, execution, record.Seed + positions.Count + 1);
+
+            record.Quantity = plan.Inside.Count + outsideIds.Count + addedIds.Count;
+            record.StoreBoundary(polygon);
+            ElementData.Write(region, ElementData.KindMassing, record);
+            return new MassingAdjustOutcome
+            {
+                Record = record,
+                Kept = plan.Inside.Count,
+                Added = addedIds.Count,
+                Removed = removed,
+                OutsideKept = outsideIds,
+                AddedIds = addedIds,
+                WithoutPrevious = plan.WithoutPrevious,
+            };
+        }, suppressWarnings: true);
+    }
+
+    /// <summary>Quantos exemplares do maciço estão fora do contorno atual da região (somente leitura).</summary>
+    public static int CountOutside(Document document, FilledRegion region, MassingRecord record)
+    {
+        Polygon2 polygon = BoundaryReader.FromLoops(region.GetBoundaries());
+        if (polygon.IsEmpty || record.Mode == MassingMode.Hachura)
+        {
+            return 0;
+        }
+
+        return Members(document, record.Id).Count(m => m.Location is LocationPoint p && !polygon.Contains(RevitUnits.ToPoint2(p.Point)));
+    }
+
+    /// <summary>Exemplares e componentes de detalhe ligados a um maciço.</summary>
+    private static List<Element> Members(Document document, string massingId)
+    {
+        var members = new List<Element>(PlantingService.InstancesOfMassing(document, massingId));
+        foreach (Element element in ElementData.ElementsOfKind(document, ElementData.KindMassSymbol))
+        {
+            if (ElementData.TryRead(element, ElementData.KindMassSymbol, out MassSymbolLink link)
+                && string.Equals(link.MassingId.Trim(), massingId.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                members.Add(element);
+            }
+        }
+
+        return members;
     }
 
     /// <summary>Remove os símbolos de um maciço (exemplares e componentes de detalhe). Precisa de transação.</summary>
@@ -351,13 +508,14 @@ public sealed class MassingService
             record.Quantity = MassingCalculator.Quantity(record.AreaM2, MassingCalculator.EffectiveDensity(record));
         }
 
+        record.StoreBoundary(polygon);
         ElementData.Write(region, ElementData.KindMassing, record);
         return new MassingOutcome(region, record, placed);
     }
 
-    private int PlaceSymbols(Document document, View view, Polygon2 polygon, MassingExecution execution)
+    /// <summary>Pedido de distribuição equivalente ao registro do maciço.</summary>
+    private static DistributionRequest Request(MassingRecord record)
     {
-        MassingRecord record = execution.Record;
         var request = new DistributionRequest
         {
             Pattern = record.Pattern,
@@ -380,24 +538,33 @@ public sealed class MassingService
             request.SpacingM = MassingCalculator.SpacingFromDensity(request.DensityPerM2, request.Pattern);
         }
 
+        return request;
+    }
+
+    private int PlaceSymbols(Document document, View view, Polygon2 polygon, MassingExecution execution)
+    {
+        MassingRecord record = execution.Record;
+        DistributionRequest request = Request(record);
         DistributionResult result = PlantDistributor.Distribute(polygon, request);
         if (result.Exceeded)
         {
             throw new ViridianException(result.Message + "\nUse o modo Hachura para maciços muito densos.");
         }
 
-        if (result.Points.Count == 0)
-        {
-            return 0;
-        }
+        return result.Points.Count == 0 ? 0 : PlacePoints(document, view, result.Points, execution, record.Seed).Count;
+    }
 
-        IReadOnlyList<double>? rotations = record.RandomRotation ? PlantDistributor.RandomRotations(result.Points.Count, record.Seed) : null;
+    /// <summary>Coloca exemplares (ou componentes de detalhe) do maciço nos pontos informados.</summary>
+    private IReadOnlyList<ElementId> PlacePoints(Document document, View view, IReadOnlyList<Point2> points, MassingExecution execution, long seed)
+    {
+        MassingRecord record = execution.Record;
+        IReadOnlyList<double>? rotations = record.RandomRotation ? PlantDistributor.RandomRotations(points.Count, seed) : null;
 
         if (record.SymbolKind == MassingSymbolKind.DetailItem)
         {
             FamilySymbol detail = execution.DetailSymbol
                 ?? throw new ViridianException("O símbolo de detalhe personalizado não foi carregado.");
-            return PlaceDetailSymbols(document, view, detail, result.Points, rotations, record.Id);
+            return PlaceDetailSymbols(document, view, detail, points, rotations, record.Id);
         }
 
         Level level = PlantingService.LevelOf(view)
@@ -406,12 +573,12 @@ public sealed class MassingService
         {
             MassingId = record.Id,
             Stage = PlantingService.DefaultStage(execution.Species),
-            Seed = record.Seed,
+            Seed = seed,
         };
-        return _planting.Place(document, level, execution.PlantingSymbols, execution.Species, execution.ProjectSpeciesCode, result.Points, rotations, options).Count;
+        return _planting.Place(document, level, execution.PlantingSymbols, execution.Species, execution.ProjectSpeciesCode, points, rotations, options);
     }
 
-    private static int PlaceDetailSymbols(Document document, View view, FamilySymbol symbol, IReadOnlyList<Point2> points, IReadOnlyList<double>? rotations, string massingId)
+    private static List<ElementId> PlaceDetailSymbols(Document document, View view, FamilySymbol symbol, IReadOnlyList<Point2> points, IReadOnlyList<double>? rotations, string massingId)
     {
         if (!symbol.IsActive)
         {
@@ -421,7 +588,7 @@ public sealed class MassingService
 
         double z = PlantingService.LevelOf(view)?.ProjectElevation ?? 0;
         var link = new MassSymbolLink { MassingId = massingId };
-        int count = 0;
+        var placed = new List<ElementId>();
         for (int i = 0; i < points.Count; i++)
         {
             XYZ location = RevitUnits.ToXyz(points[i], z);
@@ -438,9 +605,9 @@ public sealed class MassingService
             }
 
             ElementData.Write(instance, ElementData.KindMassSymbol, link);
-            count++;
+            placed.Add(instance.Id);
         }
 
-        return count;
+        return placed;
     }
 }
