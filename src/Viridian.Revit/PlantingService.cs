@@ -215,33 +215,44 @@ public sealed class PlantingService
         }
 
         List<FamilyInstance> instances = PlantingInstances(document, instanceIds);
-        return Tx.Run(document, "Viridian: substituir espécie", () =>
+        return Tx.Run(document, "Viridian: substituir espécie", () => SwapTypes(document, instances, variantSymbols), suppressWarnings: true);
+    }
+
+    /// <summary>
+    /// Troca o tipo (a espécie) dos exemplares mantendo posição, rotação, código, dados e variante gráfica.
+    /// Precisa de transação aberta.
+    /// </summary>
+    public static int SwapTypes(Document document, IReadOnlyList<FamilyInstance> instances, IReadOnlyList<FamilySymbol> variantSymbols)
+    {
+        if (variantSymbols.Count == 0)
         {
-            SharedParameterService.EnsureBound(document);
-            foreach (FamilySymbol symbol in variantSymbols)
+            return 0;
+        }
+
+        SharedParameterService.EnsureBound(document);
+        foreach (FamilySymbol symbol in variantSymbols)
+        {
+            if (!symbol.IsActive)
             {
-                if (!symbol.IsActive)
-                {
-                    symbol.Activate();
-                }
+                symbol.Activate();
+            }
+        }
+
+        int changed = 0;
+        foreach (FamilyInstance instance in instances)
+        {
+            int variant = Math.Clamp(VirParams.GetInt(instance, VirParams.Variant) - 1, 0, variantSymbols.Count - 1);
+            FamilySymbol target = variantSymbols[variant];
+            if (instance.GetTypeId() != target.Id)
+            {
+                instance.ChangeTypeId(target.Id);
+                changed++;
             }
 
-            int changed = 0;
-            foreach (FamilyInstance instance in instances)
-            {
-                int variant = Math.Clamp(VirParams.GetInt(instance, VirParams.Variant) - 1, 0, variantSymbols.Count - 1);
-                FamilySymbol target = variantSymbols[variant];
-                if (instance.GetTypeId() != target.Id)
-                {
-                    instance.ChangeTypeId(target.Id);
-                    changed++;
-                }
+            VirParams.Set(instance, VirParams.Variant, variant + 1);
+        }
 
-                VirParams.Set(instance, VirParams.Variant, variant + 1);
-            }
-
-            return changed;
-        }, suppressWarnings: true);
+        return changed;
     }
 
     /// <summary>Altera dados de exemplares. Valores nulos são mantidos como estão.</summary>

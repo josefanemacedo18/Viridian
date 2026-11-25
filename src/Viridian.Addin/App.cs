@@ -107,7 +107,7 @@ public sealed class App : IExternalApplication
             Small<LinearCommand, ProjectAvailability>(assembly, "Plantio Linear", "linear",
                 "Distribui exemplares ao longo de um eixo (alamedas, renques e cercas vivas)."),
             Small<SubstituteCommand, ProjectAvailability>(assembly, "Substituir", "substitute",
-                "Troca a espécie de exemplares e maciços preservando posição, código e dados."),
+                "Troca a espécie de exemplares e maciços preservando posição, código e dados. Sem nada selecionado, troca uma espécie em lote: em todo o projeto ou só na vista."),
             Small<EditPlantsCommand, ProjectAvailability>(assembly, "Editar", "edit",
                 "Altera situação, estágio de implantação, observações e variante gráfica dos exemplares selecionados."));
 

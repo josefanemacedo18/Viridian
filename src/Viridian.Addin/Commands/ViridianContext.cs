@@ -128,9 +128,14 @@ internal sealed class ViridianContext
     }
 
     /// <summary>Seletor rápido de espécie (recentes no topo). Lança cancelamento quando o usuário fecha a janela.</summary>
-    public Species PickSpecies(string caption, string actionLabel = "Continuar", string hint = "")
+    public Species PickSpecies(string caption, string actionLabel = "Continuar", string hint = "", bool projectOnly = false)
     {
         var picker = new QuickSpeciesWindow(Catalog, Paths, Settings, caption, actionLabel, false, hint, ProjectUsage());
+        if (projectOnly)
+        {
+            picker.LockToProject();
+        }
+
         if (!ShowDialog(picker) || picker.SelectedSpecies is null)
         {
             throw new CommandCancelledException();

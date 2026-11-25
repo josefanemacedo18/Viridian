@@ -271,6 +271,90 @@ public sealed class MassingService
         }, suppressWarnings: true);
     }
 
+    /// <summary>
+    /// Troca a espécie do maciço sem refazer a distribuição: os exemplares ficam onde estão (com código, dados,
+    /// variante e rotação) e só mudam de tipo. Quando o tipo de símbolo muda (vegetação ↔ componente de detalhe),
+    /// os símbolos são recolocados nas mesmas posições. Hachura e cores passam a ser as da nova espécie.
+    /// </summary>
+    public MassingOutcome ChangeSpecies(Document document, FilledRegion region, MassingExecution execution)
+    {
+        View view = document.GetElement(region.OwnerViewId) as View
+            ?? throw new ViridianException("A vista do maciço não foi encontrada.");
+        Polygon2 polygon = BoundaryReader.FromLoops(region.GetBoundaries());
+        if (polygon.IsEmpty)
+        {
+            throw new ViridianException("A região do maciço não possui um limite fechado válido.");
+        }
+
+        return Tx.Run(document, "Viridian: trocar a espécie do maciço", () =>
+        {
+            MassingRecord record = execution.Record;
+            Species species = execution.Species;
+            FilledRegionType type = HatchService.EnsureRegionType(document, RegionHatch(execution), VegetationPalette.Massing(species, _settings.Colors));
+            if (region.GetTypeId() != type.Id)
+            {
+                region.ChangeTypeId(type.Id);
+            }
+
+            document.Regenerate();
+            record.AreaM2 = AreaOf(region, polygon);
+            record.SpeciesId = species.Id;
+            record.SpeciesCode = execution.ProjectSpeciesCode;
+            record.PopularName = species.PopularName;
+            record.ScientificName = species.ScientificName;
+            record.SupplyUnit = species.SupplyUnit;
+            record.HatchPatternKey = record.Mode == MassingMode.Simbolos ? string.Empty : execution.Hatch?.Key ?? string.Empty;
+
+            bool areaBased = SupplyUnits.IsAreaBased(species.SupplyUnit);
+            bool wantsSymbols = record.Mode != MassingMode.Hachura && !areaBased;
+            List<Element> members = Members(document, record.Id);
+            int placed;
+            if (!wantsSymbols)
+            {
+                RemoveSymbols(document, record.Id);
+                placed = 0;
+            }
+            else if (members.Count == 0)
+            {
+                placed = PlaceSymbols(document, view, polygon, execution);
+            }
+            else
+            {
+                bool detailNow = record.SymbolKind == MassingSymbolKind.DetailItem;
+                bool sameKind = members.All(m => (ElementData.KindOf(m) == ElementData.KindMassSymbol) == detailNow);
+                if (sameKind && !detailNow)
+                {
+                    PlantingService.SwapTypes(document, members.OfType<FamilyInstance>().ToList(), execution.PlantingSymbols);
+                    placed = members.Count;
+                }
+                else
+                {
+                    // Outro tipo de símbolo: recoloca nas mesmas posições e rotações.
+                    var points = new List<Point2>();
+                    var rotations = new List<double>();
+                    foreach (Element member in members)
+                    {
+                        if (member.Location is LocationPoint point)
+                        {
+                            points.Add(RevitUnits.ToPoint2(point.Point));
+                            rotations.Add(point.Rotation);
+                        }
+                    }
+
+                    document.Delete(members.Select(m => m.Id).ToList());
+                    placed = points.Count == 0 ? 0 : PlacePoints(document, view, points, execution, record.Seed, rotations).Count;
+                }
+            }
+
+            record.Quantity = areaBased
+                ? (int)Math.Min(int.MaxValue, Math.Ceiling(record.AreaM2 - 1e-9))
+                : record.Mode != MassingMode.Hachura ? placed : MassingCalculator.Quantity(record.AreaM2, MassingCalculator.EffectiveDensity(record));
+            record.StoreBoundary(polygon);
+            ElementData.Write(region, ElementData.KindMassing, record);
+            return new MassingOutcome(region, record, placed);
+        }, suppressWarnings: true);
+    }
+
     /// <summary>Quantos exemplares do maciço estão fora do contorno atual da região (somente leitura).</summary>
     public static int CountOutside(Document document, FilledRegion region, MassingRecord record)
     {
@@ -563,10 +647,11 @@ public sealed class MassingService
     }
 
     /// <summary>Coloca exemplares (ou componentes de detalhe) do maciço nos pontos informados.</summary>
-    private IReadOnlyList<ElementId> PlacePoints(Document document, View view, IReadOnlyList<Point2> points, MassingExecution execution, long seed)
+    private IReadOnlyList<ElementId> PlacePoints(Document document, View view, IReadOnlyList<Point2> points, MassingExecution execution, long seed,
+        IReadOnlyList<double>? fixedRotations = null)
     {
         MassingRecord record = execution.Record;
-        IReadOnlyList<double>? rotations = record.RandomRotation ? PlantDistributor.RandomRotations(points.Count, seed) : null;
+        IReadOnlyList<double>? rotations = fixedRotations ?? (record.RandomRotation ? PlantDistributor.RandomRotations(points.Count, seed) : null);
 
         if (record.SymbolKind == MassingSymbolKind.DetailItem)
         {

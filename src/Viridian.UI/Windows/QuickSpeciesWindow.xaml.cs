@@ -69,6 +69,16 @@ public partial class QuickSpeciesWindow : ViridianWindow
 
     public Species? SelectedSpecies => (SpeciesGrid.SelectedItem as SpeciesRow)?.Species;
 
+    /// <summary>Restringe a escolha às espécies do projeto (por exemplo, a espécie a ser trocada em lote).</summary>
+    public void LockToProject()
+    {
+        bool saved = _settings.QuickPickProjectOnly;
+        ProjectOnlyBox.IsChecked = true;
+        ProjectOnlyBox.IsEnabled = false;
+        _settings.QuickPickProjectOnly = saved;
+        Refresh(null);
+    }
+
     /// <summary>Opções dos exemplares (modo de inserção).</summary>
     public PlantOptions Options { get; } = new();
 

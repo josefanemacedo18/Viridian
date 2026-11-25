@@ -4,6 +4,7 @@ using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Selection;
 using Viridian.Core.Distribution;
 using Viridian.Core.Geometry;
+using Viridian.Core.Hatch;
 using Viridian.Core.Massing;
 using Viridian.Core.Model;
 using Viridian.Core.Reports;
@@ -290,7 +291,10 @@ public sealed class LinearCommand : CommandBase
     }
 }
 
-/// <summary>Troca a espécie de exemplares e maciços preservando posições, códigos e dados.</summary>
+/// <summary>
+/// Troca a espécie de exemplares e maciços preservando posições, códigos e dados. Sem seleção, permite também trocar
+/// uma espécie em todo o projeto ou só na vista ativa (edição em lote em vários canteiros de uma vez).
+/// </summary>
 [Transaction(TransactionMode.Manual)]
 [Regeneration(RegenerationOption.Manual)]
 public sealed class SubstituteCommand : CommandBase
@@ -299,13 +303,50 @@ public sealed class SubstituteCommand : CommandBase
     {
         List<FamilyInstance> plants = ctx.SelectedPlants().ToList();
         List<FilledRegion> massings = ctx.SelectedMassings().ToList();
+        Species? from = null;
         if (plants.Count == 0 && massings.Count == 0)
         {
-            IList<Reference> picked = ctx.UiDocument.Selection.PickObjects(
-                ObjectType.Element, new PlantOrMassingFilter(), "Selecione os exemplares ou maciços a substituir e clique em Concluir");
-            List<Element> elements = picked.Select(r => ctx.Doc.GetElement(r)).Where(e => e is not null).ToList();
-            plants = PlantingService.PlantingInstances(ctx.Doc, elements.Select(e => e.Id));
-            massings = elements.OfType<FilledRegion>().Where(r => ElementData.KindOf(r) == ElementData.KindMassing).ToList();
+            var ask = new TaskDialog("Viridian — Substituir espécie")
+            {
+                MainInstruction = "O que substituir?",
+                MainContent = "Posições, códigos e dados dos exemplares são preservados em todos os casos.",
+            };
+            ask.AddCommandLink(TaskDialogCommandLinkId.CommandLink1, "Selecionar exemplares e maciços na vista");
+            ask.AddCommandLink(TaskDialogCommandLinkId.CommandLink2, "Trocar uma espécie em todo o projeto",
+                "Todos os exemplares isolados e maciços da espécie, em todas as vistas e níveis.");
+            ask.AddCommandLink(TaskDialogCommandLinkId.CommandLink3, "Trocar uma espécie só nesta vista",
+                "Só os maciços desta vista e os exemplares isolados do nível dela.");
+            ask.CommonButtons = TaskDialogCommonButtons.Cancel;
+            TaskDialogResult answer = ask.Show();
+            if (answer == TaskDialogResult.CommandLink1)
+            {
+                IList<Reference> picked = ctx.UiDocument.Selection.PickObjects(
+                    ObjectType.Element, new PlantOrMassingFilter(), "Selecione os exemplares ou maciços a substituir e clique em Concluir");
+                List<Element> elements = picked.Select(r => ctx.Doc.GetElement(r)).Where(e => e is not null).ToList();
+                plants = PlantingService.PlantingInstances(ctx.Doc, elements.Select(e => e.Id));
+                massings = elements.OfType<FilledRegion>().Where(r => ElementData.KindOf(r) == ElementData.KindMassing).ToList();
+            }
+            else if (answer is TaskDialogResult.CommandLink2 or TaskDialogResult.CommandLink3)
+            {
+                bool viewOnly = answer == TaskDialogResult.CommandLink3;
+                View? view = viewOnly ? ctx.RequirePlanView() : null;
+                if (ctx.ProjectUsage().Count == 0)
+                {
+                    throw new ViridianException("Não há espécies do catálogo plantadas neste projeto.");
+                }
+
+                from = ctx.PickSpecies("Substituir em lote — espécie a ser trocada", "Continuar",
+                    "Lista das espécies do projeto. Depois escolha a espécie nova.", projectOnly: true);
+                (plants, massings) = Occurrences(ctx, from, view);
+                if (plants.Count == 0 && massings.Count == 0)
+                {
+                    throw new ViridianException($"{from.DisplayName} não aparece {(viewOnly ? "nesta vista" : "no projeto")}.");
+                }
+            }
+            else
+            {
+                return Result.Cancelled;
+            }
         }
 
         // Exemplares de maciços são substituídos junto com o próprio maciço.
@@ -342,7 +383,14 @@ public sealed class SubstituteCommand : CommandBase
             throw new ViridianException("Nenhum exemplar de vegetação ou maciço foi selecionado.");
         }
 
-        Species species = ctx.PickSpecies($"Substituir {plants.Count} exemplar(es) e {massings.Count} maciço(s) por");
+        string what = (from is null ? string.Empty : from.PopularName + ": ") + $"{plants.Count} exemplar(es) e {massings.Count} maciço(s)";
+        Species species = ctx.PickSpecies($"Substituir {what} por");
+        if (from is not null && string.Equals(from.Id, species.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ViridianException("A espécie nova é a mesma que a atual.");
+        }
+
+        var problems = new List<string>();
         (int Plants, int Massings) done = ctx.Grouped("Viridian: substituir espécie", () =>
         {
             int changedPlants = 0;
@@ -361,17 +409,48 @@ public sealed class SubstituteCommand : CommandBase
                     continue;
                 }
 
-                MassingExecution execution = MassingCommands.BuildExecution(ctx, species, record);
-                ctx.Massings.Recalculate(ctx.Doc, region, execution);
-                changedMassings++;
+                try
+                {
+                    // Hachura padrão da espécie antiga passa para a padrão da nova; hachura escolhida à mão é mantida.
+                    Species? old = ctx.Lookup(record.SpeciesId);
+                    bool defaultHatch = record.HatchPatternKey.Length == 0
+                                        || (old is not null && string.Equals(record.HatchPatternKey, HatchLibrary.KeyFor(old), StringComparison.OrdinalIgnoreCase));
+                    MassingExecution execution = MassingCommands.BuildExecution(ctx, species, record, defaultHatch ? HatchLibrary.KeyFor(species) : null);
+                    ctx.Massings.ChangeSpecies(ctx.Doc, region, execution);
+                    changedMassings++;
+                }
+                catch (ViridianException ex)
+                {
+                    problems.Add($"{record.Id}: {ex.Message}");
+                }
             }
 
             ctx.Labels.UpdateAll(ctx.Doc);
             return (changedPlants, changedMassings);
         }, _ => true);
 
-        ShowInfo("Substituição concluída", $"{done.Plants} exemplar(es) e {done.Massings} maciço(s) passaram a ser {species.DisplayName}. Códigos e posições foram preservados.");
+        ShowInfo("Substituição concluída",
+            $"{done.Plants} exemplar(es) e {done.Massings} maciço(s) passaram a ser {species.DisplayName}. Posições, códigos e dados foram preservados."
+            + (problems.Count == 0 ? string.Empty : "\n\nNão substituídos:\n" + string.Join("\n", problems.Take(10))));
         return Result.Succeeded;
+    }
+
+    /// <summary>Exemplares isolados e maciços de uma espécie, no projeto ou só na vista (maciços da vista e exemplares do nível dela).</summary>
+    private static (List<FamilyInstance> Plants, List<FilledRegion> Massings) Occurrences(ViridianContext ctx, Species species, View? view)
+    {
+        string level = view is null ? string.Empty : PlantingService.LevelOf(view)?.Name ?? string.Empty;
+        var plantIds = PlantingService.ReadPlants(ctx.Doc, ctx.Lookup)
+            .Where(p => string.Equals(p.SpeciesId.Trim(), species.Id, StringComparison.OrdinalIgnoreCase) && !p.BelongsToMassing
+                        && (view is null || string.Equals(p.LevelName, level, StringComparison.Ordinal)))
+            .Select(p => new ElementId(p.ElementId));
+        List<FamilyInstance> plants = PlantingService.PlantingInstances(ctx.Doc, plantIds);
+        List<FilledRegion> massings = MassingService.ReadMassings(ctx.Doc)
+            .Where(m => string.Equals(m.Record.SpeciesId.Trim(), species.Id, StringComparison.OrdinalIgnoreCase)
+                        && (view is null || m.ViewId == view.Id.Value))
+            .Select(m => ctx.Doc.GetElement(new ElementId(m.ElementId)))
+            .OfType<FilledRegion>()
+            .ToList();
+        return (plants, massings);
     }
 
     private sealed class PlantOrMassingFilter : ISelectionFilter
