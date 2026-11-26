@@ -175,7 +175,9 @@ public static class Sketch
             for (int k = 0; k <= 10; k++)
             {
                 double t = k / 10.0;
-                double droop = t * t * len * 0.55;
+                // Folhas quase em pé caem menos: com a queda cheia, a nervura voltaria sobre si mesma e a lâmina
+                // cruzaria o próprio contorno (o Revit recusa a região).
+                double droop = t * t * len * (0.15 + 0.4 * Math.Abs(Math.Cos(a)));
                 spine.Add(top + new Point2(Math.Cos(a) * len * t, Math.Sin(a) * len * t * 0.75 - droop));
             }
 
@@ -188,7 +190,7 @@ public static class Sketch
                 blade.Add(spine[k] + dir.Perp() * w);
             }
 
-            for (int k = 10; k >= 0; k--)
+            for (int k = 9; k >= 1; k--) // pontas (largura zero) já estão no lado de cima
             {
                 double w = len * 0.07 * Math.Sin(Math.PI * k / 10.0);
                 Point2 dir = k < 10 ? (spine[k + 1] - spine[k]).Normalized() : (spine[k] - spine[k - 1]).Normalized();

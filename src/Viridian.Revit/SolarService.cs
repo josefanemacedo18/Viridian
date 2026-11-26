@@ -314,6 +314,24 @@ public static class SolarService
         return report;
     }
 
+    /// <summary>Fresta entre faixas vizinhas da malha (metros): 1% da célula, no mínimo 3 mm.</summary>
+    private static double StripGap(double cell) => Math.Max(cell * 0.01, 0.003);
+
+    private static List<CurveLoop> StripLoops(IEnumerable<Bounds2> boxes, double z, double shortCurve)
+    {
+        var loops = new List<CurveLoop>();
+        foreach (Bounds2 box in boxes)
+        {
+            CurveLoop? loop = SafeRegions.Rectangle(RevitUnits.ToXyz(new Point2(box.MinX, box.MinY), z), RevitUnits.ToXyz(new Point2(box.MaxX, box.MaxY), z), shortCurve);
+            if (loop is not null)
+            {
+                loops.Add(loop);
+            }
+        }
+
+        return loops;
+    }
+
     /// <summary>Quadro de sombras de hora em hora de uma data, em vista de desenho (refeito a cada estudo). Precisa de transação.</summary>
     public static ViewDrafting ShadeSheetView(Document document, ViewPlan source, Polygon2 region, SolarReport report, SolarDate date,
         IReadOnlyList<ShadeFrame> frames, IReadOnlyList<ShadeRow> rows, string stageText, double textMm)
@@ -350,24 +368,22 @@ public static class SolarService
         view.Name = name;
         double z = source.GenLevel?.ProjectElevation ?? 0;
         List<Point2> grid = report.Grid.Select(g => g.Plan).ToList();
-        double gap = report.Cell * 0.02; // faixas não podem se tocar dentro da mesma região preenchida
-        foreach (IGrouping<int, (int Class, Bounds2 Box)> group in HourlyShade.Runs(grid, report.Cell, i => HourlyShade.ShadeClass(frame.Grid[i])).GroupBy(r => r.Class))
+        // Faixas da mesma classe não podem se tocar dentro de uma região preenchida (o Revit recusa a região inteira).
+        double shortCurve = document.Application.ShortCurveTolerance;
+        List<(int Class, Bounds2 Box)> strips = HourlyShade.RegionStrips(
+            HourlyShade.Runs(grid, report.Cell, i => HourlyShade.ShadeClass(frame.Grid[i])), StripGap(report.Cell));
+        foreach (IGrouping<int, (int Class, Bounds2 Box)> group in strips.GroupBy(r => r.Class))
         {
-            var loops = new List<CurveLoop>();
-            foreach ((int _, Bounds2 box) in group)
-            {
-                XYZ a = RevitUnits.ToXyz(new Point2(box.MinX + gap, box.MinY + gap), z), b = RevitUnits.ToXyz(new Point2(box.MaxX - gap, box.MinY + gap), z);
-                XYZ c = RevitUnits.ToXyz(new Point2(box.MaxX - gap, box.MaxY - gap), z), d = RevitUnits.ToXyz(new Point2(box.MinX + gap, box.MaxY - gap), z);
-                loops.Add(CurveLoop.Create(new List<Curve> { Line.CreateBound(a, b), Line.CreateBound(b, c), Line.CreateBound(c, d), Line.CreateBound(d, a) }));
-            }
-
+            List<CurveLoop> loops = StripLoops(group.Select(g => g.Box), z, shortCurve);
             if (loops.Count == 0 || HatchService.EnsureSolidRegionType(document, group.Key == 0 ? HourlyShade.ShadeColor : HourlyShade.PartialColor) is not FilledRegionType type)
             {
                 continue;
             }
 
-            FilledRegion shade = FilledRegion.Create(document, type.Id, view.Id, loops);
-            view.SetElementOverrides(shade.Id, new OverrideGraphicSettings().SetSurfaceTransparency(group.Key == 0 ? 35 : 55));
+            foreach (FilledRegion shade in SafeRegions.Create(document, type.Id, view.Id, loops, "Sombras na planta"))
+            {
+                view.SetElementOverrides(shade.Id, new OverrideGraphicSettings().SetSurfaceTransparency(group.Key == 0 ? 35 : 55));
+            }
         }
 
         // Contorno da sombra de cada copa (tracejado), direção do sol e legenda.
@@ -493,24 +509,20 @@ public static class SolarService
         }
 
         view.Name = name;
-        double half = report.Cell * 0.48;
         double z = source.GenLevel?.ProjectElevation ?? 0; // pés: plano da planta
         IReadOnlyList<(double From, double To, string Color, string Label)> bins = SolarClasses.Bins(settings);
         // Células da mesma faixa unidas em faixas horizontais (menos contornos) e regiões sem linha de contorno: o mapa
         // fica contínuo, sem a grade aparecendo.
         ElementId? invisible = HatchService.InvisibleLineStyle(document);
         List<Point2> points = report.Grid.Select(g => g.Plan).ToList();
-        List<(int Class, Bounds2 Box)> runs = HourlyShade.Runs(points, report.Cell, i => SolarClasses.BinOf(hours(report.Grid[i].Point), settings));
+        // Faixas de linhas vizinhas encostam umas nas outras, e o Revit recusa uma região com contornos que se tocam:
+        // as faixas empilhadas são unidas e todas recuam uma fresta mínima (invisível na impressão).
+        List<(int Class, Bounds2 Box)> runs = HourlyShade.RegionStrips(
+            HourlyShade.Runs(points, report.Cell, i => SolarClasses.BinOf(hours(report.Grid[i].Point), settings)), StripGap(report.Cell));
+        double shortCurve = document.Application.ShortCurveTolerance;
         for (int bin = 0; bin < bins.Count; bin++)
         {
-            var loops = new List<CurveLoop>();
-            foreach ((int cls, Bounds2 box) in runs.Where(r => r.Class == bin))
-            {
-                XYZ a = RevitUnits.ToXyz(new Point2(box.MinX, box.MinY), z), b = RevitUnits.ToXyz(new Point2(box.MaxX, box.MinY), z);
-                XYZ c = RevitUnits.ToXyz(new Point2(box.MaxX, box.MaxY), z), d = RevitUnits.ToXyz(new Point2(box.MinX, box.MaxY), z);
-                loops.Add(CurveLoop.Create(new List<Curve> { Line.CreateBound(a, b), Line.CreateBound(b, c), Line.CreateBound(c, d), Line.CreateBound(d, a) }));
-            }
-
+            List<CurveLoop> loops = StripLoops(runs.Where(r => r.Class == bin).Select(r => r.Box), z, shortCurve);
             if (loops.Count == 0)
             {
                 continue;
@@ -522,20 +534,22 @@ public static class SolarService
                 continue;
             }
 
-            FilledRegion region2 = FilledRegion.Create(document, type.Id, view.Id, loops);
-            if (invisible is not null)
+            foreach (FilledRegion region2 in SafeRegions.Create(document, type.Id, view.Id, loops, "Mapa solar"))
             {
-                try
+                if (invisible is not null)
                 {
-                    region2.SetLineStyleId(invisible);
+                    try
+                    {
+                        region2.SetLineStyleId(invisible);
+                    }
+                    catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+                    {
+                        ViridianLog.Warn("Estudo solar: contorno invisível no mapa", ex);
+                    }
                 }
-                catch (Autodesk.Revit.Exceptions.ApplicationException ex)
-                {
-                    ViridianLog.Warn("Estudo solar: contorno invisível no mapa", ex);
-                }
-            }
 
-            view.SetElementOverrides(region2.Id, new OverrideGraphicSettings().SetSurfaceTransparency(35));
+                view.SetElementOverrides(region2.Id, new OverrideGraphicSettings().SetSurfaceTransparency(35));
+            }
         }
 
         // Legenda à direita da região, dimensionada pela escala da vista.

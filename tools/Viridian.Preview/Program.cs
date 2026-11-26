@@ -39,6 +39,43 @@ if (args.Contains("--catalogo"))
 }
 
 
+if (args.Contains("--verificar"))
+{
+    // Confere se cada área colorida dos desenhos seria aceita pelo Revit como região preenchida: depois de descartar
+    // lados menores que a tolerância do Revit (0,78 mm x 1,5), o contorno precisa ter 3 pontos e não cruzar a si mesmo.
+    const double shortCurve = 0.0007986 * 1.5;
+    _ = WaterSolarPreview.Solar();
+    var all = SvgSheets.Stage1Drawings().Select(d => (d.Name, d.Drawing))
+        .Concat(SvgSheets.ExtraDrawings().Select(d => (d.Name, d.Drawing)))
+        .Append(("calendario-luz", WaterSolarPreview.LastCalendar!))
+        .Append(("sombras-por-horario", WaterSolarPreview.LastShadeSheet!));
+    int bad = 0;
+    foreach ((string name, Viridian.Core.Detailing.Drawing drawing) in all)
+    {
+        int crossing = 0, tiny = 0;
+        foreach (var fill in drawing.Fills)
+        {
+            var pts = new List<Viridian.Core.Geometry.Point2>();
+            foreach (var p in fill.Outline)
+            {
+                if (pts.Count == 0 || pts[^1].DistanceTo(p) >= shortCurve) { pts.Add(p); }
+            }
+
+            while (pts.Count > 2 && pts[^1].DistanceTo(pts[0]) < shortCurve) { pts.RemoveAt(pts.Count - 1); }
+            var fb = new Viridian.Core.Geometry.Polygon2(fill.Outline).Bounds;
+            string where = $"[{fb.MinX:0.###},{fb.MinY:0.###} {fb.Width * 1000:0.#}x{fb.Height * 1000:0.#} mm, {fill.Outline.Count} pts, cor {fill.Color}]";
+            if (pts.Count < 3) { tiny++; if (args.Contains("-v")) { Console.WriteLine("   pequena " + where); } continue; }
+            if (new Viridian.Core.Geometry.Polygon2(pts).HasSelfIntersections()) { crossing++; Console.WriteLine("   cruzada " + where); }
+        }
+
+        bad += crossing;
+        Console.WriteLine($"{name,-34} áreas {drawing.Fills.Count,5}  cruzadas {crossing,4}  pequenas {tiny,4}");
+    }
+
+    Console.WriteLine(bad == 0 ? "OK: nenhuma área seria recusada" : $"ATENÇÃO: {bad} áreas cruzadas");
+    return;
+}
+
 if (args.Contains("--desenhos"))
 {
     // Só os desenhos técnicos (detalhes, cortes, quadros), para conferência rápida.

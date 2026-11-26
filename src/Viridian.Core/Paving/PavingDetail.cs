@@ -149,7 +149,8 @@ public static class PavingDetail
                 {
                     // Peças da borda recortadas no limite da amostra, como na obra.
                     List<Point2> points = ClipToRect(tile.Select(p => p * k + move).ToList(), width, height);
-                    if (points.Count < 3)
+                    // Recortes que sobram só como uma lasca ou um ponto no canto da amostra não viram área.
+                    if (points.Count < 3 || Math.Abs(Geo.SignedArea(points)) < 1e-6)
                     {
                         continue;
                     }

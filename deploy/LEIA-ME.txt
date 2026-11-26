@@ -1,4 +1,4 @@
-﻿VIRIDIAN 2.4.0 — Paisagismo 2D técnico para Autodesk Revit 2027
+﻿VIRIDIAN 2.4.1 — Paisagismo 2D técnico para Autodesk Revit 2027
 ==============================================================
 
 INSTALAR
@@ -39,6 +39,18 @@ PRIMEIROS PASSOS
 9. Estudo Solar (painel Composição): horas de sol com a sombra das copas e
    das edificações; Quadro de Especificação (painel Documentação); aba
    Compras nos relatórios.
+
+NOVIDADES DA 2.4.1
+- Estudo Solar: corrigido o erro "The input curve loops cannot compose a
+  valid boundary" ao gerar os mapas. As faixas do mapa encostavam umas nas
+  outras e o Revit recusava a área colorida, cancelando o estudo inteiro.
+  Agora as faixas saem separadas por uma fresta mínima (invisível na
+  impressão), e as sombras na planta seguem a mesma regra.
+- Proteção em todas as ferramentas que criam áreas coloridas: se o Revit
+  recusar algum contorno, só ele fica de fora (anotado no registro) e o
+  restante é criado normalmente, sem desfazer a operação.
+- Palmeiras do detalhe de plantio e do corte: folhas quase em pé não cruzam
+  mais o próprio contorno (antes eram descartadas pelo Revit).
 
 NOVIDADES DA 2.4.0
 - Folha Viridian A1 na Prancha Automática (opção padrão): moldura, faixa do

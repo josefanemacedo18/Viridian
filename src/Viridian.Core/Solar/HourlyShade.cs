@@ -148,6 +148,51 @@ public static class HourlyShade
         return result;
     }
 
+    /// <summary>
+    /// Faixas prontas para virar UMA região preenchida do Revit por classe: o Revit recusa a região inteira quando dois
+    /// contornos se tocam, e faixas de linhas vizinhas da malha encostam umas nas outras. Faixas da mesma classe
+    /// empilhadas com a mesma largura viram um retângulo só, e todas são recuadas por <paramref name="gap"/> de cada
+    /// lado, de modo que nenhum contorno da mesma classe toque outro. Faixas menores que o recuo são descartadas.
+    /// </summary>
+    public static List<(int Class, Bounds2 Box)> RegionStrips(IEnumerable<(int Class, Bounds2 Box)> runs, double gap)
+    {
+        ArgumentNullException.ThrowIfNull(runs);
+        gap = Math.Max(0, gap);
+        var result = new List<(int, Bounds2)>();
+        foreach (IGrouping<int, (int Class, Bounds2 Box)> group in runs.GroupBy(r => r.Class))
+        {
+            double eps = 1e-7;
+            List<Bounds2> boxes = group.Select(r => r.Box)
+                .OrderBy(b => Math.Round(b.MinX / 1e-6)).ThenBy(b => Math.Round(b.MaxX / 1e-6)).ThenBy(b => b.MinY).ToList();
+            var merged = new List<Bounds2>();
+            foreach (Bounds2 box in boxes)
+            {
+                if (merged.Count > 0)
+                {
+                    Bounds2 last = merged[^1];
+                    double tol = Math.Max(eps, (box.MaxY - box.MinY) * 1e-6);
+                    if (Math.Abs(last.MinX - box.MinX) <= tol && Math.Abs(last.MaxX - box.MaxX) <= tol && Math.Abs(last.MaxY - box.MinY) <= tol)
+                    {
+                        merged[^1] = new Bounds2(last.MinX, last.MinY, last.MaxX, box.MaxY);
+                        continue;
+                    }
+                }
+
+                merged.Add(box);
+            }
+
+            foreach (Bounds2 b in merged)
+            {
+                if (b.MaxX - b.MinX > 2 * gap + eps && b.MaxY - b.MinY > 2 * gap + eps)
+                {
+                    result.Add((group.Key, new Bounds2(b.MinX + gap, b.MinY + gap, b.MaxX - gap, b.MaxY - gap)));
+                }
+            }
+        }
+
+        return result;
+    }
+
     /// <summary>Classe de sombra: 0 = sombra (luz abaixo de 35%), 1 = meia-luz (35% a 75%), -1 = sol.</summary>
     public static int ShadeClass(double light) => light < 0.35 ? 0 : light < 0.75 ? 1 : -1;
 

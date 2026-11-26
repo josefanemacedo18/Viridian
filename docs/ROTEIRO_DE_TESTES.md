@@ -4,6 +4,14 @@ O código foi compilado contra a API oficial do Revit 2027 e a lógica sem depen
 
 Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Viridian\Logs` (Viridian > Sobre abre a pasta).
 
+## Conferência da versão 2.4.1 — estudo solar sem erro de contorno (cerca de 10 minutos)
+
+1. Rode o **Estudo Solar** na mesma planta e região em que aparecia a mensagem "The input curve loops cannot compose a valid boundary": o estudo termina e cria o calendário de luz e os **mapas coloridos** (média do ano e meses escolhidos).
+2. Nos mapas, as faixas de cor formam manchas contínuas; com muito zoom aparece uma fresta mínima entre as faixas (some na impressão e no PDF).
+3. Marque **cópias da planta com as sombras** (por exemplo 9h, 12h e 15h) e o **quadro de sombras**: tudo é criado sem erro.
+4. Gere o **Detalhe de Plantio** de uma palmeira e um **Corte Esquemático** que passe por uma palmeira: todas as folhas aparecem.
+5. Se ainda aparecer alguma mensagem de contorno, me envie a imagem e o registro mais recente de `%APPDATA%\Viridian\Logs`.
+
 ## Conferência da versão 2.4.0 — desenhos, legenda, memorial e Folha Viridian A1 (cerca de 25 minutos)
 
 1. **Prancha Automática:** numa planta com vegetação, abra a Prancha Automática com a opção **Folha Viridian A1** (primeira da lista). Confira: moldura A1, faixa verde do projeto no alto da coluna direita, notas gerais, rosa dos ventos (girada se o projeto tiver norte indicado), escala gráfica com a escala da planta, revisões e carimbo com os dados de Gerenciar > Informações do projeto e o número da prancha. A planta e a legenda entram **sem o título padrão do Revit** e a planta tem faixa de título própria. Exporte o **PDF**.

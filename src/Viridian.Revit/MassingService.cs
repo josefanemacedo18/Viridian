@@ -128,7 +128,7 @@ public sealed class MassingService
                 {
                     region = FilledRegion.Create(document, type.Id, view.Id, loops);
                 }
-                catch (Autodesk.Revit.Exceptions.ArgumentException ex)
+                catch (Autodesk.Revit.Exceptions.ApplicationException ex)
                 {
                     throw new ViridianException(
                         "O Revit não aceitou o limite do maciço nesta vista (use uma vista em planta e um contorno fechado sem cruzamentos).\n" + ex.Message,
