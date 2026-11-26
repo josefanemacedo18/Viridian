@@ -1,4 +1,4 @@
-﻿VIRIDIAN 2.3.2 — Paisagismo 2D técnico para Autodesk Revit 2027
+﻿VIRIDIAN 2.4.0 — Paisagismo 2D técnico para Autodesk Revit 2027
 ==============================================================
 
 INSTALAR
@@ -39,6 +39,23 @@ PRIMEIROS PASSOS
 9. Estudo Solar (painel Composição): horas de sol com a sombra das copas e
    das edificações; Quadro de Especificação (painel Documentação); aba
    Compras nos relatórios.
+
+NOVIDADES DA 2.4.0
+- Folha Viridian A1 na Prancha Automática (opção padrão): moldura, faixa do
+  projeto, notas gerais, rosa dos ventos girada pelo norte do projeto, escala
+  gráfica, revisões e carimbo com os dados de Gerenciar > Informações do
+  projeto. As vistas entram sem o título padrão do Revit.
+- Desenhos com novo acabamento: canetas fina/média/grossa, textos em negrito
+  e itálico, hachuras de material (terra, solo, brita, areia, concreto,
+  cobertura morta, madeira, água) e faixa de título com número e escala.
+- Detalhe de plantio, corte esquemático e crescimento 2D ilustrados: copa,
+  tronco e flores na cor da espécie, figura humana no corte, cobertura das
+  copas em cada quadro do crescimento.
+- Legenda por grupos (árvores, palmeiras, arbustos...), quadro de
+  especificação com símbolo e total, jardim de chuva e detalhe de piso
+  ilustrados (amostra da paginação em planta), quadro de fotos com nome em
+  negrito e científico em itálico, imagens do estudo solar em 300 dpi.
+- Memorial com capa nova, sumário e rodapé com número de página.
 
 NOVIDADES DA 2.3.2
 - Vegetação nas Pranchas colorida: as formas fixadas saíam pretas (o Revit

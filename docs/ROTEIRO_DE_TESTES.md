@@ -4,6 +4,17 @@ O código foi compilado contra a API oficial do Revit 2027 e a lógica sem depen
 
 Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Viridian\Logs` (Viridian > Sobre abre a pasta).
 
+## Conferência da versão 2.4.0 — desenhos, legenda, memorial e Folha Viridian A1 (cerca de 25 minutos)
+
+1. **Prancha Automática:** numa planta com vegetação, abra a Prancha Automática com a opção **Folha Viridian A1** (primeira da lista). Confira: moldura A1, faixa verde do projeto no alto da coluna direita, notas gerais, rosa dos ventos (girada se o projeto tiver norte indicado), escala gráfica com a escala da planta, revisões e carimbo com os dados de Gerenciar > Informações do projeto e o número da prancha. A planta e a legenda entram **sem o título padrão do Revit** e a planta tem faixa de título própria. Exporte o **PDF**.
+2. **Textos e linhas:** nos desenhos abaixo, os títulos saem em negrito, os nomes científicos em itálico, os textos das faixas verdes em branco, e as linhas em três espessuras.
+3. **Detalhe de Plantio** (árvore e palmeira): solo, terra vegetal, torrão, brita e cobertura morta com **hachura sobre a cor**; planta com copa, tronco e flores; faixa de título com número e escala e o quadro de especificação embaixo.
+4. **Corte Esquemático** e **Crescimento 2D:** figura humana e linhas-guia no corte; nos quatro quadros do crescimento, a linha "altura média · copas cobrem X%".
+5. **Legenda:** grupos com subtítulo (Árvores, Palmeiras, Arbustos...), linhas alternadas, símbolo e foto em cada linha. **Quadro de Fotos:** nome popular em negrito e científico em itálico nos cartões; arraste um cartão e confira que a moldura e a linha acompanham.
+6. **Quadro de Especificação:** miniatura do símbolo e linha de **total** (mudas e m²). **Jardim de Chuva:** corte com água, camadas hachuradas, setas e o quadro de memória de cálculo. **Gerador de Pisos > detalhe:** amostra da paginação em planta acima do corte.
+7. **Estudo Solar:** exporte as imagens: saem em 300 dpi. **Memorial Ilustrado:** capa com faixa verde, mosaico e quadro de dados, sumário e rodapé com número de página.
+8. Se algum texto sair sem negrito ou itálico, ou alguma hachura não aparecer, anote o desenho e me envie uma imagem e o registro mais recente de `%APPDATA%\Viridian\Logs`.
+
 ## Conferência da versão 2.3.2 — cores no 3D, prancha e faixa nova (cerca de 15 minutos)
 
 Num projeto onde já rodou Vegetação nas Pranchas em versão anterior, rode de novo (as formas e os materiais são refeitos).
