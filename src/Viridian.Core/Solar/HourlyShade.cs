@@ -466,8 +466,8 @@ public static class ShadeSheet
             }
         }
 
-        // Norte verdadeiro: círculo, seta cheia girada e "N".
-        Point2 nOrigin = new(origin.X + b.Width * k - 0.0062, origin.Y - 0.0085);
+        // Norte verdadeiro: fora do desenho, no canto superior direito, na linha do horário (círculo, seta girada e "N").
+        Point2 nOrigin = new(origin.X + b.Width * k - 0.0040, origin.Y + 0.0058);
         Point2 up = new Point2(0, 1).Rotate(trueNorthRad), across = up.Perp();
         g.Fills.Add(new DrawFill(Drawing.Ellipse(nOrigin, 0.0038, 0.0038, 28), new Rgb(0xFF, 0xFF, 0xFF)));
         g.Strokes(Drawing.Ellipse(nOrigin, 0.0038, 0.0038, 28), true, LinePen.Fina);
