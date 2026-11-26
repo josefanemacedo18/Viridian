@@ -328,6 +328,15 @@ internal static class SvgSheets
         }
 
         yield return ("legenda", legend.Drawing, 60, 100);
+
+        var frame = Viridian.Core.Sheets.SheetFrame.Build(new Viridian.Core.Sheets.SheetFrameInfo
+        {
+            Project = "Residência Jardim das Palmeiras", ProjectNumber = "PAI-2026-014", Client = "Família Silva",
+            Address = "Rua das Acácias, 120 — Ribeirão Preto/SP", Author = "Arq. Paisagista Responsável", Office = "Estúdio de Paisagismo",
+            SheetName = "Planta de paisagismo — implantação", SheetNumber = "PSG-01", Date = "26/11/2026", Scale = 100, NorthDeg = 18,
+            Notes = Viridian.Core.Sheets.SheetFrame.DefaultNotes,
+        });
+        yield return ("folha-a1", frame, 2600, 1);
     }
 
     /// <summary>SVG de um desenho do Viridian (metros × fator em pixels). <paramref name="scale"/>: escala de papel das hachuras.</summary>

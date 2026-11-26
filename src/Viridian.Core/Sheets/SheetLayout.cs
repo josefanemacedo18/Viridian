@@ -51,6 +51,12 @@ public sealed class SheetLayoutInput
 
     /// <summary>Espaço entre os elementos.</summary>
     public double GapMm { get; set; } = 8;
+
+    /// <summary>Largura mínima da coluna lateral (folha com coluna desenhada); zero = a da legenda e da tabela.</summary>
+    public double MinColumnWidthMm { get; set; }
+
+    /// <summary>Espaço reservado no alto da coluna (faixa de título da folha), acima da legenda.</summary>
+    public double ColumnTopInsetMm { get; set; }
 }
 
 /// <summary>Posições calculadas na prancha.</summary>
@@ -68,6 +74,9 @@ public sealed class SheetLayoutResult
     public bool PlanFits { get; init; }
 
     public bool ColumnFits { get; init; }
+
+    /// <summary>Largura da coluna lateral usada (mm); zero quando não há coluna.</summary>
+    public double ColumnWidthMm { get; init; }
 
     public List<string> Warnings { get; } = new();
 }
@@ -91,7 +100,7 @@ public static class SheetLayout
         double gap = Math.Max(0, input.GapMm);
         bool hasLegend = input.LegendWidthMm > 0 && input.LegendHeightMm > 0;
         bool hasSchedule = input.ScheduleWidthMm > 0 && input.ScheduleHeightMm > 0;
-        double columnWidth = Math.Max(hasLegend ? input.LegendWidthMm : 0, hasSchedule ? input.ScheduleWidthMm : 0);
+        double columnWidth = Math.Max(Math.Max(0, input.MinColumnWidthMm), Math.Max(hasLegend ? input.LegendWidthMm : 0, hasSchedule ? input.ScheduleWidthMm : 0));
 
         PaperRect planArea = columnWidth > 0
             ? new PaperRect(usable.MinX, usable.MinY, usable.MaxX - columnWidth - gap, usable.MaxY)
@@ -100,7 +109,7 @@ public static class SheetLayout
         PaperRect plan = PaperRect.FromCenter(planArea.CenterX, planArea.CenterY, input.PlanWidthMm, input.PlanHeightMm);
 
         double columnLeft = usable.MaxX - columnWidth;
-        double top = usable.MaxY;
+        double top = usable.MaxY - Math.Max(0, input.ColumnTopInsetMm);
         PaperRect? legend = null;
         PaperRect? schedule = null;
         if (hasLegend)
@@ -124,6 +133,7 @@ public static class SheetLayout
             PlanArea = planArea,
             PlanFits = planFits,
             ColumnFits = columnFits,
+            ColumnWidthMm = columnWidth,
         };
 
         CultureInfo pt = CultureInfo.GetCultureInfo("pt-BR");

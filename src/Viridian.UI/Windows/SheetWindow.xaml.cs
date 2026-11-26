@@ -5,7 +5,7 @@ namespace Viridian.UI.Windows;
 /// <summary>Opções escolhidas para a prancha.</summary>
 public sealed class SheetOptions
 {
-    /// <summary>Identificador do tipo de carimbo; -1 = sem carimbo.</summary>
+    /// <summary>Identificador do tipo de carimbo; -1 = sem carimbo; -2 = Folha Viridian A1 (desenhada pelo plugin).</summary>
     public long TitleBlockId { get; set; } = -1;
 
     public string Number { get; set; } = string.Empty;
@@ -34,15 +34,15 @@ public partial class SheetWindow : ViridianWindow
     {
         InitializeComponent();
         ViewText.Text = viewDescription;
+        TitleBlockBox.Items.Add(new Choice<long>("Folha Viridian A1 (moldura, carimbo, norte e escala do plugin)", -2));
         TitleBlockBox.Items.Add(new Choice<long>("(sem carimbo — folha A1)", -1));
         foreach ((string label, long id) in titleBlocks)
         {
             TitleBlockBox.Items.Add(new Choice<long>(label, id));
         }
 
-        // Prefere um carimbo A1 quando houver; senão o primeiro carregado.
-        int a1 = titleBlocks.ToList().FindIndex(t => t.Label.Contains("A1", StringComparison.OrdinalIgnoreCase));
-        TitleBlockBox.SelectedIndex = titleBlocks.Count == 0 ? 0 : (a1 >= 0 ? a1 : 0) + 1;
+        // Padrão: a Folha Viridian A1 (os carimbos do escritório continuam na lista).
+        TitleBlockBox.SelectedIndex = 0;
         NumberBox.Text = suggestedNumber;
         NameBox.Text = "Planta de paisagismo";
         StampBox.Text = "70";

@@ -56,6 +56,9 @@ public sealed class SheetCommand : CommandBase
             var request = new SheetRequest
             {
                 TitleBlockTypeId = options.TitleBlockId > 0 ? new ElementId(options.TitleBlockId) : ElementId.InvalidElementId,
+                ViridianFrame = options.TitleBlockId == -2,
+                NorthDeg = SolarService.EffectiveNorth(doc, ctx.Settings.Solar).Degrees,
+                TextMm = ctx.Settings.Labels.TextSizeMm,
                 Number = options.Number,
                 Name = options.Name,
                 FitScale = options.FitScale,

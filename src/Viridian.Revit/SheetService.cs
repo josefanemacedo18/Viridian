@@ -1,4 +1,6 @@
 using Autodesk.Revit.DB;
+using Viridian.Core.Geometry;
+using Viridian.Core.Detailing;
 using Viridian.Core.Sheets;
 using Viridian.Library;
 
@@ -19,6 +21,15 @@ public sealed class SheetRequest
 
     /// <summary>Altura reservada ao carimbo no pé da coluna da direita, em milímetros.</summary>
     public double StampReserveMm { get; set; } = 70;
+
+    /// <summary>Folha Viridian A1 desenhada pelo plugin (moldura, carimbo, rosa dos ventos e escala gráfica).</summary>
+    public bool ViridianFrame { get; set; }
+
+    /// <summary>Norte verdadeiro (graus anti-horários a partir do alto), para a rosa dos ventos da Folha Viridian.</summary>
+    public double NorthDeg { get; set; }
+
+    /// <summary>Altura do texto no papel (mm) dos desenhos da folha.</summary>
+    public double TextMm { get; set; } = 2.0;
 }
 
 /// <summary>Resultado da criação da prancha.</summary>
@@ -103,13 +114,13 @@ public static class SheetService
     /// <summary>Cria a prancha. Precisa de transação aberta.</summary>
     public static SheetOutcome Create(Document document, View plan, ViewDrafting? legend, ViewSchedule? schedule, SheetRequest request)
     {
-        ViewSheet sheet = ViewSheet.Create(document, request.TitleBlockTypeId);
+        ViewSheet sheet = ViewSheet.Create(document, request.ViridianFrame ? ElementId.InvalidElementId : request.TitleBlockTypeId);
         var outcome = new SheetOutcome(sheet);
         SetNumberAndName(document, sheet, request, outcome.Messages);
         document.Regenerate();
 
-        PaperRect paper = PaperOf(document, sheet);
-        PaperRect usable = SheetLayout.UsableArea(paper);
+        PaperRect paper = request.ViridianFrame ? new PaperRect(0, 0, SheetFrame.WidthMm, SheetFrame.HeightMm) : PaperOf(document, sheet);
+        PaperRect usable = request.ViridianFrame ? SheetFrame.Usable : SheetLayout.UsableArea(paper);
 
         View planView = PlacePlanView(document, sheet, plan, outcome.Messages);
 
@@ -145,7 +156,9 @@ public static class SheetService
             LegendHeightMm = legendBox?.Height ?? 0,
             ScheduleWidthMm = scheduleBox?.Width ?? 0,
             ScheduleHeightMm = scheduleBox?.Height ?? 0,
-            StampReserveMm = request.TitleBlockTypeId == ElementId.InvalidElementId ? 0 : request.StampReserveMm,
+            StampReserveMm = request.ViridianFrame ? SheetFrame.StampBlockMm + 3 : request.TitleBlockTypeId == ElementId.InvalidElementId ? 0 : request.StampReserveMm,
+            MinColumnWidthMm = request.ViridianFrame ? SheetFrame.ColumnMm - 10 : 0,
+            ColumnTopInsetMm = request.ViridianFrame ? 30 : 0,
         };
         SheetLayoutResult layout = SheetLayout.Compute(input);
 
@@ -186,7 +199,95 @@ public static class SheetService
             scheduleInstance.Point = scheduleInstance.Point + delta;
         }
 
+        if (request.ViridianFrame)
+        {
+            // A folha traz as faixas de título: as janelas de vista ficam sem o título próprio do Revit.
+            if (NoTitleViewportType(document, planPort) is ElementId noTitle)
+            {
+                planPort.ChangeTypeId(noTitle);
+                legendPort?.ChangeTypeId(noTitle);
+                document.Regenerate();
+                planPort.SetBoxCenter(ToSheet(layout.Plan.CenterX, layout.Plan.CenterY));
+                if (legendPort is not null && layout.Legend is PaperRect legendBoxAgain)
+                {
+                    legendPort.SetBoxCenter(ToSheet(legendBoxAgain.CenterX, legendBoxAgain.CenterY));
+                }
+            }
+
+            DrawFrame(document, sheet, planView, layout, request);
+        }
+
         return outcome;
+    }
+
+    /// <summary>Tipo de janela de vista "VIR Sem título" (título do Revit oculto), criado a partir do tipo atual.</summary>
+    private static ElementId? NoTitleViewportType(Document document, Viewport viewport)
+    {
+        const string name = "VIR Sem título";
+        try
+        {
+            using var collector = new FilteredElementCollector(document);
+            ElementType? existing = collector.OfClass(typeof(ElementType)).Cast<ElementType>()
+                .FirstOrDefault(t => t.Name == name && t.get_Parameter(BuiltInParameter.VIEWPORT_ATTR_SHOW_LABEL) is not null);
+            if (existing is not null)
+            {
+                return existing.Id;
+            }
+
+            if (document.GetElement(viewport.GetTypeId()) is not ElementType current || current.Duplicate(name) is not ElementType created)
+            {
+                return null;
+            }
+
+            created.get_Parameter(BuiltInParameter.VIEWPORT_ATTR_SHOW_LABEL)?.Set(0);
+            return created.Id;
+        }
+        catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+        {
+            Library.ViridianLog.Warn("Folha Viridian: tipo de janela de vista sem título.", ex);
+            return null;
+        }
+    }
+
+    /// <summary>Desenha a Folha Viridian A1 na prancha e a faixa de título da planta. Precisa de transação.</summary>
+    private static void DrawFrame(Document document, ViewSheet sheet, View plan, SheetLayoutResult layout, SheetRequest request)
+    {
+        ProjectInfo? project = document.ProjectInformation;
+        string Get(Func<ProjectInfo, string> read)
+        {
+            try
+            {
+                return project is null ? string.Empty : (read(project) ?? string.Empty).Trim();
+            }
+            catch (Autodesk.Revit.Exceptions.ApplicationException)
+            {
+                return string.Empty;
+            }
+        }
+
+        string date = Get(p => p.IssueDate);
+        var info = new SheetFrameInfo
+        {
+            Project = Get(p => p.Name),
+            ProjectNumber = Get(p => p.Number),
+            Client = Get(p => p.ClientName),
+            Address = Get(p => p.Address).Replace("\r", " ").Replace("\n", " "),
+            Author = Get(p => p.Author),
+            Office = Get(p => p.OrganizationName),
+            SheetName = sheet.Name,
+            SheetNumber = sheet.SheetNumber,
+            Date = date.Length > 0 ? date : DateTime.Now.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.GetCultureInfo("pt-BR")),
+            Scale = plan.Scale,
+            NorthDeg = request.NorthDeg,
+            Notes = SheetFrame.DefaultNotes,
+        };
+        Drawing frame = SheetFrame.Build(info, layout.ColumnWidthMm + 10);
+
+        // Faixa de título da planta, logo abaixo dela.
+        double mm = 0.001;
+        frame.TitleBar(new Point2(layout.Plan.MinX * mm, (layout.Plan.MinY - 9) * mm), Math.Min(layout.Plan.Width, 220) * mm, mm, "1",
+            sheet.Name.Length > 0 ? sheet.Name : "Planta de paisagismo", "ESCALA 1:" + plan.Scale);
+        new DrawingRenderer(document, sheet, request.TextMm).Render(frame, Point2.Zero);
     }
 
     private static void SetNumberAndName(Document document, ViewSheet sheet, SheetRequest request, List<string> messages)

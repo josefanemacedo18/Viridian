@@ -58,7 +58,17 @@ public sealed class DrawingRenderer
         }
 
         EnsureLineStyles();
-        double dash = 2.0 * Math.Max(1, _view.Scale) / 1000.0;
+        int viewScale;
+        try
+        {
+            viewScale = _view is ViewSheet ? 1 : Math.Max(1, _view.Scale);
+        }
+        catch (Autodesk.Revit.Exceptions.ApplicationException)
+        {
+            viewScale = 1;
+        }
+
+        double dash = 2.0 * viewScale / 1000.0;
         foreach (DrawLine line in drawing.Lines)
         {
             Point2 a = line.A + origin;
