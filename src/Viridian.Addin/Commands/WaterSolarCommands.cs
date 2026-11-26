@@ -237,7 +237,11 @@ public sealed class SolarStudyCommand : CommandBase
         {
             shadesText += $" {deciduous} espécie(s) de árvore decídua ou semidecídua: sombra mais rala nos meses sem folhas (confira a Folhagem na ficha).";
         }
-        string message = $"{period}. Local: {site.Describe()}. "
+        string geometry = !settings.IncludeBuildings ? "Edificações não consideradas."
+            : report.ObstacleTriangles > 0 ? $"Edificações, muros e terreno pela geometria do modelo ({report.ObstacleTriangles:N0} triângulos)."
+            : "Nenhuma edificação encontrada perto da região.";
+        string message = $"{period}. Local: {site.Describe()}. {SolarService.NorthSentence(report)}. {geometry} "
+                         + $"{shading.Count} planta(s) fazendo sombra, {report.Plants.Count} analisada(s) na região. "
                          + $"Média anual de {SolarClasses.Hours(average)} h de sol direto na região ({report.Grid.Count} pontos a cada {report.Cell:0.0} m): "
                          + $"sol pleno (≥ {SolarClasses.Hours(settings.FullSunHours)} h) em {Percent(full, report.Grid.Count)}, "
                          + $"menos de {SolarClasses.Hours(settings.ShadeHours)} h em {Percent(shade, report.Grid.Count)}. "

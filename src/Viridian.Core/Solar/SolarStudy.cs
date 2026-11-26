@@ -353,9 +353,9 @@ public sealed record CrownObstacle(string Id, Vec3 Center, double Radius, double
         return species.Category switch
         {
             PlantCategory.Arvore => new CrownObstacle(id, ground + new Vec3(0, 0, height * 0.66), r, Math.Max(0.2, height * 0.34), 0.85, z, mask, factor,
-                Math.Clamp(height * 0.016, 0.05, 0.35)),
+                Math.Clamp(height * 0.014, 0.05, 0.3)),
             PlantCategory.Palmeira => new CrownObstacle(id, ground + new Vec3(0, 0, Math.Max(0.3, height - r * 0.2)), r, Math.Max(0.2, r * 0.4), 0.55, z, 0, 1,
-                Math.Clamp(height * 0.02, 0.08, 0.3)),
+                Math.Clamp(height * 0.012, 0.08, 0.18)),
             PlantCategory.Arbusto or PlantCategory.Trepadeira when height >= 0.8 => new CrownObstacle(id, ground + new Vec3(0, 0, height / 2), r, height / 2, 0.9, z, mask, factor),
             _ => null,
         };

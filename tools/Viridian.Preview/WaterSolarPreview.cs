@@ -30,6 +30,21 @@ internal static class WaterSolarPreview
     /// <summary>Quadro de sombras por horário do último estudo simulado.</summary>
     public static Viridian.Core.Detailing.Drawing? LastShadeSheet { get; private set; }
 
+    private static IEnumerable<(Tri3, bool)> Box(double x0, double y0, double x1, double y1, double z0, double z1)
+    {
+        Vec3[] c =
+        {
+            new(x0, y0, z0), new(x1, y0, z0), new(x1, y1, z0), new(x0, y1, z0),
+            new(x0, y0, z1), new(x1, y0, z1), new(x1, y1, z1), new(x0, y1, z1),
+        };
+        int[][] faces = { new[] { 0, 1, 2, 3 }, new[] { 4, 5, 6, 7 }, new[] { 0, 1, 5, 4 }, new[] { 1, 2, 6, 5 }, new[] { 2, 3, 7, 6 }, new[] { 3, 0, 4, 7 } };
+        foreach (int[] f in faces)
+        {
+            yield return (new Tri3(c[f[0]], c[f[1]], c[f[2]]), false);
+            yield return (new Tri3(c[f[0]], c[f[2]], c[f[3]]), false);
+        }
+    }
+
     public static string Solar()
     {
         List<Species> all = SeedCatalog.CreateSpecies();
@@ -88,13 +103,30 @@ internal static class WaterSolarPreview
             rows.Add(new LightCalendarRow("XX-0 " + name, sp.Hours, PlantLight.Evaluate(need, sp.Hours, dates, settings), 1));
         }
 
-        // Quadro de sombras de julho em Brasília (copas adultas e o bloco de 9 m).
-        var site = new SolarSite(-15.78, -47.88, -3, "Brasília", SiteSource.Projeto);
-        SolarDate july = dates[6];
-        var plantPoints = samples.Select((s, i) => (new Vec3(s.At.X, s.At.Y, 0.6), "p" + i)).ToList();
-        List<ShadeFrame> frames = HourlyShade.Compute(grid.Select(p => new Vec3(p.X, p.Y, 0.3)).ToList(), plantPoints, crowns, site, july, 7, 17, v => v, Blocked);
-        var shadeRows = samples.Select((s, i) => new ShadeRow("XX-0 " + s.Name, new[] { i })).ToList();
-        LastShadeSheet = ShadeSheet.Build("Sombras por horário — Julho", site, july, frames, grid, cell, region, crowns, shadeRows, 0, true, "copas adultas");
+        // Quadro de sombras parecido com um caso real: jardim de 30 × 8 m entre muros de 2,2 m, edificação de 6 m na
+        // ponta direita, ipê, palmeira e uma pata-de-vaca fora da região; Porto Franco (MA), 14 de novembro, norte
+        // verdadeiro para a DIREITA da planta.
+        var site = new SolarSite(-6.357, -47.2978, -3, "Porto Franco, Brasil", SiteSource.Digitado);
+        SolarDate november = dates[10];
+        var garden = new Polygon2(new[] { new Point2(0, 0), new Point2(30, 0), new Point2(30, 8), new Point2(0, 8) });
+        var mesh = new ObstacleMesh(Box(0, -0.2, 30, 0, 0, 2.2).Concat(Box(0, 8, 30, 8.2, 0, 2.2)).Concat(Box(22, 0, 30, 8, 0, 6)));
+        Species palm = all.First(sp => sp.Category == PlantCategory.Palmeira);
+        Species bauhinia = all.FirstOrDefault(sp => sp.ScientificName.StartsWith("Bauhinia", StringComparison.Ordinal)) ?? ipe;
+        var gardenCrowns = new List<CrownObstacle>
+        {
+            CrownObstacle.For("ipe", ipe, new Vec3(5, 5, 0), GrowthStage.Maturidade)!,
+            CrownObstacle.For("palm", palm, new Vec3(11, 2, 0), GrowthStage.Maturidade)!,
+            CrownObstacle.For("pata", bauhinia, new Vec3(16, -2.5, 0), GrowthStage.Maturidade)!,
+        };
+        double north = -Math.PI / 2; // norte para a direita
+        Func<Vec3, Vec3> toModel = v => v.RotateZ(north);
+        (List<Point2> gardenGrid, double gardenCell) = SolarStudy.Grid(garden, 0.5, 1200);
+        var gardenPlants = new List<(Vec3, string)> { (new Vec3(5, 5, 6), "ipe"), (new Vec3(11, 2, 8), "palm") };
+        List<ShadeFrame> frames = HourlyShade.Compute(gardenGrid.Select(p => new Vec3(p.X, p.Y, 0.3)).ToList(), gardenPlants, gardenCrowns, site, november, 7, 17,
+            toModel, mesh.Blocks, default, new ShadeGeometry(garden, 0, mesh, ShadowField.ResolutionFor(garden.Bounds)));
+        var shadeRows = new List<ShadeRow> { new("AR-001 Ipê-amarelo", new[] { 0 }), new("PA-001 Palmeira", new[] { 1 }) };
+        LastShadeSheet = ShadeSheet.Build("Sombras por horário — Novembro", site, november, frames, gardenGrid, gardenCell, garden, gardenCrowns, shadeRows, north, true,
+            "copas adultas", "Norte verdadeiro 90° à direita do topo da planta", mesh.Count + " triângulos lidos do modelo");
 
         LastCalendar = LightCalendar.Build("Calendário de luz — Térreo", "Mês a mês (dia típico de cada mês)",
             new SolarSite(-23.5505, -46.6333, -3, "São Paulo", SiteSource.Projeto), dates, rows, settings, true);

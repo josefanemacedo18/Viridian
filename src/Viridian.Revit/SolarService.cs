@@ -42,6 +42,12 @@ public sealed class SolarReport
 
     public TimeSpan Duration { get; set; }
 
+    /// <summary>Triângulos lidos das edificações e do terreno (0 = sem edificações consideradas).</summary>
+    public int ObstacleTriangles { get; set; }
+
+    /// <summary>Cota do plano do jardim onde as sombras foram projetadas (m).</summary>
+    public double PlaneZ { get; set; }
+
     /// <summary>Horas da malha usadas no mapa (média das datas analisadas).</summary>
     public double MapHours(SolarPoint p) => p.Average;
 }
@@ -295,6 +301,122 @@ public static class SolarService
         return view;
     }
 
+    /// <summary>Limite de triângulos lidos das edificações (modelos muito grandes ficam com o que couber).</summary>
+    private const int MaxObstacleTriangles = 600_000;
+
+    /// <summary>
+    /// Geometria real (em triângulos, metros) das edificações, muros, coberturas, pisos, pilares, massas e do terreno
+    /// a até <paramref name="reachM"/> metros da área, inclusive de modelos vinculados. Não altera o modelo.
+    /// </summary>
+    public static ObstacleMesh ReadObstacles(Document document, Bounds2 area, double reachM)
+    {
+        var triangles = new List<(Tri3, bool)>();
+        var options = new Options { DetailLevel = ViewDetailLevel.Medium, ComputeReferences = false, IncludeNonVisibleObjects = false };
+        Bounds2 near = area.Expand(reachM);
+
+        Vec3 ToVec(Transform t, XYZ p)
+        {
+            XYZ q = t.OfPoint(p);
+            return new Vec3(RevitUnits.ToMeters(q.X), RevitUnits.ToMeters(q.Y), RevitUnits.ToMeters(q.Z));
+        }
+
+        void AddMesh(Mesh mesh, Transform t, bool terrain)
+        {
+            for (int i = 0; i < mesh.NumTriangles && triangles.Count < MaxObstacleTriangles; i++)
+            {
+                MeshTriangle tri = mesh.get_Triangle(i);
+                triangles.Add((new Tri3(ToVec(t, tri.get_Vertex(0)), ToVec(t, tri.get_Vertex(1)), ToVec(t, tri.get_Vertex(2))), terrain));
+            }
+        }
+
+        void Add(GeometryElement geometry, Transform t, bool terrain)
+        {
+            foreach (GeometryObject obj in geometry)
+            {
+                if (triangles.Count >= MaxObstacleTriangles)
+                {
+                    return;
+                }
+
+                switch (obj)
+                {
+                    case Solid solid when solid.Faces.Size > 0:
+                        foreach (Face face in solid.Faces)
+                        {
+                            if (face.Triangulate() is Mesh faceMesh)
+                            {
+                                AddMesh(faceMesh, t, terrain);
+                            }
+                        }
+
+                        break;
+                    case Mesh mesh:
+                        AddMesh(mesh, t, terrain);
+                        break;
+                    case GeometryInstance instance when instance.GetInstanceGeometry() is GeometryElement inner:
+                        Add(inner, t, terrain);
+                        break;
+                }
+            }
+        }
+
+        void FromDocument(Document doc, Transform toHost)
+        {
+            // Área de busca nas coordenadas do documento (vínculos podem estar deslocados e girados).
+            Transform toDoc = toHost.Inverse;
+            var corners = new[]
+            {
+                toDoc.OfPoint(RevitUnits.ToXyz(new Point2(near.MinX, near.MinY))), toDoc.OfPoint(RevitUnits.ToXyz(new Point2(near.MaxX, near.MinY))),
+                toDoc.OfPoint(RevitUnits.ToXyz(new Point2(near.MaxX, near.MaxY))), toDoc.OfPoint(RevitUnits.ToXyz(new Point2(near.MinX, near.MaxY))),
+            };
+            var outline = new Outline(
+                new XYZ(corners.Min(c => c.X), corners.Min(c => c.Y), -30000),
+                new XYZ(corners.Max(c => c.X), corners.Max(c => c.Y), 30000));
+            using var collector = new FilteredElementCollector(doc);
+            foreach (Element element in collector.WherePasses(new ElementMulticategoryFilter(Obstacles.ToList()))
+                         .WherePasses(new BoundingBoxIntersectsFilter(outline)).WhereElementIsNotElementType())
+            {
+                if (triangles.Count >= MaxObstacleTriangles)
+                {
+                    break;
+                }
+
+                long category = element.Category?.Id.Value ?? 0;
+                bool terrain = category == (long)BuiltInCategory.OST_Toposolid || category == (long)BuiltInCategory.OST_Topography;
+                try
+                {
+                    if (element.get_Geometry(options) is GeometryElement geometry)
+                    {
+                        Add(geometry, toHost, terrain);
+                    }
+                }
+                catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+                {
+                    ViridianLog.Warn($"Estudo solar: geometria de {element.Id.Value} ignorada", ex);
+                }
+            }
+        }
+
+        FromDocument(document, Transform.Identity);
+        using (var links = new FilteredElementCollector(document))
+        {
+            foreach (RevitLinkInstance link in links.OfClass(typeof(RevitLinkInstance)).Cast<RevitLinkInstance>())
+            {
+                if (link.GetLinkDocument() is Document linked)
+                {
+                    FromDocument(linked, link.GetTotalTransform());
+                }
+            }
+        }
+
+        if (triangles.Count >= MaxObstacleTriangles)
+        {
+            ViridianLog.Warn($"Estudo solar: geometria das edificações limitada a {MaxObstacleTriangles} triângulos.");
+        }
+
+        return new ObstacleMesh(triangles);
+    }
+
     /// <summary>Calcula as horas de sol da malha e das plantas da região. Não altera o modelo.</summary>
     public static SolarReport Analyze(
         Document document,
@@ -350,8 +472,20 @@ public static class SolarService
             points.Add(sp);
         }
 
+        // Geometria real das edificações e do terreno: a mesma para as horas de sol e para o desenho das sombras.
+        ObstacleMesh? mesh = null;
         Func<Vec3, Vec3, bool>? blocked = null;
         if (settings.IncludeBuildings)
+        {
+            mesh = ReadObstacles(document, region.Bounds, 80);
+            report.ObstacleTriangles = mesh.Count;
+        }
+
+        if (mesh is { IsEmpty: false })
+        {
+            blocked = mesh.Blocks;
+        }
+        else if (settings.IncludeBuildings)
         {
             var filter = new ElementMulticategoryFilter(Obstacles.ToList());
             var intersector = new ReferenceIntersector(filter, FindReferenceTarget.Element, probe) { FindReferencesInRevitLinks = true };
@@ -376,14 +510,67 @@ public static class SolarService
         if (shadeDates is { Count: > 0 })
         {
             List<Vec3> gridPositions = report.Grid.Select(g => g.Point.Position).ToList();
+            // Plano do jardim: a cota mediana do chão da região (os pontos ficam 0,30 m acima dele).
+            List<double> grounds = gridPositions.Select(p => p.Z - 0.3).OrderBy(z => z).ToList();
+            double plane = grounds.Count == 0 ? levelZ : grounds[grounds.Count / 2];
+            var shadeGeometry = new ShadeGeometry(region, plane, mesh, ShadowField.ResolutionFor(region.Bounds));
+            report.PlaneZ = plane;
             List<(Vec3, string)> plantPositions = report.Plants.Select(p => (p.Point.Position, p.Point.IgnoreId)).ToList();
             foreach (SolarDate date in shadeDates)
             {
-                report.Shades.Add((date, HourlyShade.Compute(gridPositions, plantPositions, crowns, site, date, settings.FromHour, settings.ToHour, toModel, blocked)));
+                report.Shades.Add((date, HourlyShade.Compute(gridPositions, plantPositions, crowns, site, date, settings.FromHour, settings.ToHour, toModel, blocked,
+                    default, shadeGeometry)));
             }
         }
         report.Duration = DateTime.Now - started;
         return report;
+    }
+
+    /// <summary>Contorno fechado em planta como laço do Revit, sem lados menores que a tolerância.</summary>
+    private static CurveLoop? RingLoop(IReadOnlyList<Point2> ring, double z, double shortCurve)
+    {
+        var points = new List<XYZ>();
+        foreach (Point2 p in ring)
+        {
+            XYZ xyz = RevitUnits.ToXyz(p, z);
+            if (points.Count == 0 || points[^1].DistanceTo(xyz) >= shortCurve * 1.5)
+            {
+                points.Add(xyz);
+            }
+        }
+
+        while (points.Count > 3 && points[^1].DistanceTo(points[0]) < shortCurve * 1.5)
+        {
+            points.RemoveAt(points.Count - 1);
+        }
+
+        if (points.Count < 3)
+        {
+            return null;
+        }
+
+        try
+        {
+            var curves = new List<Curve>(points.Count);
+            for (int i = 0; i < points.Count; i++)
+            {
+                curves.Add(Line.CreateBound(points[i], points[(i + 1) % points.Count]));
+            }
+
+            return CurveLoop.Create(curves);
+        }
+        catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+        {
+            ViridianLog.Warn("Estudo solar: contorno de sombra ignorado", ex);
+            return null;
+        }
+    }
+
+    /// <summary>Frase do norte usado ("Norte verdadeiro 90° à direita do topo da planta").</summary>
+    public static string NorthSentence(SolarReport report)
+    {
+        string text = TrueNorth.Describe(Geo.RadToDeg(report.TrueNorthRad));
+        return char.ToUpperInvariant(text[0]) + text[1..];
     }
 
     /// <summary>Fresta entre faixas vizinhas da malha (metros): 1% da célula, no mínimo 3 mm.</summary>
@@ -410,7 +597,9 @@ public static class SolarService
     {
         string title = $"Sombras por horário — {date.Name}";
         Drawing drawing = ShadeSheet.Build(title, report.Site, date, frames, report.Grid.Select(g => g.Plan).ToList(), report.Cell, region,
-            report.Crowns, rows, report.TrueNorthRad, report.UsedBuildings, stageText);
+            report.Crowns, rows, report.TrueNorthRad, report.UsedBuildings, stageText, NorthSentence(report),
+            report.ObstacleTriangles > 0 ? report.ObstacleTriangles.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("pt-BR")) + " triângulos lidos do modelo"
+                : "nenhuma edificação encontrada perto da região");
         return new DesignService(textMm).DrawingView(document, PavingService.SafeName($"Viridian - Sombras por horário - {date.Name} - {source.Name}"), drawing, 1);
     }
 
@@ -440,30 +629,66 @@ public static class SolarService
         view.Name = name;
         double z = source.GenLevel?.ProjectElevation ?? 0;
         List<Point2> grid = report.Grid.Select(g => g.Plan).ToList();
-        // Faixas da mesma classe não podem se tocar dentro de uma região preenchida (o Revit recusa a região inteira).
         double shortCurve = document.Application.ShortCurveTolerance;
-        List<(int Class, Bounds2 Box)> strips = HourlyShade.RegionStrips(
-            HourlyShade.Runs(grid, report.Cell, i => HourlyShade.ShadeClass(frame.Grid[i])), StripGap(report.Cell));
-        foreach (IGrouping<int, (int Class, Bounds2 Box)> group in strips.GroupBy(r => r.Class))
+        if (frame.Rings.Count > 0)
         {
-            List<CurveLoop> loops = StripLoops(group.Select(g => g.Box), z, shortCurve);
-            if (loops.Count == 0 || HatchService.EnsureSolidRegionType(document, group.Key == 0 ? HourlyShade.ShadeColor : HourlyShade.PartialColor) is not FilledRegionType type)
+            // Sombras realistas: cada classe é uma região com os contornos dos seus dois níveis (o de dentro vira furo),
+            // então a meia-luz não fica por baixo da sombra e as edificações não são pintadas.
+            foreach ((ShadeClass cls, double outer, double inner, Rgb color, int transparency) in new[]
+                     {
+                         (ShadeClass.MeiaLuz, LightField.Levels[2], LightField.Levels[1], HourlyShade.PartialColor, 55),
+                         (ShadeClass.Sombra, LightField.Levels[1], LightField.Levels[0], HourlyShade.ShadeColor, 35),
+                     })
             {
-                continue;
-            }
+                var loops = new List<CurveLoop>();
+                foreach (ShadeRing ring in frame.Rings.Where(r => Math.Abs(r.Level - outer) < 1e-9 || Math.Abs(r.Level - inner) < 1e-9))
+                {
+                    if (RingLoop(ring.Raw, z, shortCurve) is CurveLoop loop)
+                    {
+                        loops.Add(loop);
+                    }
+                }
 
-            foreach (FilledRegion shade in SafeRegions.Create(document, type.Id, view.Id, loops, "Sombras na planta"))
+                if (loops.Count == 0 || HatchService.EnsureSolidRegionType(document, color) is not FilledRegionType type)
+                {
+                    continue;
+                }
+
+                foreach (FilledRegion shade in SafeRegions.Create(document, type.Id, view.Id, loops, "Sombras na planta (" + cls + ")"))
+                {
+                    view.SetElementOverrides(shade.Id, new OverrideGraphicSettings().SetSurfaceTransparency(transparency));
+                }
+            }
+        }
+        else
+        {
+            // Sem o campo fino: faixas da malha (não podem se tocar dentro de uma região preenchida).
+            List<(int Class, Bounds2 Box)> strips = HourlyShade.RegionStrips(
+                HourlyShade.Runs(grid, report.Cell, i => HourlyShade.ShadeClass(frame.Grid[i])), StripGap(report.Cell));
+            foreach (IGrouping<int, (int Class, Bounds2 Box)> group in strips.GroupBy(r => r.Class))
             {
-                view.SetElementOverrides(shade.Id, new OverrideGraphicSettings().SetSurfaceTransparency(group.Key == 0 ? 35 : 55));
+                List<CurveLoop> loops = StripLoops(group.Select(g => g.Box), z, shortCurve);
+                if (loops.Count == 0 || HatchService.EnsureSolidRegionType(document, group.Key == 0 ? HourlyShade.ShadeColor : HourlyShade.PartialColor) is not FilledRegionType type)
+                {
+                    continue;
+                }
+
+                foreach (FilledRegion shade in SafeRegions.Create(document, type.Id, view.Id, loops, "Sombras na planta"))
+                {
+                    view.SetElementOverrides(shade.Id, new OverrideGraphicSettings().SetSurfaceTransparency(group.Key == 0 ? 35 : 55));
+                }
             }
         }
 
         // Contorno da sombra de cada copa (tracejado), direção do sol e legenda.
         double k = view.Scale / 1000.0;
         var drawing = new Drawing();
-        foreach ((string _, IReadOnlyList<Point2> outline, double _) in frame.Shadows)
+        if (frame.Rings.Count == 0)
         {
-            drawing.Polyline(outline, true); // contínuo: tracejado viraria milhares de linhas na planta
+            foreach ((string _, IReadOnlyList<Point2> outline, double _) in frame.Shadows)
+            {
+                drawing.Polyline(outline, true); // contínuo: tracejado viraria milhares de linhas na planta
+            }
         }
 
         Bounds2 bounds = region.Bounds;
@@ -488,7 +713,10 @@ public static class SolarService
             y -= 7 * k;
         }
 
-        legend.Text(new Point2(0, y - 2 * k), "Contorno fino: sombra de cada copa no chão.", -1, 0.8);
+        legend.Text(new Point2(0, y - 2 * k), frame.Rings.Count > 0
+            ? "Sombras pela geometria do modelo e pela folhagem de cada copa."
+            : "Contorno fino: sombra de cada copa no chão.", -1, 0.8);
+        legend.Text(new Point2(0, y - 7 * k), TrueNorth.Describe(Geo.RadToDeg(report.TrueNorthRad)) + ".", -1, 0.8);
 
         // Seta do sol: da borda da região para o centro, do lado de onde vem a luz.
         var dir = new Point2(frame.ToSun.X, frame.ToSun.Y);

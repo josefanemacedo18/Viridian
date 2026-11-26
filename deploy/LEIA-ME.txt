@@ -1,4 +1,4 @@
-﻿VIRIDIAN 2.4.1 — Paisagismo 2D técnico para Autodesk Revit 2027
+﻿VIRIDIAN 2.5.0 — Paisagismo 2D técnico para Autodesk Revit 2027
 ==============================================================
 
 INSTALAR
@@ -39,6 +39,28 @@ PRIMEIROS PASSOS
 9. Estudo Solar (painel Composição): horas de sol com a sombra das copas e
    das edificações; Quadro de Especificação (painel Documentação); aba
    Compras nos relatórios.
+
+NOVIDADES DA 2.5.0
+- Estudo Solar realista:
+  * Sombras pela geometria real do modelo: edificações, muros, coberturas,
+    pisos elevados e terreno (também de modelos vinculados), projetados no
+    chão do jardim pela posição do sol em cada hora.
+  * Copas como volumes na altura real da planta, que filtram a luz pela
+    espessura de folhagem atravessada: centro da sombra escuro, borda em
+    meia-luz; palmeiras e decíduas sem folhas fazem sombra mais rala.
+    Troncos também fazem sombra.
+  * Contornos suaves, sem os quadradinhos da malha, nos quadros de sombras
+    e nas cópias da planta com as sombras.
+  * Quadro de sombras novo: painéis maiores, edificações vistas de cima,
+    contorno das copas e troncos, sol, norte girado e escala gráfica.
+- Plantas assentadas no terreno ou num piso (sem nível no Revit) agora
+  entram no estudo. Antes eram ignoradas ("Não há plantas do catálogo na
+  região") e as copas não faziam sombra. Árvores de qualquer nível fazem
+  sombra.
+- Norte verdadeiro na própria janela do estudo: mostra o norte em uso e
+  permite escolher para onde ele aponta na planta (cima, direita, baixo,
+  esquerda ou ângulo), com prévia e sugestão pelo símbolo de norte da planta
+  ou da prancha. O norte escolhido fica gravado no projeto.
 
 NOVIDADES DA 2.4.1
 - Estudo Solar: corrigido o erro "The input curve loops cannot compose a

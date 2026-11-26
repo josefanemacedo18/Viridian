@@ -4,6 +4,18 @@ O código foi compilado contra a API oficial do Revit 2027 e a lógica sem depen
 
 Se algo falhar, anote a etapa e envie o arquivo mais recente de `%APPDATA%\Viridian\Logs` (Viridian > Sobre abre a pasta).
 
+## Conferência da versão 2.5.0 — estudo solar realista e norte (cerca de 20 minutos)
+
+Use o mesmo projeto e a mesma região em que as sombras saíam retas e sem as árvores.
+
+1. **Norte:** abra o **Estudo Solar**. Na seção **Norte verdadeiro**, confira o norte atual. Se o projeto não tiver norte definido, aparece um aviso; escolha **Para a direita** (ou o ângulo certo) e confira a seta na prévia. Se houver um símbolo de norte na planta ou na prancha, ele aparece como sugestão.
+2. Rode o estudo com **Quadro de sombras** marcado. No resumo final, confira: o norte usado, quantos triângulos das edificações foram lidos e quantas plantas fazem sombra (não pode mais aparecer "Não há plantas do catálogo na região" se houver plantas na região).
+3. **Quadro de sombras:** a seta do norte de cada quadro aponta para onde você escolheu. De manhã o sol aparece do lado leste e as sombras vão para o oeste; ao meio-dia a sombra das árvores fica deslocada do tronco para o lado oposto ao sol; à tarde, o contrário.
+4. As sombras das copas são **manchas arredondadas** (centro escuro, borda em meia-luz), deslocadas pela altura da árvore, e os troncos aparecem como faixas finas. As sombras de muros e edificações seguem a forma deles, sem degraus. As edificações dentro da região aparecem em cinza.
+5. **Sombras na planta** (por exemplo 9, 12 e 15): as cópias da planta mostram as mesmas manchas suaves, semitransparentes, sem pintar por cima das edificações.
+6. Mova uma árvore e rode de novo: a sombra acompanha.
+7. Se algo ficar estranho (sombra no lado errado, árvore sem sombra), me envie uma imagem do quadro, o norte escolhido e o registro mais recente de `%APPDATA%\Viridian\Logs`.
+
 ## Conferência da versão 2.4.1 — estudo solar sem erro de contorno (cerca de 10 minutos)
 
 1. Rode o **Estudo Solar** na mesma planta e região em que aparecia a mensagem "The input curve loops cannot compose a valid boundary": o estudo termina e cria o calendário de luz e os **mapas coloridos** (média do ano e meses escolhidos).

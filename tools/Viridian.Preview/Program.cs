@@ -89,6 +89,8 @@ if (args.Contains("--desenhos"))
         File.WriteAllText(Path.Combine(outDir, name + ".svg"), SvgSheets.DrawingSvg(drawing, k, scale));
     }
 
+    _ = WaterSolarPreview.Solar();
+    File.WriteAllText(Path.Combine(outDir, "sombras-por-horario.svg"), SvgSheets.DrawingSvg(WaterSolarPreview.LastShadeSheet!, 4200, 1));
     return;
 }
 

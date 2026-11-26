@@ -23,7 +23,8 @@ public enum ShadeClass
 /// Contorno fechado de uma mancha de luz. Desenhados do maior para o menor, cada um pintado com
 /// <see cref="Fill"/>, os contornos reproduzem o mapa de luz completo, com furos e manchas dentro de manchas.
 /// </summary>
-public sealed record ShadeRing(IReadOnlyList<Point2> Points, ShadeClass Fill, double Area, double Level, bool DarkInside);
+/// <param name="Raw">Contorno sem simplificação: contornos de níveis diferentes nunca se cruzam (para regiões com furos).</param>
+public sealed record ShadeRing(IReadOnlyList<Point2> Points, ShadeClass Fill, double Area, double Level, bool DarkInside, IReadOnlyList<Point2> Raw);
 
 /// <summary>Campo de luz de um horário numa malha fina e as manchas de sombra já contornadas.</summary>
 public sealed class LightField
@@ -297,7 +298,7 @@ public static class ShadowField
 
                 bool dark = area > 0; // anti-horário: o lado escuro (abaixo do nível) fica dentro
                 ShadeClass fill = (ShadeClass)(dark ? l : l + 1);
-                rings.Add(new ShadeRing(simple, fill, Math.Abs(area), level, dark));
+                rings.Add(new ShadeRing(simple, fill, Math.Abs(area), level, dark, ring));
             }
         }
 
