@@ -155,6 +155,78 @@ public static class SolarService
         return (TrueNorth.Normalize(Geo.RadToDeg(-RevitNorthAngle(document)) + settings.NorthAdjustDeg), false);
     }
 
+    /// <summary>
+    /// Procura um símbolo de norte (anotação genérica ou componente de detalhe cujo nome tenha "norte", "north" ou
+    /// "rosa dos ventos") na planta e nas pranchas onde ela está, e devolve a direção para onde ele aponta em relação ao
+    /// topo da planta. Serve só como sugestão na janela do estudo. Nulo quando não há símbolo ou a vista já está
+    /// orientada pelo norte verdadeiro do Revit.
+    /// </summary>
+    public static NorthHint? NorthSymbolHint(Document document, View view)
+    {
+        try
+        {
+            if (view.get_Parameter(BuiltInParameter.PLAN_VIEW_NORTH) is { StorageType: StorageType.Integer } orientation && orientation.AsInteger() == 1)
+            {
+                return null;
+            }
+
+            NorthHint? Find(ElementId owner, string where, double ownerRotationDeg)
+            {
+                using var collector = new FilteredElementCollector(document, owner);
+                foreach (FamilyInstance instance in collector.OfClass(typeof(FamilyInstance)).Cast<FamilyInstance>())
+                {
+                    long category = instance.Category?.Id.Value ?? 0;
+                    if (category != (long)BuiltInCategory.OST_GenericAnnotation && category != (long)BuiltInCategory.OST_DetailComponents)
+                    {
+                        continue;
+                    }
+
+                    string name = ((instance.Symbol?.FamilyName ?? string.Empty) + " " + (instance.Symbol?.Name ?? string.Empty)).ToLowerInvariant();
+                    if (!name.Contains("norte", StringComparison.Ordinal) && !name.Contains("north", StringComparison.Ordinal) && !name.Contains("rosa dos ventos", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    XYZ up = instance.GetTransform().BasisY;
+                    if (instance.Mirrored)
+                    {
+                        up = -up;
+                    }
+
+                    return new NorthHint(TrueNorth.Normalize(Geo.RadToDeg(Math.Atan2(-up.X, up.Y)) - ownerRotationDeg), where);
+                }
+
+                return null;
+            }
+
+            if (Find(view.Id, "na planta", 0) is NorthHint inView)
+            {
+                return inView;
+            }
+
+            using var viewports = new FilteredElementCollector(document);
+            foreach (Viewport port in viewports.OfClass(typeof(Viewport)).Cast<Viewport>().Where(v => v.ViewId == view.Id))
+            {
+                double rotation = port.Rotation switch
+                {
+                    ViewportRotation.Clockwise => -90,
+                    ViewportRotation.Counterclockwise => 90,
+                    _ => 0,
+                };
+                if (Find(port.SheetId, "na prancha", rotation) is NorthHint onSheet)
+                {
+                    return onSheet;
+                }
+            }
+        }
+        catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+        {
+            ViridianLog.Warn("Estudo solar: procura do símbolo de norte", ex);
+        }
+
+        return null;
+    }
+
     /// <summary>Ângulo do norte verdadeiro do Revit (posição do projeto), em radianos.</summary>
     public static double RevitNorthAngle(Document document)
     {

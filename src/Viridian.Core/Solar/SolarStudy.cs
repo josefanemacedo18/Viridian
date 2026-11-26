@@ -246,8 +246,40 @@ public static class Sun
 /// Copa que faz sombra: elipsoide com opacidade (copas deixam passar parte da luz). Decíduas e semidecíduas ficam mais
 /// transparentes nos meses sem folhas (<paramref name="LeaflessMask"/>, bits de jan a dez).
 /// </summary>
-public sealed record CrownObstacle(string Id, Vec3 Center, double Radius, double HalfHeight, double Opacity, double GroundZ = double.NaN, int LeaflessMask = 0, double LeaflessFactor = 1)
+public sealed record CrownObstacle(string Id, Vec3 Center, double Radius, double HalfHeight, double Opacity, double GroundZ = double.NaN, int LeaflessMask = 0, double LeaflessFactor = 1, double TrunkRadius = 0)
 {
+    /// <summary>
+    /// Fração da luz que atravessa a copa no raio a partir de <paramref name="origin"/> na direção
+    /// <paramref name="dir"/> (unitária): lei de Beer–Lambert pela espessura de folhagem atravessada. No centro da
+    /// sombra passa 1 − opacidade; nas bordas, onde o raio só raspa a copa, passa quase tudo (meia-luz), como na realidade.
+    /// </summary>
+    public double Transmission(Vec3 origin, Vec3 dir, int month)
+    {
+        var o = new Vec3((origin.X - Center.X) / Radius, (origin.Y - Center.Y) / Radius, (origin.Z - Center.Z) / HalfHeight);
+        var d = new Vec3(dir.X / Radius, dir.Y / Radius, dir.Z / HalfHeight);
+        double a = d.Dot(d), b = 2 * o.Dot(d), c = o.Dot(o) - 1;
+        double disc = b * b - 4 * a * c;
+        if (disc <= 0 || a < 1e-12)
+        {
+            return 1;
+        }
+
+        double sq = Math.Sqrt(disc);
+        double t1 = (-b - sq) / (2 * a), t2 = (-b + sq) / (2 * a);
+        if (t2 <= 1e-6)
+        {
+            return 1; // a copa está atrás do ponto
+        }
+
+        double opacity = Math.Clamp(OpacityIn(month), 0, 0.995);
+        // Espessura atravessada em relação à corda pelo centro na mesma direção (2/√a, em unidades reais).
+        double chord = (t2 - Math.Max(t1, 0)) * Math.Sqrt(a) / 2;
+        return Math.Pow(1 - opacity, Math.Clamp(chord, 0, 1));
+    }
+
+    /// <summary>Altura (cota) do topo do tronco: onde a copa começa.</summary>
+    public double TrunkTop => Center.Z - HalfHeight * 0.75;
+
     /// <summary>Opacidade da copa no mês (1 a 12).</summary>
     public double OpacityIn(int month) =>
         month is >= 1 and <= 12 && (LeaflessMask & (1 << (month - 1))) != 0 ? Opacity * LeaflessFactor : Opacity;
@@ -320,8 +352,10 @@ public sealed record CrownObstacle(string Id, Vec3 Center, double Radius, double
         double z = ground.Z;
         return species.Category switch
         {
-            PlantCategory.Arvore => new CrownObstacle(id, ground + new Vec3(0, 0, height * 0.66), r, Math.Max(0.2, height * 0.34), 0.85, z, mask, factor),
-            PlantCategory.Palmeira => new CrownObstacle(id, ground + new Vec3(0, 0, Math.Max(0.3, height - r * 0.2)), r, Math.Max(0.2, r * 0.4), 0.55, z),
+            PlantCategory.Arvore => new CrownObstacle(id, ground + new Vec3(0, 0, height * 0.66), r, Math.Max(0.2, height * 0.34), 0.85, z, mask, factor,
+                Math.Clamp(height * 0.016, 0.05, 0.35)),
+            PlantCategory.Palmeira => new CrownObstacle(id, ground + new Vec3(0, 0, Math.Max(0.3, height - r * 0.2)), r, Math.Max(0.2, r * 0.4), 0.55, z, 0, 1,
+                Math.Clamp(height * 0.02, 0.08, 0.3)),
             PlantCategory.Arbusto or PlantCategory.Trepadeira when height >= 0.8 => new CrownObstacle(id, ground + new Vec3(0, 0, height / 2), r, height / 2, 0.9, z, mask, factor),
             _ => null,
         };
@@ -577,9 +611,9 @@ public static class SolarStudy
         double light = 1;
         foreach (CrownObstacle c in crowns)
         {
-            if (c.Id != ignoreId && c.Blocks(position, toSun))
+            if (c.Id != ignoreId)
             {
-                light *= 1 - c.OpacityIn(month);
+                light *= c.Transmission(position, toSun, month);
                 if (light < 0.05)
                 {
                     return 0;

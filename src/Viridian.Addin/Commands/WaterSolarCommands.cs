@@ -104,7 +104,8 @@ public sealed class SolarStudyCommand : CommandBase
         ctx.RequireModule(ctx.Settings.Modules.Solar, "Estudo solar");
         ViewPlan view = ctx.RequirePlanView();
         ProjectSite project = SolarService.ReadSite(ctx.Doc, ctx.Settings.Solar);
-        var window = new SolarStudyWindow(project.Site, project.LooksUndefined, project.TrueNorthDeg, ctx.Settings.Solar, project.NorthFromPick);
+        var window = new SolarStudyWindow(project.Site, project.LooksUndefined, project.TrueNorthDeg, ctx.Settings.Solar, project.NorthFromPick,
+            SolarService.NorthSymbolHint(ctx.Doc, view));
         if (!ctx.ShowDialog(window) || window.Site is not SolarSite site)
         {
             return Result.Cancelled;
@@ -137,8 +138,8 @@ public sealed class SolarStudyCommand : CommandBase
 
         RegionBoundary region = ctx.PickRegion("o estudo solar");
         List<(PlantRecord Record, Species Species)> inside = DesignFlows.Plants(ctx, view, region.Polygon);
-        // Fazem sombra todas as plantas da vista, inclusive as de maciços (bosques de árvores).
-        List<(PlantRecord Record, Species Species)> shading = DesignFlows.Plants(ctx, view, includeMassings: true);
+        // Fazem sombra todas as plantas do projeto (de qualquer nível, inclusive as de maciços), cada uma na sua cota real.
+        List<(PlantRecord Record, Species Species)> shading = DesignFlows.Plants(ctx, view, includeMassings: true, anyLevel: true);
         double levelZ = RevitUnits.ToMeters(view.GenLevel!.ProjectElevation);
 
         // Datas das sombras hora a hora: os meses marcados (ou inverno e verão) ou as três datas-chave.
@@ -165,6 +166,12 @@ public sealed class SolarStudyCommand : CommandBase
                 if (window.SaveToProject)
                 {
                     SolarService.SaveSite(ctx.Doc, site);
+                }
+
+                if (window.NorthDeg is double north)
+                {
+                    // Norte escolhido na janela: gravado no projeto como o do comando Indicar Norte.
+                    SolarService.SaveNorth(ctx.Doc, north, false);
                 }
 
                 View3D v = SolarService.CreateProbeView(ctx.Doc);

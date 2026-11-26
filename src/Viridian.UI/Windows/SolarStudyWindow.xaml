@@ -48,7 +48,38 @@
                     <TextBox x:Name="NameBox" Grid.Row="4" Grid.Column="1" AutomationProperties.Name="Nome do local da obra" />
                 </Grid>
                 <CheckBox x:Name="SaveBox" Margin="0,6,0,0" Content="_Gravar estas coordenadas na localização do projeto (Gerenciar > Localização)" />
-                <TextBlock x:Name="NorthText" Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="0,4,0,0" />
+
+                <TextBlock Style="{StaticResource VirSection}" Text="Norte verdadeiro" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock x:Name="NorthText" TextWrapping="Wrap" Margin="0,0,0,6" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="230" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Label Content="Na planta, o _norte aponta para" Target="{Binding ElementName=NorthBox}" Padding="0" VerticalAlignment="Center" />
+                            <ComboBox x:Name="NorthBox" Grid.Column="1" SelectionChanged="North_Changed"
+                                      AutomationProperties.Name="Direção do norte verdadeiro na planta" />
+                            <Label Grid.Row="1" Content="Â_ngulo (graus, horário a partir do topo)" Target="{Binding ElementName=NorthAngleBox}" Padding="0" VerticalAlignment="Center" />
+                            <TextBox x:Name="NorthAngleBox" Grid.Row="1" Grid.Column="1" TextChanged="NorthAngle_Changed"
+                                     AutomationProperties.Name="Ângulo do norte verdadeiro em graus, no sentido horário a partir do topo da planta"
+                                     ToolTip="0 = norte para o topo da planta; 90 = para a direita; 180 = para baixo; 270 = para a esquerda" />
+                        </Grid>
+                        <TextBlock Style="{StaticResource VirHint}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                   Text="O sol, as sombras e os mapas seguem esta direção, e ela fica gravada no projeto. Para indicar clicando na planta, use Estudo Solar > Indicar Norte." />
+                    </StackPanel>
+                    <Canvas x:Name="Compass" Grid.Column="1" Width="84" Height="84" Margin="12,0,0,0" VerticalAlignment="Top"
+                            AutomationProperties.Name="Prévia da direção do norte em relação à planta" />
+                </Grid>
                 <TextBlock Style="{StaticResource VirHint}" TextWrapping="Wrap"
                            Text="A latitude define a altura do sol ao longo do ano; a longitude e o fuso definem os horários de nascer e pôr do sol no quadro. As horas de sol não dependem do fuso. Não há horário de verão." />
 

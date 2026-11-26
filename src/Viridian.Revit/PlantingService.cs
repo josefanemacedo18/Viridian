@@ -359,6 +359,28 @@ public sealed class PlantingService
         });
     }
 
+    /// <summary>
+    /// Nível do exemplar. Plantas assentadas numa face (terreno, piso) ficam sem nível próprio no Revit: vale então o
+    /// "nível da tabela" e, por último, o nível do hospedeiro.
+    /// </summary>
+    public static ElementId LevelIdOf(FamilyInstance instance)
+    {
+        if (instance.LevelId != ElementId.InvalidElementId)
+        {
+            return instance.LevelId;
+        }
+
+        foreach (BuiltInParameter id in new[] { BuiltInParameter.INSTANCE_SCHEDULE_ONLY_LEVEL_PARAM, BuiltInParameter.FAMILY_LEVEL_PARAM, BuiltInParameter.INSTANCE_REFERENCE_LEVEL_PARAM })
+        {
+            if (instance.get_Parameter(id) is { StorageType: StorageType.ElementId } p && p.AsElementId() is { } level && level != ElementId.InvalidElementId)
+            {
+                return level;
+            }
+        }
+
+        return instance.Host is { LevelId: { } hostLevel } ? hostLevel : ElementId.InvalidElementId;
+    }
+
     /// <summary>Lê todos os exemplares de vegetação do projeto.</summary>
     public static IReadOnlyList<PlantRecord> ReadPlants(Document document, Func<string, Species?> lookup)
     {
@@ -389,10 +411,11 @@ public sealed class PlantingService
                 links[symbol.Id] = link;
             }
 
-            if (!levelNames.TryGetValue(instance.LevelId, out string? levelName))
+            ElementId levelId = LevelIdOf(instance);
+            if (!levelNames.TryGetValue(levelId, out string? levelName))
             {
-                levelName = instance.LevelId == ElementId.InvalidElementId ? string.Empty : document.GetElement(instance.LevelId)?.Name ?? string.Empty;
-                levelNames[instance.LevelId] = levelName;
+                levelName = levelId == ElementId.InvalidElementId ? string.Empty : document.GetElement(levelId)?.Name ?? string.Empty;
+                levelNames[levelId] = levelName;
             }
 
             Species? species = link is null ? null : lookup(link.SpeciesId);

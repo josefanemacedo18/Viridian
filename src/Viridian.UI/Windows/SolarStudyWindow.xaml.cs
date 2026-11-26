@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Shapes;
 using Viridian.Core.Model;
 using Viridian.Core.Solar;
 
@@ -16,7 +18,8 @@ public partial class SolarStudyWindow : ViridianWindow
     /// <param name="projectUndefined">O projeto não tem localização definida.</param>
     /// <param name="trueNorthDeg">Norte verdadeiro usado no cálculo, em relação ao topo da planta (graus, anti-horário).</param>
     /// <param name="northFromPick">O norte foi indicado na planta (comando Indicar Norte).</param>
-    public SolarStudyWindow(SolarSite projectSite, bool projectUndefined, double trueNorthDeg, SolarSettings settings, bool northFromPick = false)
+    /// <param name="northHint">Símbolo de norte encontrado na planta ou na prancha, quando houver.</param>
+    public SolarStudyWindow(SolarSite projectSite, bool projectUndefined, double trueNorthDeg, SolarSettings settings, bool northFromPick = false, NorthHint? northHint = null)
     {
         InitializeComponent();
         _projectSite = projectSite;
@@ -45,11 +48,7 @@ public partial class SolarStudyWindow : ViridianWindow
             SiteStatus.Text = "Coordenadas lidas da localização do projeto. Confira se correspondem ao local da obra.";
         }
 
-        NorthText.Text = northFromPick
-            ? $"Norte indicado na planta pelo comando Indicar Norte: {TrueNorth.Describe(trueNorthDeg)}. O sol e as sombras seguem essa direção."
-            : Math.Abs(trueNorthDeg) < 0.05
-                ? "Norte verdadeiro para o topo da planta. Se o projeto foi desenhado girado, use Estudo Solar > Indicar Norte: clique dois pontos na planta, o segundo na direção do norte."
-                : $"Norte do Revit (Gerenciar > Posição): {TrueNorth.Describe(trueNorthDeg)}. Para indicar outro, use Indicar Norte.";
+        SetupNorth(trueNorthDeg, northFromPick, northHint);
 
         for (int m = 0; m < 12; m++)
         {
@@ -86,6 +85,130 @@ public partial class SolarStudyWindow : ViridianWindow
         KeyRadio.IsChecked = !Settings.Monthly;
         UpdatePeriod();
         UpdateBands();
+    }
+
+    /// <summary>Novo norte verdadeiro escolhido (graus anti-horários a partir do topo da planta); nulo = manter o do projeto.</summary>
+    public double? NorthDeg { get; private set; }
+
+    private double _currentNorth;
+    private bool _loadingNorth;
+
+    private sealed record NorthOption(string Label, double? Clockwise)
+    {
+        public override string ToString() => Label;
+    }
+
+    private void SetupNorth(double current, bool fromPick, NorthHint? hint)
+    {
+        _currentNorth = TrueNorth.Normalize(current);
+        bool defined = fromPick || Math.Abs(_currentNorth) >= 0.05;
+        string now = TrueNorth.Describe(_currentNorth);
+        NorthText.Text = fromPick
+            ? $"Atual: indicado na planta (Indicar Norte) — {now}."
+            : defined
+                ? $"Atual: do Revit (Gerenciar > Posição) — {now}."
+                : "O projeto não tem norte verdadeiro definido: sem escolher aqui, o cálculo considera o norte para o topo da planta. "
+                  + "Escolha abaixo para onde o norte verdadeiro aponta na planta.";
+        if (!defined)
+        {
+            NorthText.SetResourceReference(TextBlock.ForegroundProperty, "VirWarning");
+        }
+
+        if (hint is not null)
+        {
+            NorthText.Text += $" Há um símbolo de norte {hint.Source} indicando {TrueNorth.Describe(hint.Degrees)}.";
+        }
+
+        var keep = new NorthOption("Como está no projeto (" + Short(_currentNorth) + ")", TrueNorth.ToClockwise(_currentNorth));
+        NorthOption? fromHint = hint is null ? null : new NorthOption($"Como o símbolo de norte {hint.Source} ({Short(hint.Degrees)})", TrueNorth.ToClockwise(hint.Degrees));
+        NorthBox.Items.Add(keep);
+        if (fromHint is not null)
+        {
+            NorthBox.Items.Add(fromHint);
+        }
+
+        foreach ((string label, double cw) in new[] { ("Para cima (topo da planta)", 0.0), ("Para a direita", 90.0), ("Para baixo", 180.0), ("Para a esquerda", 270.0) })
+        {
+            NorthBox.Items.Add(new NorthOption(label, cw));
+        }
+
+        NorthBox.Items.Add(new NorthOption("Outro ângulo (digite abaixo)", null));
+        NorthBox.SelectedItem = !defined && fromHint is not null ? fromHint : keep;
+    }
+
+    private static string Short(double ccw)
+    {
+        double cw = TrueNorth.ToClockwise(ccw);
+        return cw < 0.05 || cw > 359.95 ? "para cima" : Math.Abs(cw - 90) < 0.05 ? "para a direita" : Math.Abs(cw - 180) < 0.05 ? "para baixo"
+            : Math.Abs(cw - 270) < 0.05 ? "para a esquerda" : Num.Format(cw, "0.#") + "° horário a partir do topo";
+    }
+
+    private void North_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (NorthBox.SelectedItem is NorthOption { Clockwise: double cw })
+        {
+            _loadingNorth = true;
+            NorthAngleBox.Text = Num.Format(cw, "0.##");
+            _loadingNorth = false;
+        }
+        else if (NorthBox.SelectedItem is NorthOption)
+        {
+            NorthAngleBox.Focus();
+            NorthAngleBox.SelectAll();
+        }
+
+        DrawCompass();
+    }
+
+    private void NorthAngle_Changed(object sender, TextChangedEventArgs e)
+    {
+        if (!_loadingNorth && NorthBox.Items.Count > 0 && NorthBox.SelectedItem is NorthOption { Clockwise: double cw }
+            && (!Num.TryParse(NorthAngleBox.Text, out double typed) || Math.Abs(typed - cw) > 1e-9))
+        {
+            _loadingNorth = true;
+            NorthBox.SelectedIndex = NorthBox.Items.Count - 1; // "Outro ângulo"
+            _loadingNorth = false;
+        }
+
+        DrawCompass();
+    }
+
+    /// <summary>Prévia: a planta (retângulo) e a seta do norte girada.</summary>
+    private void DrawCompass()
+    {
+        if (Compass is null)
+        {
+            return;
+        }
+
+        Compass.Children.Clear();
+        double c = 42;
+        var plan = new Rectangle { Width = 46, Height = 30, Stroke = Brushes.Gray, StrokeThickness = 1, Fill = new SolidColorBrush(Color.FromRgb(0xEE, 0xF2, 0xEC)) };
+        Canvas.SetLeft(plan, c - 23);
+        Canvas.SetTop(plan, c - 15);
+        Compass.Children.Add(plan);
+        var top = new TextBlock { Text = "topo", FontSize = 9, Foreground = Brushes.Gray };
+        Canvas.SetLeft(top, c - 10);
+        Canvas.SetTop(top, c - 27);
+        Compass.Children.Add(top);
+        if (!Num.TryParse(NorthAngleBox.Text, out double cw))
+        {
+            return;
+        }
+
+        var green = new SolidColorBrush(Color.FromRgb(0x2E, 0x4A, 0x36));
+        var arrow = new Polygon
+        {
+            Points = new PointCollection { new(c, c - 36), new(c + 7, c - 4), new(c, c - 10), new(c - 7, c - 4) },
+            Fill = green,
+            RenderTransform = new RotateTransform(cw, c, c),
+        };
+        Compass.Children.Add(arrow);
+        double r = Math.PI * cw / 180;
+        var n = new TextBlock { Text = "N", FontWeight = FontWeights.Bold, Foreground = green };
+        Canvas.SetLeft(n, c + Math.Sin(r) * 34 - 4);
+        Canvas.SetTop(n, c - Math.Cos(r) * 34 - 8);
+        Compass.Children.Add(n);
     }
 
     public SolarSettings Settings { get; private set; }
@@ -253,6 +376,15 @@ public partial class SolarStudyWindow : ViridianWindow
             Warn(string.Join("\n", problems));
             return;
         }
+
+        if (!Num.TryParse(NorthAngleBox.Text, out double northCw) || !double.IsFinite(northCw) || Math.Abs(northCw) > 720)
+        {
+            Warn("Norte verdadeiro: informe o ângulo em graus, no sentido horário a partir do topo da planta (0 = para cima, 90 = para a direita).");
+            return;
+        }
+
+        double northCcw = TrueNorth.FromClockwise(northCw);
+        NorthDeg = Math.Abs(TrueNorth.Normalize(northCcw - _currentNorth)) > 0.05 ? northCcw : null;
 
         if (lat > 6 && lon < -28 && lon > -75 && !Confirm("A latitude é positiva (hemisfério norte), mas a longitude é do Brasil. No Brasil, quase toda latitude é negativa (sul). Continuar assim mesmo?"))
         {

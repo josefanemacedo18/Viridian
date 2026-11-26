@@ -28,11 +28,27 @@ public sealed class ShadeFrame
     /// <summary>Sombra de cada copa no chão (contorno em metros) e a opacidade da copa no mês.</summary>
     public List<(string Id, IReadOnlyList<Point2> Outline, double Opacity)> Shadows { get; } = new();
 
-    /// <summary>Parte da malha à sombra (luz abaixo de 50%).</summary>
-    public double ShadedFraction => Grid.Length == 0 ? 0 : Grid.Count(l => l < 0.5) / (double)Grid.Length;
+    /// <summary>
+    /// Manchas de luz contornadas (sombra realista: edificações projetadas, copas e troncos), do maior para o menor.
+    /// Vazio quando o cálculo foi feito só na malha de pontos.
+    /// </summary>
+    public List<ShadeRing> Rings { get; } = new();
+
+    /// <summary>Parte do chão à sombra calculada no campo fino (NaN quando não há campo).</summary>
+    public double FieldShadedFraction { get; set; } = double.NaN;
+
+    /// <summary>Parte do chão à sombra (luz abaixo de 50%): pelo campo fino ou, sem ele, pela malha.</summary>
+    public double ShadedFraction => double.IsFinite(FieldShadedFraction) ? FieldShadedFraction
+        : Grid.Length == 0 ? 0 : Grid.Count(l => l < 0.5) / (double)Grid.Length;
 
     public string HourText => $"{ClockHour:00}:00";
 }
+
+/// <summary>
+/// Dados para as sombras realistas: a região, o plano do jardim (cota do chão, m), a geometria das edificações, a
+/// resolução da malha fina e até que distância (m) as edificações são consideradas.
+/// </summary>
+public sealed record ShadeGeometry(Polygon2 Region, double PlaneZ, ObstacleMesh? Mesh, double Resolution, double Reach = 80);
 
 /// <summary>Cálculo das sombras de hora em hora (hora legal) a partir das coordenadas da obra.</summary>
 public static class HourlyShade
@@ -80,9 +96,13 @@ public static class HourlyShade
         int toHour,
         Func<Vec3, Vec3> toModel,
         Func<Vec3, Vec3, bool>? blockedByBuildings,
-        CancellationToken cancel = default)
+        CancellationToken cancel = default,
+        ShadeGeometry? geometry = null)
     {
         var frames = new List<ShadeFrame>();
+        IReadOnlyList<List<Vec3>>? casters = geometry?.Mesh is { IsEmpty: false } mesh
+            ? mesh.Above(geometry.PlaneZ + ShadowField.MinCasterHeightM, geometry.Region.Bounds.Expand(geometry.Reach))
+            : null;
         foreach (int hour in Hours(site, date, fromHour, toHour))
         {
             cancel.ThrowIfCancellationRequested();
@@ -104,6 +124,13 @@ public static class HourlyShade
                 {
                     frame.Shadows.Add((c.Id, outline, c.OpacityIn(date.Month)));
                 }
+            }
+
+            if (geometry is not null)
+            {
+                LightField field = ShadowField.Compute(geometry.Region, geometry.Resolution, geometry.PlaneZ, toSun, date.Month, crowns, casters);
+                frame.Rings.AddRange(ShadowField.Rings(field));
+                frame.FieldShadedFraction = field.ShadedFraction();
             }
 
             frames.Add(frame);

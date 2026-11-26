@@ -2,6 +2,9 @@ using Viridian.Core.Geometry;
 
 namespace Viridian.Core.Solar;
 
+/// <summary>Sugestão de norte encontrada no projeto (por exemplo, o símbolo de norte da prancha), em graus anti-horários.</summary>
+public sealed record NorthHint(double Degrees, string Source);
+
 /// <summary>
 /// Norte verdadeiro indicado na planta: o projetista clica em dois pontos (o segundo na direção do norte verdadeiro)
 /// e o ângulo fica gravado no projeto. Ângulos em graus, medidos a partir do eixo Y do modelo (o "para cima" da
@@ -9,6 +12,16 @@ namespace Viridian.Core.Solar;
 /// </summary>
 public static class TrueNorth
 {
+    /// <summary>Converte o ângulo anti-horário (convenção interna) em graus horários de 0 a 360, como se lê na planta.</summary>
+    public static double ToClockwise(double degrees)
+    {
+        double cw = -Normalize(degrees) % 360;
+        return cw < 0 ? cw + 360 : cw;
+    }
+
+    /// <summary>Converte graus horários a partir do topo da planta na convenção interna (anti-horário, −180 a 180).</summary>
+    public static double FromClockwise(double clockwise) => Normalize(-clockwise);
+
     /// <summary>Distância mínima entre os dois pontos clicados (m).</summary>
     public const double MinPickDistanceM = 0.05;
 

@@ -22,15 +22,28 @@ namespace Viridian.Addin.Commands;
 /// <summary>Leitura do projeto usada pelas ferramentas de composição e detalhamento.</summary>
 internal static class DesignFlows
 {
-    /// <summary>Exemplares cadastrados (não removidos e fora de maciços) do nível da vista, opcionalmente dentro de um contorno.</summary>
-    public static List<(PlantRecord Record, Species Species)> Plants(ViridianContext ctx, View view, Polygon2? inside = null, bool includeMassings = false)
+    /// <summary>
+    /// Exemplares cadastrados (não removidos e fora de maciços) da vista, opcionalmente dentro de um contorno. Valem os
+    /// do nível da vista, os visíveis nela e os sem nível (assentados no terreno ou num piso). Com
+    /// <paramref name="anyLevel"/>, todos os níveis (por exemplo, árvores que fazem sombra).
+    /// </summary>
+    public static List<(PlantRecord Record, Species Species)> Plants(ViridianContext ctx, View view, Polygon2? inside = null, bool includeMassings = false, bool anyLevel = false)
     {
         string level = PlantingService.LevelOf(view)?.Name ?? string.Empty;
+        HashSet<long> visible = new();
+        if (!anyLevel && level.Length > 0)
+        {
+            using var collector = new FilteredElementCollector(ctx.Doc, view.Id);
+            visible = collector.OfCategory(BuiltInCategory.OST_Planting).WhereElementIsNotElementType().ToElementIds().Select(id => id.Value).ToHashSet();
+        }
+
         var result = new List<(PlantRecord, Species)>();
         foreach (PlantRecord plant in PlantingService.ReadPlants(ctx.Doc, ctx.Lookup))
         {
+            bool onView = anyLevel || level.Length == 0 || plant.LevelName.Length == 0
+                          || string.Equals(plant.LevelName, level, StringComparison.Ordinal) || visible.Contains(plant.ElementId);
             if (!plant.IsRegistered || plant.Status == PlantStatus.Removido || (plant.BelongsToMassing && !includeMassings)
-                || (level.Length > 0 && !string.Equals(plant.LevelName, level, StringComparison.Ordinal))
+                || !onView
                 || (inside is not null && !inside.Contains(plant.Location))
                 || ctx.Lookup(plant.SpeciesId) is not Species species)
             {
